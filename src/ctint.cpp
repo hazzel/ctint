@@ -7,6 +7,7 @@
 #include <boost/serialization/complex.hpp>
 #include "ctint.hpp"
 #include "greens_function.h"
+#include "fast_update.h"
 
 // --------------- The QMC configuration ----------------
 
@@ -36,12 +37,14 @@ struct configuration
 {
 	const lattice& l;
 	triqs::det_manip::det_manip<full_g_entry> Mmatrix;
+	fast_update<full_g_entry, arg_t> M;
 	triqs::statistics::observable<double> obs_pert_order;
 
 	int perturbation_order() const { return Mmatrix.size() / 2; }
 
 	configuration(const lattice& l_, const greens_function& g0)
-		: l(l_), Mmatrix{full_g_entry{g0}, 100}, obs_pert_order()
+		: l(l_), Mmatrix{full_g_entry{g0}, 100}, M{full_g_entry{g0}, l_},
+			obs_pert_order()
 	{}
 };
 

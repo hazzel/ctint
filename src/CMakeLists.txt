@@ -1,3 +1,4 @@
+set(TRIQS_PATH /home/stephan/libs/triqs)
 # Append triqs installed files to the cmake load path
 list(APPEND CMAKE_MODULE_PATH ${TRIQS_PATH}/share/triqs/cmake)
 
@@ -11,7 +12,7 @@ find_package(TRIQS REQUIRED)
 
 # Linking and include info
 link_libraries(${TRIQS_LIBRARY_ALL})
-include_directories(${TRIQS_INCLUDE_ALL})
+include_directories(${TRIQS_INCLUDE_ALL} /home/stephan/libs/eigen)
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -std=c++11")
 
 # Create executable

@@ -1,3 +1,4 @@
+#pragma once
 #include <string>
 
 // ------------ The main class of the solver -----------------------
