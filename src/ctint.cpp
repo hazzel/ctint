@@ -1,3 +1,5 @@
+#include <iostream>
+#include <cassert>
 #include <triqs/mc_tools.hpp>
 #include <triqs/det_manip.hpp>
 #include <triqs/statistics.hpp>
@@ -19,7 +21,6 @@ struct arg_t
 struct full_g_entry
 {
 	const greens_function& g0;
-	double beta;
 
 	double operator()(const arg_t& x, const arg_t& y) const
 	{
@@ -39,8 +40,8 @@ struct configuration
 
 	int perturbation_order() const { return Mmatrix.size() / 2; }
 
-	configuration(const lattice& l_, const greens_function& g0, double beta)
-		: l(l_), Mmatrix{full_g_entry{g0, beta}, 100}, obs_pert_order()
+	configuration(const lattice& l_, const greens_function& g0)
+		: l(l_), Mmatrix{full_g_entry{g0}, 100}, obs_pert_order()
 	{}
 };
 
@@ -60,6 +61,7 @@ struct move_insert
 		int k = config->perturbation_order();
 		double det_ratio = config->Mmatrix.try_insert2(2*k, 2*k+1, 2*k,
 			2*k+1, {tau, s1}, {tau, s2}, {tau, s1}, {tau, s2});
+		assert(det_ratio == det_ratio && "nan value in det ratio");
 		return -beta * V * config->l.n_bonds() / (k + 1) * det_ratio;
 	}
 
@@ -85,8 +87,8 @@ struct move_remove
 		int k = config->perturbation_order();
 		if (k <= 0) return 0;
 		int p = rng(k); // Choose one of the operators for removal
-		double det_ratio = config->Mmatrix.try_remove2(2*p, 2*p+1, 2*p,
-			2*p+1);
+		double det_ratio = config->Mmatrix.try_remove2(2*p, 2*p+1, 2*p, 2*p+1);
+		assert(det_ratio == det_ratio && "nan value in det ratio");
 		return -k / (beta * V * config->l.n_bonds()) * det_ratio;
 	}
 
@@ -144,7 +146,7 @@ void ctint_solver::solve(int L, double V, int n_cycles, int length_cycle,
 
 	// Rank-specific variables
 	int verbosity = (world.rank() == 0 ? 3 : 0);
-	int random_seed = 34788 + 928374 * world.rank();
+	int random_seed = 34789 + 928374 * world.rank();
 
 	// Construct a Monte Carlo loop
 	triqs::mc_tools::mc_generic<double> CTQMC(n_cycles, length_cycle,
@@ -156,7 +158,7 @@ void ctint_solver::solve(int L, double V, int n_cycles, int length_cycle,
 	l.generate_graph(h);
 	greens_function g0;
 	g0.generate_mesh(&l, beta, n_slices);
-	auto config = configuration{l, g0, beta};
+	auto config = configuration{l, g0};
 
 	// Register moves and measurements
 	CTQMC.add_move(move_insert{&config, CTQMC.rng(), beta, V}, "insertion");

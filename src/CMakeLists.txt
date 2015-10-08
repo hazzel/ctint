@@ -12,6 +12,7 @@ find_package(TRIQS REQUIRED)
 # Linking and include info
 link_libraries(${TRIQS_LIBRARY_ALL})
 include_directories(${TRIQS_INCLUDE_ALL})
+set(CMAKE_CXX_FLAGS_RELEASE "-O3 -std=c++11")
 
 # Create executable
 add_executable(ctint ctint.cpp main.cpp)

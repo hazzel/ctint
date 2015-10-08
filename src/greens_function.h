@@ -3,10 +3,10 @@
 #include <vector>
 #include <cmath>
 #include "boost/multi_array.hpp"
-#include "lattice.h"
 #include <triqs/arrays/array.hpp>
 #include <triqs/arrays/matrix.hpp>
 #include <triqs/arrays/linalg/eigenelements.hpp>
+#include "lattice.h"
 
 class greens_function
 {
@@ -16,13 +16,13 @@ class greens_function
 		void generate_mesh(lattice* l_, double beta_, int n_slices_)
 		{
 			l = l_; beta = beta_; n_slices = n_slices_;
-			dtau = beta / (2 * static_cast<double>(n_slices));
+			dtau = beta / (2.0 * static_cast<double>(n_slices));
 			
 			triqs::arrays::matrix<double> K(l->n_sites(), l->n_sites());
 			triqs::arrays::assign_foreach(K, [this](int i, int j)
-				{ return (l->distance(i, j) == 1) ? -1.0 : 0.0; });
+				{ return (l->distance(i, j) == 1) ? -1.0 : 0.0; });	
 			auto v = triqs::arrays::linalg::eigenelements(K);
-			
+		
 			generate_index_map(v.first, v.second);
 			fill_mesh(v.first, v.second);
 		}
@@ -55,12 +55,12 @@ class greens_function
 			triqs::arrays::matrix<double> D(l->n_sites(), l->n_sites());
 			triqs::arrays::assign_foreach(D, [&tau, &ev, this](int i, int j)
 			{
-				if (i != j)
+				if (i == j)
 					return std::exp(-tau * ev(i)) /
 						(1.0 + std::exp(-beta * ev(i)));
 				else
 					return 0.0; });
-			return V * D * V.transpose();
+			return V.transpose() * D * V;
 		}
 		
 		void generate_index_map(const triqs::arrays::array<double, 1>& ev,
