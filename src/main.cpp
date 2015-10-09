@@ -1,4 +1,5 @@
 #include <iostream>
+#include <cstdlib>
 #include <boost/mpi.hpp>
 #include "ctint.hpp"
 
@@ -8,12 +9,12 @@ int main(int argc, char* argv[])
 	
 	double L=6, V=1.5, beta=5.0;
 	int n_cycles = 1000000, n_cycle_length = 50, n_warmup_cycles = 500;
-	if(argc==4)
+	if(argc==5)
 	{
-		L = atof(argv[1]);
-		V = atof(argv[2]);
-		beta = atoi(argv[3]);
-		n_cycles = 1000000 ;
+		L = std::atof(argv[1]);
+		V = std::atof(argv[2]);
+		beta = std::atoi(argv[3]);
+		n_cycles = std::atoi(argv[4]) ;
 	}
 	std::cout << "CT-INT with L=" << L << ", V=" << V << ", beta=" << beta
 	  << std::endl;	
