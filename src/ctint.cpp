@@ -40,7 +40,8 @@ struct configuration
 	fast_update<full_g_entry, arg_t> M;
 	triqs::statistics::observable<double> obs_pert_order;
 
-	int perturbation_order() const { return Mmatrix.size() / 2; }
+	//int perturbation_order() const { return Mmatrix.size() / 2; }
+	int perturbation_order() const { return M.perturbation_order(); }
 
 	configuration(const lattice& l_, const greens_function& g0)
 		: l(l_), Mmatrix{full_g_entry{g0}, 100}, M{full_g_entry{g0}, l_},
@@ -62,15 +63,17 @@ struct move_insert
 		int s1 = rng(config->l.n_sites());
 		int s2 = config->l.neighbors(s1, 1)[rng(3)];
 		int k = config->perturbation_order();
-		double det_ratio = config->Mmatrix.try_insert2(2*k, 2*k+1, 2*k,
-			2*k+1, {tau, s1}, {tau, s2}, {tau, s1}, {tau, s2});
+		//double det_ratio = config->Mmatrix.try_insert2(2*k, 2*k+1, 2*k,
+		//	2*k+1, {tau, s1}, {tau, s2}, {tau, s1}, {tau, s2});
+		double det_ratio = config->M.try_add({tau, s1}, {tau, s2});
 		assert(det_ratio == det_ratio && "nan value in det ratio");
 		return -beta * V * config->l.n_bonds() / (k + 1) * det_ratio;
 	}
 
 	double accept()
 	{
-		config->Mmatrix.complete_operation(); // Finish insertion
+		//config->Mmatrix.complete_operation(); // Finish insertion
+		config->M.finish_add();
 		return 1.0;
 	}
 
@@ -90,14 +93,16 @@ struct move_remove
 		int k = config->perturbation_order();
 		if (k <= 0) return 0;
 		int p = rng(k); // Choose one of the operators for removal
-		double det_ratio = config->Mmatrix.try_remove2(2*p, 2*p+1, 2*p, 2*p+1);
+		//double det_ratio = config->Mmatrix.try_remove2(2*p, 2*p+1, 2*p, 2*p+1);
+		double det_ratio = config->M.try_remove(p);
 		assert(det_ratio == det_ratio && "nan value in det ratio");
 		return -k / (beta * V * config->l.n_bonds()) * det_ratio;
 	}
 
 	double accept()
 	{
-		config->Mmatrix.complete_operation(); // Finish removal
+		//config->Mmatrix.complete_operation(); // Finish removal
+		config->M.finish_remove();
 		return 1.0;
 	}
 
