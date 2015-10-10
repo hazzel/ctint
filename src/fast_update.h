@@ -60,6 +60,7 @@ class fast_update
 			dmatrix_t vM = M.transpose() * helper.v.transpose();
 			vM.transposeInPlace();
 			M.conservativeResize(k + n, k + n);
+
 			M.block(k, 0, n, k).noalias() = -helper.S * vM;
 			M.topLeftCorner(k, k).noalias() -= helper.Mu * M.block(k, 0, n, k);
 			M.block(0, k, k, n).noalias() = -helper.Mu * helper.S;
