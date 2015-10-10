@@ -44,8 +44,8 @@ class fast_update
 			arg_buffer[0] = x;
 			arg_buffer[1] = y;
 			fill_helper_matrices();
-			helper.Mu = M * helper.u;
-			helper.S = helper.a - helper.v * helper.Mu;
+			helper.Mu.noalias() = M * helper.u;
+			helper.S.noalias() = helper.a - helper.v * helper.Mu;
 
 			return helper.S.determinant();
 		}
@@ -60,9 +60,9 @@ class fast_update
 			dmatrix_t vM = M.transpose() * helper.v.transpose();
 			vM.transposeInPlace();
 			M.conservativeResize(k + n, k + n);
-			M.block(k, 0, n, k) = -helper.S * vM;
-			M.topLeftCorner(k, k) -= helper.Mu * M.block(k, 0, n, k);
-			M.block(0, k, k, n) = -helper.Mu * helper.S;
+			M.block(k, 0, n, k).noalias() = -helper.S * vM;
+			M.topLeftCorner(k, k).noalias() -= helper.Mu * M.block(k, 0, n, k);
+			M.block(0, k, k, n).noalias() = -helper.Mu * helper.S;
 					
 			/*
 			dmatrix_t vinvG = v * invG.topLeftCorner(k, k);
@@ -92,7 +92,8 @@ class fast_update
 			dmatrix_t t = M.block(k - n, 0, n, k - n).transpose()
 				* helper.S.inverse();
 			t.transposeInPlace();
-			M.topLeftCorner(k - n, k - n) -= M.block(0, k - n, k - n, n) * t;
+			M.topLeftCorner(k - n, k - n).noalias()
+				-= M.block(0, k - n, k - n, n) * t;
 			M.conservativeResize(k - n, k - n);
 
 			for (int i = 0; i < n; ++i)

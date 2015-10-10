@@ -9,6 +9,8 @@
 #include "greens_function.h"
 #include "fast_update.h"
 
+#define triqs_impl
+
 // --------------- The QMC configuration ----------------
 
 // Argument type
@@ -40,13 +42,22 @@ struct configuration
 	fast_update<full_g_entry, arg_t> M;
 	triqs::statistics::observable<double> obs_pert_order;
 
-	//int perturbation_order() const { return Mmatrix.size() / 2; }
+	#ifndef eigen_impl
+	int perturbation_order() const { return Mmatrix.size() / 2; }
+	#else
 	int perturbation_order() const { return M.perturbation_order(); }
+	#endif
 
 	configuration(const lattice& l_, const greens_function& g0)
 		: l(l_), Mmatrix{full_g_entry{g0}, 100}, M{full_g_entry{g0}, l_},
 			obs_pert_order()
-	{}
+	{
+		#ifndef eigen_impl
+		std::cout << "Using 'triqs' for fast updates." << std::endl;
+		#else
+		std::cout << "Using 'eigen' for fast updates." << std::endl;
+		#endif
+	}
 };
 
 // ------------ QMC move : inserting a vertex ------------------
@@ -63,17 +74,23 @@ struct move_insert
 		int s1 = rng(config->l.n_sites());
 		int s2 = config->l.neighbors(s1, 1)[rng(3)];
 		int k = config->perturbation_order();
-		//double det_ratio = config->Mmatrix.try_insert2(2*k, 2*k+1, 2*k,
-		//	2*k+1, {tau, s1}, {tau, s2}, {tau, s1}, {tau, s2});
+		#ifndef eigen_impl
+		double det_ratio = config->Mmatrix.try_insert2(2*k, 2*k+1, 2*k,
+			2*k+1, {tau, s1}, {tau, s2}, {tau, s1}, {tau, s2});
+		#else
 		double det_ratio = config->M.try_add({tau, s1}, {tau, s2});
+		#endif
 		assert(det_ratio == det_ratio && "nan value in det ratio");
 		return -beta * V * config->l.n_bonds() / (k + 1) * det_ratio;
 	}
 
 	double accept()
 	{
-		//config->Mmatrix.complete_operation(); // Finish insertion
+		#ifndef eigen_impl
+		config->Mmatrix.complete_operation(); // Finish insertion
+		#else
 		config->M.finish_add();
+		#endif
 		return 1.0;
 	}
 
@@ -93,16 +110,22 @@ struct move_remove
 		int k = config->perturbation_order();
 		if (k <= 0) return 0;
 		int p = rng(k); // Choose one of the operators for removal
-		//double det_ratio = config->Mmatrix.try_remove2(2*p, 2*p+1, 2*p, 2*p+1);
+		#ifndef eigen_impl
+		double det_ratio = config->Mmatrix.try_remove2(2*p, 2*p+1, 2*p, 2*p+1);
+		#else
 		double det_ratio = config->M.try_remove(p);
+		#endif
 		assert(det_ratio == det_ratio && "nan value in det ratio");
 		return -k / (beta * V * config->l.n_bonds()) * det_ratio;
 	}
 
 	double accept()
 	{
-		//config->Mmatrix.complete_operation(); // Finish removal
+		#ifndef eigen_impl
+		config->Mmatrix.complete_operation(); // Finish removal
+		#else
 		config->M.finish_remove();
+		#endif
 		return 1.0;
 	}
 
