@@ -7,6 +7,9 @@ class ctint_solver
 {
 	double beta;
 	int n_slices;
+	int worm_nhood_dist = -1;
+	double zeta2 = 0.75;
+	double zeta4 = 16.0;
 
 	public:
 		ctint_solver(double beta_, int n_slices_ = 100);

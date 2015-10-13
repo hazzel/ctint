@@ -84,6 +84,11 @@ class lattice
 			return site % 2;
 		}
 
+		double parity(vertex_t site) const
+		{
+			return site % 2 ? 1.0 : -1.0;
+		}
+
 		void print_sites() const
 		{
 			std::pair<vertex_it_t, vertex_it_t> vs = boost::vertices(*graph);
