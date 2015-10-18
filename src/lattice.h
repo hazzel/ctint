@@ -86,7 +86,7 @@ class lattice
 
 		double parity(vertex_t site) const
 		{
-			return site % 2 ? 1.0 : -1.0;
+			return (site % 2 == 0) ? 1.0 : -1.0;
 		}
 
 		void print_sites() const

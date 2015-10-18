@@ -15,6 +15,8 @@ struct helper_matrices
 	dmatrix_t Mu;
 	dmatrix_t a;
 	dmatrix_t S;
+	dmatrix_t m;
+	dmatrix_t mt;
 };
 
 template<typename function_t, typename arg_t>
@@ -40,6 +42,26 @@ class fast_update
 			for (int f = 0; f < flavor; ++f)
 				offset += flavor_cnt[f];
 			return vertices[offset + index]; 
+		}
+
+		void print_vertices() const
+		{
+			std::cout << "print vertices:" << std::endl;
+			int offset = 0;
+			for (int f = 0; f < flavor_cnt.size(); f++)
+			{
+				std::cout << "flavor " << f << std::endl;
+				for (int i = 0; i < flavor_cnt[f]/2; ++i)
+				{
+					std::cout << 2*i << ": " << vertices[offset+2*i].tau << ", "
+						<< vertices[offset+2*i].site << " , w: "
+						<< vertices[offset+2*i].worm << " ; "
+						<< vertices[offset+2*i+1].tau
+						<< ", " << vertices[offset+2*i+1].site << " , w: "
+						<< vertices[offset+2*i+1].worm << std::endl;
+				}
+				offset += flavor_cnt[f];
+			}
 		}
 
 		template<int N>
@@ -116,6 +138,51 @@ class fast_update
 			for (int i = 0; i < n; ++i)
 				vertices.erase(vertices.end() - 1);
 			flavor_cnt[last_flavor] -= n;
+		}
+		
+		double try_shift(std::vector<arg_t>& args)
+		{
+			int k = M.rows() - args.size();
+			int n = args.size();
+			last_flavor = 1; //shift worm vertices
+			
+			arg_buffer.swap(args);
+			helper.u.resize(k, n);
+			helper.v.resize(n, k);
+			helper.a.resize(n, n);
+			helper.m.resize(k, k);
+			helper.mt.resize(k, k);
+			fill_helper_matrices();
+			
+			dmatrix_t t = M.block(k, 0, n, k).transpose()
+				* M.bottomRightCorner(n, n).inverse().transpose();
+			t.transposeInPlace();
+			helper.m.noalias() = M.topLeftCorner(k, k) - M.block(0, k, k, n) * t;
+			helper.mt.noalias() = helper.m.transpose();
+			helper.v.transposeInPlace();
+			helper.S.noalias() = helper.a - (helper.u.transpose() * helper.mt
+				* helper.v).transpose();
+			return helper.S.determinant()
+				* M.bottomRightCorner(n, n).determinant();
+		}
+		
+		void finish_shift()
+		{
+			int k = M.rows() - arg_buffer.size();
+			int n = arg_buffer.size();
+			
+			helper.S = helper.S.inverse().eval();
+			dmatrix_t vM = helper.mt * helper.v;
+			vM.transposeInPlace();
+			helper.Mu.noalias() = helper.m * helper.u;
+			M.block(k, 0, n, k).noalias() = -helper.S * vM;
+			M.topLeftCorner(k, k).noalias() = helper.m - helper.Mu
+				* M.block(k, 0, n, k);
+			M.block(0, k, k, n).noalias() = -helper.Mu * helper.S;
+			M.template block(k, k, n, n).noalias() = helper.S;
+			
+			for (int i = 0; i < arg_buffer.size(); ++i)
+				vertices[vertices.size() - arg_buffer.size() + i] = arg_buffer[i];
 		}
 	private:
 		void fill_helper_matrices()
