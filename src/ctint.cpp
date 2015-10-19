@@ -511,10 +511,9 @@ struct measure_M
 {
 	configuration* config;
 	double Z = 0, k = 0;
-	long unsigned int seed;
 
-	measure_M(configuration* config_, long unsigned int seed_)
-		: config(config_), seed(seed_)
+	measure_M(configuration* config_)
+		: config(config_)
 	{}
 
 	void accumulate(double sign)
@@ -550,13 +549,13 @@ struct measure_M
 		//	std14::plus<triqs::statistics::observable<double>>());
 		
 		int bin_size = 1000;
-		triqs::h5::file file("test_store.h5", H5F_ACC_RDWR);
-		triqs::h5::group root(file);
-		triqs::h5::group run = root.create_group("run "
-			+ std::to_string(c.rank()));
-		triqs::h5::group gr_measure = run.create_group("observables");
-		triqs::h5::h5_write(gr_measure, "pert_order", triqs::statistics::
-			make_binned_series(config->obs_pert_order, bin_size).data());
+//		triqs::h5::file file("test_store.h5", H5F_ACC_RDWR);
+//		triqs::h5::group root(file);
+//		triqs::h5::group run = root.create_group("run "
+//			+ std::to_string(c.rank()));
+//		triqs::h5::group gr_measure = run.create_group("observables");
+//		triqs::h5::h5_write(gr_measure, "pert_order", triqs::statistics::
+//			make_binned_series(config->obs_pert_order, bin_size).data());
 
 		if (c.rank() == 0)
 		{
@@ -589,17 +588,17 @@ struct measure_M
 					<< std::endl;
 				std::cout << "M_2 = "
 					<< triqs::statistics::average_and_error(config->obs_W2
-						/ config->obs_Z / config->params.zeta2, bin_size)
+						/ config->obs_Z / config->params.zeta2)
 					<< std::endl;
 				std::cout << "M_4 = "
 					<< triqs::statistics::average_and_error(config->obs_W4
-						/ config->obs_Z / config->params.zeta4, bin_size)
+						/ config->obs_Z / config->params.zeta4)
 					<< std::endl;
 				std::cout << "Binder = "
 					<< triqs::statistics::average_and_error(config->obs_W4
 						* config->obs_Z / (config->obs_W2 * config->obs_W2)
 						* config->params.zeta2 * config->params.zeta2
-						/ config->params.zeta4, bin_size)
+						/ config->params.zeta4)
 					<< std::endl;
 			
 				std::cout << "ZtoW2 = "
@@ -712,7 +711,7 @@ void ctint_solver::solve(int L, double V, int n_cycles, int length_cycle,
 	CTQMC.add_move(move_W2toW4{&config, CTQMC.rng(), false}, "W2 -> W4");
 	CTQMC.add_move(move_W4toW2{&config, CTQMC.rng(), false}, "W4 -> W2");
 	CTQMC.add_move(move_shift{&config, CTQMC.rng(), false}, "worm shift");
-	CTQMC.add_measure(measure_M{&config, seed}, "M measurement");
+	CTQMC.add_measure(measure_M{&config}, "M measurement");
 
 	// Run and collect results
 	CTQMC.start(1.0, triqs::utility::clock_callback(max_time));
