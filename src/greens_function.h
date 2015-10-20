@@ -3,14 +3,15 @@
 #include <vector>
 #include <cmath>
 #include "boost/multi_array.hpp"
-#include <triqs/arrays/array.hpp>
-#include <triqs/arrays/matrix.hpp>
-#include <triqs/arrays/linalg/eigenelements.hpp>
+#include <Eigen/Dense>
+#include <Eigen/Eigenvalues> 
 #include "lattice.h"
 
 class greens_function
 {
 	public:
+		typedef Eigen::MatrixXd matrix_t;
+		typedef Eigen::VectorXd vector_t;
 		greens_function() {}
 
 		void generate_mesh(lattice* l_, double beta_, int n_slices_)
@@ -18,13 +19,16 @@ class greens_function
 			l = l_; beta = beta_; n_slices = n_slices_;
 			dtau = beta / (2.0 * static_cast<double>(n_slices));
 			
-			triqs::arrays::matrix<double> K(l->n_sites(), l->n_sites());
-			triqs::arrays::assign_foreach(K, [this](int i, int j)
-				{ return (l->distance(i, j) == 1) ? -1.0 : 0.0; });	
-			auto v = triqs::arrays::linalg::eigenelements(K);
+			matrix_t K(l->n_sites(), l->n_sites());
+			for (int i = 0; i < l->n_sites(); ++i)
+				for (int j = 0; j < l->n_sites(); ++j)
+					K(i, j) = (l->distance(i, j) == 1) ? -1.0 : 0.0;
+			Eigen::SelfAdjointEigenSolver<matrix_t> solver(K);
+			auto ev = solver.eigenvalues();
+			auto V = solver.eigenvectors();
 		
-			generate_index_map(v.first, v.second);
-			fill_mesh(v.first, v.second);
+			generate_index_map(ev, V);
+			fill_mesh(ev, V);
 		}
 		
 		double operator()(double tau, int i, int j) const
@@ -48,23 +52,24 @@ class greens_function
 			return sign * g;
 		}
 	private:
-		triqs::arrays::matrix<double> bare_gf(double tau,
-			const triqs::arrays::array<double, 1>& ev,
-			const triqs::arrays::matrix<double>& V)
+		matrix_t bare_gf(double tau,
+			const vector_t& ev,
+			const matrix_t& V)
 		{
-			triqs::arrays::matrix<double> D(l->n_sites(), l->n_sites());
-			triqs::arrays::assign_foreach(D, [&tau, &ev, this](int i, int j)
+			matrix_t D(l->n_sites(), l->n_sites());
+			for (int i = 0; i < l->n_sites(); ++i)
 			{
-				if (i == j)
-					return std::exp(-tau * ev(i)) /
-						(1.0 + std::exp(-beta * ev(i)));
-				else
-					return 0.0; });
+				D(i, i) =  std::exp(-tau * ev[i]) /
+					(1.0 + std::exp(-beta * ev[i]));
+				for (int j = 0; j < l->n_sites(); ++j)
+					if (i != j)
+						D(i, j) = 0.0;
+			}
 			return V.transpose() * D * V;
 		}
 		
-		void generate_index_map(const triqs::arrays::array<double, 1>& ev,
-			const triqs::arrays::matrix<double>& V)
+		void generate_index_map(const vector_t& ev,
+			const matrix_t& V)
 		{
 			index_map.resize(boost::extents[l->n_sites()][l->n_sites()]);
 			double threshold = std::pow(10.0, -13.0);
@@ -96,8 +101,8 @@ class greens_function
 			mesh.resize(boost::extents[values.size()][n_slices + 1]);
 		}
 		
-		void fill_mesh(const triqs::arrays::array<double, 1>& ev,
-			const triqs::arrays::matrix<double>& V)
+		void fill_mesh(const vector_t& ev,
+			const matrix_t& V)
 		{
 			for (int t = 0; t <= n_slices; ++t)
 			{

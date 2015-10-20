@@ -1,7 +1,6 @@
 #pragma once
 #include <vector>
 #include <array>
-#include <initializer_list>
 #include <Eigen/Dense>
 #include "lattice.h"
 
