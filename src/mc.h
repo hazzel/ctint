@@ -54,12 +54,14 @@ class mc
 		#endif
 	public:
 		void do_update();
-		void do_measurement();	
+		void do_measurement();
+		void status();
 	private:
-		mctools qmc;
 		Random rng;
+		mctools qmc;
 		parser pars;
 		int sweep;
+		int n_cycles;
 		int n_warmup;
 		int n_prebin;
 		double* evalableParameters;
@@ -68,6 +70,7 @@ class mc
 		lattice lat;
 		greens_function g0;
 		parameters param;
+		configuration* config;
 
 		int n_tau_slices;
 };

@@ -56,15 +56,9 @@ class greens_function
 			const vector_t& ev,
 			const matrix_t& V)
 		{
-			matrix_t D(l->n_sites(), l->n_sites());
+			matrix_t D = matrix_t::Zero(l->n_sites(), l->n_sites());
 			for (int i = 0; i < l->n_sites(); ++i)
-			{
-				D(i, i) =  std::exp(-tau * ev[i]) /
-					(1.0 + std::exp(-beta * ev[i]));
-				for (int j = 0; j < l->n_sites(); ++j)
-					if (i != j)
-						D(i, j) = 0.0;
-			}
+				D(i, i) =  std::exp(-tau * ev[i]) / (1.0 + std::exp(-beta * ev[i]));
 			return V.transpose() * D * V;
 		}
 		
@@ -106,14 +100,10 @@ class greens_function
 		{
 			for (int t = 0; t <= n_slices; ++t)
 			{
-				auto g0 = bare_gf(dtau * t, ev, V);
+				matrix_t g0 = bare_gf(dtau * t, ev, V);
 				for (int i = 0; i < l->n_sites(); ++i)
-				{
 					for (int j = i; j < l->n_sites(); ++j)
-					{
 						mesh[index_map[i][j]][t] = g0(i, j);
-					}
-				}
 			}
 		}
 	private:

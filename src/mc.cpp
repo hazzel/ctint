@@ -4,20 +4,29 @@
 #include <limits>
 #include <functional>
 #include "mc.h"
+#include "measure_functors.h"
 
 mc::mc(const std::string& dir)
-	: rng(Random())
+	: rng(Random()), qmc(rng)
 {
-	sweep = 0;
 	pars.read_file(dir);
-	hc.L = 6;
-	param = parameters{5.0, 1.5, 10.0, 30.0, 4, 0.0, 0.0};
-	n_tau_slices = 500;
+	sweep = 0;
+	n_cycles = pars.value_or_default<int>("cycles", 300);
+	n_warmup = pars.value_or_default<int>("warmup", 100000);
+	n_prebin = pars.value_or_default<int>("prebin", 500);
+	hc.L = pars.value_or_default<int>("L", 9);
+	param.beta = 1./pars.value_or_default<double>("T", 0.2);
+	param.V = pars.value_or_default<double>("V", 1.355);
+	param.zeta2 = pars.value_or_default<double>("zeta2", 10.0);
+	param.zeta4 = pars.value_or_default<double>("zeta4", 30.0);
+	param.worm_nhood_dist = pars.value_or_default<int>("nhood_dist", 4);
+	n_tau_slices = pars.value_or_default<int>("tau_slices", 500);
 }
 
 mc::~mc()
 {
 	delete[] evalableParameters;
+	delete config;
 }
 
 void mc::random_write(odump& d)
@@ -53,18 +62,25 @@ void mc::init()
 	g0.generate_mesh(&lat, param.beta, n_tau_slices);
 
 	//Set up Monte Carlo moves
-	configuration config{lat, g0, param};
-	qmc.add_move(move_insert{&config, rng}, "insertion");
-	qmc.add_move(move_remove{&config, rng}, "removal");
-	qmc.add_move(move_ZtoW2{&config, rng, false}, "Z -> W2");
-	qmc.add_move(move_W2toZ{&config, rng, false}, "W2 -> Z");
-	qmc.add_move(move_ZtoW4{&config, rng, false}, "Z -> W4");
-	qmc.add_move(move_W4toZ{&config, rng, false}, "W4 -> Z");
-	qmc.add_move(move_W2toW4{&config, rng, false}, "W2 -> W4");
-	qmc.add_move(move_W4toW2{&config, rng, false}, "W4 -> W2");
-	qmc.add_move(move_shift{&config, rng, false}, "worm shift");
-	
-	measure.add_observable("k", n_prebin);
+	config = new configuration(lat, g0, param);
+	qmc.add_move(move_insert{config, rng}, "insertion");
+	qmc.add_move(move_remove{config, rng}, "removal");
+	//qmc.add_move(move_ZtoW2{config, rng, false}, "Z -> W2");
+	//qmc.add_move(move_W2toZ{config, rng, false}, "W2 -> Z");
+	//qmc.add_move(move_ZtoW4{config, rng, false}, "Z -> W4");
+	//qmc.add_move(move_W4toZ{config, rng, false}, "W4 -> Z");
+	//qmc.add_move(move_W2toW4{config, rng, false}, "W2 -> W4");
+	//qmc.add_move(move_W4toW2{config, rng, false}, "W4 -> W2");
+	//qmc.add_move(move_shift{config, rng, false}, "worm shift");
+
+	//Set up measurements
+	measure.add_observable("<k>_Z", n_prebin);
+	measure.add_observable("<k>_W2", n_prebin);
+	measure.add_observable("<k>_W4", n_prebin);
+	measure.add_observable("Z", n_prebin);
+	measure.add_observable("W2", n_prebin);
+	measure.add_observable("W4", n_prebin);
+	qmc.add_measure(measure_M{config, measure}, "measurement");
 }
 void mc::write(const std::string& dir)
 {
@@ -99,6 +115,11 @@ void mc::write_output(const std::string& dir)
 	pars.get_all(f);
 	measure.get_statistics(f);
 	f.close();
+
+	const std::vector<std::pair<std::string, double>>& acc =
+		qmc.acceptance_rates();
+	for (auto a : acc)
+		std::cout << a.first << " : " << a.second << std::endl;
 }
 
 bool mc::is_thermalized()
@@ -108,11 +129,27 @@ bool mc::is_thermalized()
 
 void mc::do_update()
 {
-	std::cout << sweep << std::endl;
+	if (!is_thermalized())
+		qmc.do_update();
+	else
+		for (int i = 0; i < n_cycles; ++i)
+			qmc.do_update();
 	++sweep;
+	status();
 }
 
 void mc::do_measurement()
 {
-	//std::cout << "measure" << std::endl;
+	qmc.do_measurement();
+}
+
+void mc::status()
+{
+	if (sweep == n_warmup)
+		std::cout << "Thermalization done." << std::endl;
+	if (is_thermalized() && sweep % (10000) == 0)
+	{
+		std::cout << "sweep: " << sweep << std::endl;
+		std::cout << "pert order: " << config->perturbation_order() << std::endl;
+	}
 }

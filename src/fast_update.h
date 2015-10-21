@@ -100,7 +100,7 @@ class fast_update
 			pos_buffer.resize(n/2);
 			for (int i = 0; i < n/2; ++i)
 				pos_buffer[i] = vertices.size() - n + 2*i;
-			permute_buffer_to_front();
+			permute_buffer_backward();
 			flavor_cnt[last_flavor] += n;
 		}
 
@@ -122,7 +122,7 @@ class fast_update
 
 		void finish_remove()
 		{
-			permute_buffer_to_end();
+			permute_buffer_forward();
 			int k = M.rows();
 			int n = 2*pos_buffer.size();
 				
@@ -218,7 +218,7 @@ class fast_update
 			M.block(j, 0, 2, k) = rows;
 		}
 		
-		void permute_buffer_to_end()
+		void permute_buffer_forward()
 		{	
 			int n = 2*pos_buffer.size();
 			int block_end = 0;
@@ -239,7 +239,7 @@ class fast_update
 			}
 		}
 
-		void permute_buffer_to_front()
+		void permute_buffer_backward()
 		{
 			int n = 2*pos_buffer.size();
 			int block_end = 0;
@@ -251,8 +251,7 @@ class fast_update
 				for (int i = 0; i < n/2; ++i)
 				{
 					swap_rows_cols(pos_buffer[i], block_end + 2*i);
-					std::swap(vertices[pos_buffer[i]],
-						vertices[block_end + 2*i]);
+					std::swap(vertices[pos_buffer[i]], vertices[block_end + 2*i]);
 					std::swap(vertices[pos_buffer[i] + 1],
 						vertices[block_end + 2*i + 1]);
 					pos_buffer[i] = block_end + 2*i;
