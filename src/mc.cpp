@@ -120,6 +120,7 @@ void mc::write_output(const std::string& dir)
 		qmc.acceptance_rates();
 	for (auto a : acc)
 		std::cout << a.first << " : " << a.second << std::endl;
+	std::cout << "Average sign: " << qmc.average_sign() << std::endl;
 }
 
 bool mc::is_thermalized()

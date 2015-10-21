@@ -56,6 +56,14 @@ class mctools
 				acceptance[i].second = moves[i].acceptance_rate();
 			return acceptance;
 		}
+
+		double average_sign()
+		{
+			double sign = 0.0;
+			for (int i = 0; i < moves.size(); ++i)
+				sign += moves[i].sign();
+			return sign / moves.size();
+		}
 	private:
 		void normalize_proposal_rates()
 		{

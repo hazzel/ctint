@@ -39,7 +39,7 @@ class move_base
 		std::string name() { return name_str; }
 		double proposal_rate() const { return prop_rate; }
 		void proposal_rate(double prop_rate_) { prop_rate = prop_rate_; }
-		double acceptance_rate() const { std::cout << n_attempted << " " << n_accepted << std::endl; return static_cast<double>(n_accepted)
+		double acceptance_rate() const { return static_cast<double>(n_accepted)
 			/ static_cast<double>(n_attempted); }
 		double sign() { return avg_sign; }
 	private:
