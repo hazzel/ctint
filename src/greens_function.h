@@ -59,7 +59,7 @@ class greens_function
 			matrix_t D = matrix_t::Zero(l->n_sites(), l->n_sites());
 			for (int i = 0; i < l->n_sites(); ++i)
 				D(i, i) =  std::exp(-tau * ev[i]) / (1.0 + std::exp(-beta * ev[i]));
-			return V.transpose() * D * V;
+			return V * D * V.adjoint();
 		}
 		
 		void generate_index_map(const vector_t& ev,

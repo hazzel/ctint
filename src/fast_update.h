@@ -100,7 +100,7 @@ class fast_update
 			pos_buffer.resize(n/2);
 			for (int i = 0; i < n/2; ++i)
 				pos_buffer[i] = vertices.size() - n + 2*i;
-			permute_buffer_backward();
+			permute_backward();
 			flavor_cnt[last_flavor] += n;
 		}
 
@@ -116,13 +116,13 @@ class fast_update
 				pos_offset += flavor_cnt[f];
 			for (int& p : pos_buffer)
 				p = 2*p + pos_offset;
-			helper.S = M.block(pos_buffer[0], pos_buffer[0], 2*N, 2*N);
+			fill_S_matrix();
 			return helper.S.determinant();
 		}
 
 		void finish_remove()
 		{
-			permute_buffer_forward();
+			permute_forward();
 			int k = M.rows();
 			int n = 2*pos_buffer.size();
 				
@@ -156,10 +156,12 @@ class fast_update
 			dmatrix_t t = M.block(k, 0, n, k).transpose()
 				* M.bottomRightCorner(n, n).inverse().transpose();
 			t.transposeInPlace();
-			helper.m.noalias() = M.topLeftCorner(k, k) - M.block(0, k, k, n) * t;
+			helper.m = M.topLeftCorner(k, k);
+			helper.m.noalias() -= M.block(0, k, k, n) * t;
 			helper.mt.noalias() = helper.m.transpose();
 			helper.v.transposeInPlace();
-			helper.S.noalias() = helper.a - (helper.u.transpose() * helper.mt
+			helper.S = helper.a;
+			helper.S	-= (helper.u.transpose() * helper.mt
 				* helper.v).transpose();
 			return helper.S.determinant()
 				* M.bottomRightCorner(n, n).determinant();
@@ -207,6 +209,20 @@ class fast_update
 			}
 		}
 
+		void fill_S_matrix()
+		{
+			int n = pos_buffer.size();
+			helper.S.resize(2*n, 2*n);
+			for (int i = 0; i < n; ++i)
+			{
+				for (int j = 0; j < n; ++j)
+				{
+					helper.S.template block<2, 2>(2*i, 2*j) =
+						M.template block<2, 2>(pos_buffer[i], pos_buffer[j]);
+				}
+			}
+		}
+
 		void swap_rows_cols(int i, int j)
 		{
 			int k = M.rows();
@@ -218,7 +234,7 @@ class fast_update
 			M.block(j, 0, 2, k) = rows;
 		}
 		
-		void permute_buffer_forward()
+		void permute_forward()
 		{	
 			int n = 2*pos_buffer.size();
 			int block_end = 0;
@@ -239,7 +255,7 @@ class fast_update
 			}
 		}
 
-		void permute_buffer_backward()
+		void permute_backward()
 		{
 			int n = 2*pos_buffer.size();
 			int block_end = 0;

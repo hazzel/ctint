@@ -25,7 +25,6 @@ mc::mc(const std::string& dir)
 
 mc::~mc()
 {
-	delete[] evalableParameters;
 	delete config;
 }
 
@@ -62,25 +61,34 @@ void mc::init()
 	g0.generate_mesh(&lat, param.beta, n_tau_slices);
 
 	//Set up Monte Carlo moves
-	config = new configuration(lat, g0, param);
-	qmc.add_move(move_insert{config, rng}, "insertion");
-	qmc.add_move(move_remove{config, rng}, "removal");
-	//qmc.add_move(move_ZtoW2{config, rng, false}, "Z -> W2");
-	//qmc.add_move(move_W2toZ{config, rng, false}, "W2 -> Z");
-	//qmc.add_move(move_ZtoW4{config, rng, false}, "Z -> W4");
-	//qmc.add_move(move_W4toZ{config, rng, false}, "W4 -> Z");
-	//qmc.add_move(move_W2toW4{config, rng, false}, "W2 -> W4");
-	//qmc.add_move(move_W4toW2{config, rng, false}, "W4 -> W2");
-	//qmc.add_move(move_shift{config, rng, false}, "worm shift");
+	config = new configuration(lat, g0, param, measure);
+	qmc.add_move(new move_insert<1>{config, rng}, "insertion n=1");
+	qmc.add_move(new move_remove<1>{config, rng}, "removal n=1");
+	//qmc.add_move(new move_insert<2>{config, rng}, "insertion n=2");
+	//qmc.add_move(new move_remove<2>{config, rng}, "removal n=2");
+	qmc.add_move(new move_ZtoW2{config, rng, false}, "Z -> W2");
+	qmc.add_move(new move_W2toZ{config, rng, false}, "W2 -> Z");
+	//qmc.add_move(new move_ZtoW4{config, rng, false}, "Z -> W4");
+	//qmc.add_move(new move_W4toZ{config, rng, false}, "W4 -> Z");
+	//qmc.add_move(new move_W2toW4{config, rng, false}, "W2 -> W4");
+	//qmc.add_move(new move_W4toW2{config, rng, false}, "W4 -> W2");
+	qmc.add_move(new move_shift{config, rng, false}, "worm shift");
 
 	//Set up measurements
 	measure.add_observable("<k>_Z", n_prebin);
 	measure.add_observable("<k>_W2", n_prebin);
 	measure.add_observable("<k>_W4", n_prebin);
-	measure.add_observable("Z", n_prebin);
-	measure.add_observable("W2", n_prebin);
-	measure.add_observable("W4", n_prebin);
-	qmc.add_measure(measure_M{config, measure}, "measurement");
+	measure.add_observable("deltaZ", n_prebin);
+	measure.add_observable("deltaW2", n_prebin);
+	measure.add_observable("deltaW4", n_prebin);
+	measure.add_observable("Z -> W2", n_prebin);
+	measure.add_observable("W2 -> Z", n_prebin);
+	measure.add_observable("W2 -> W4", n_prebin);
+	measure.add_observable("W4 -> W2", n_prebin);
+	measure.add_observable("Z -> W4", n_prebin);
+	measure.add_observable("W4 -> Z", n_prebin);
+	measure.add_observable("worm shift", n_prebin);
+	qmc.add_measure(measure_M{config, measure, pars}, "measurement");
 }
 void mc::write(const std::string& dir)
 {
@@ -111,11 +119,9 @@ void mc::write_output(const std::string& dir)
 {
 	std::ofstream f;
 	f.open(dir.c_str());
-	f << "PARAMETERS" << std::endl;
-	pars.get_all(f);
-	measure.get_statistics(f);
+	qmc.collect_results(f);
 	f.close();
-
+		
 	const std::vector<std::pair<std::string, double>>& acc =
 		qmc.acceptance_rates();
 	for (auto a : acc)

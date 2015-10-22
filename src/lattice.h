@@ -27,10 +27,6 @@ class lattice
 		lattice()
 			: graph(0) {}
 		~lattice() { delete graph; }
-		lattice(lattice&& rhs)
-		{
-			std::cout << "lattice move constructor" << std::endl;
-		}
 
 		template<typename T>
 		void generate_graph(T& generator)

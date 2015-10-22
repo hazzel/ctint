@@ -16,6 +16,14 @@ class move_base
 			construct_delegation(new typename std::remove_reference<T>::type(
 				std::forward<T>(functor)));
 		}
+
+		template<typename T>
+		move_base(T* functor, const std::string& name_, double prop_rate_=1.0)
+			: name_str(name_), prop_rate(prop_rate_), n_attempted(0),
+				n_accepted(0)
+		{
+			construct_delegation(functor);
+		}
 		
 		move_base(const move_base& rhs) {*this = rhs;}
 		move_base(move_base& rhs) {*this = rhs;} // to avoid clash with
@@ -29,7 +37,7 @@ class move_base
 		{
 			double p = attempt_fun();
 			avg_sign *= static_cast<double>(n_attempted);
-			avg_sign += (p > 0.0) - (p < 0.0);
+			avg_sign += (p >= 0.0) - (p < 0.0);
 			++n_attempted;
 			avg_sign /= static_cast<double>(n_attempted);
 			return p;
@@ -50,7 +58,9 @@ class move_base
 			attempt_fun = [functor]() { return functor->attempt(); };
 			accept_fun = [functor]() { return functor->accept(); };
 			reject_fun = [functor]() { functor->reject(); };
-			clone_fun = [functor, this]() { return move_base(*functor, name_str); };
+			//clone_fun = [functor, this]() { return move_base(*functor, name_str); };
+			clone_fun = [functor, this]() { return move_base(new T(*functor),
+				name_str); };
 		}
 	private:
 		std::shared_ptr<void> impl;
@@ -61,6 +71,6 @@ class move_base
 		std::string name_str;
 		double prop_rate;
 		double avg_sign;
-		int n_attempted;
-		int n_accepted;
+		unsigned int n_attempted;
+		unsigned int n_accepted;
 };

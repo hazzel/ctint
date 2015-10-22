@@ -64,7 +64,6 @@ class mc
 		int n_cycles;
 		int n_warmup;
 		int n_prebin;
-		double* evalableParameters;
 
 		honeycomb hc;
 		lattice lat;

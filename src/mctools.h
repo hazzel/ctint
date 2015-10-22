@@ -3,6 +3,7 @@
 #include <functional>
 #include <utility>
 #include <algorithm>
+#include <ostream>
 #include <iostream>
 #include "Random.h"
 #include "move_base.h"
@@ -23,6 +24,14 @@ class mctools
 		}
 
 		template<typename T>
+		void add_move(T* functor, const std::string& name, double prop_rate=1.0)
+		{
+			moves.push_back(move_base{functor, name, prop_rate});
+			normalize_proposal_rates();
+			acceptance.push_back(std::make_pair(name, 0.0));
+		}
+
+		template<typename T>
 		void add_measure(T&& functor, const std::string& name)
 		{
 			measures.push_back(measure_base{std::forward<T>(functor), name});
@@ -35,7 +44,11 @@ class mctools
 			{
 				if (r < proposal[i])
 				{
-					if (rng() < moves[i].attempt())
+					double q = moves[i].attempt();
+					if (q < 0.0)
+						std::cout << "Negative sign at " << moves[i].name()
+							<< std::endl;
+					if (rng() < std::abs(q))
 						moves[i].accept();
 					else
 						moves[i].reject();
@@ -48,6 +61,12 @@ class mctools
 		{
 			for (measure_base& m : measures)
 				m.perform();
+		}
+		
+		void collect_results(std::ostream& os)
+		{
+			for (measure_base& m : measures)
+				m.collect(os);
 		}
 
 		const std::vector<std::pair<std::string, double>>& acceptance_rates()
@@ -62,7 +81,7 @@ class mctools
 			double sign = 0.0;
 			for (int i = 0; i < moves.size(); ++i)
 				sign += moves[i].sign();
-			return sign / moves.size();
+			return sign / static_cast<double>(moves.size());
 		}
 	private:
 		void normalize_proposal_rates()
