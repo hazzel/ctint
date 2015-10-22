@@ -61,10 +61,8 @@ struct measure_M
 	void collect(std::ostream& os)
 	{
 		double eval_param[] = {config->params.zeta2, config->params.zeta4};
-		measure.add_evalable("M2", "deltaZ", "deltaW2", "deltaW4", eval_M2,
-			eval_param);
-		measure.add_evalable("M4", "deltaZ", "deltaW2", "deltaW4", eval_M4,
-			eval_param);
+		measure.add_evalable("M2", "deltaZ", "deltaW2", eval_M2, eval_param);
+		measure.add_evalable("M4", "deltaZ", "deltaW4", eval_M4, eval_param);
 		measure.add_evalable("BinderRatio", "deltaZ", "deltaW2", "deltaW4",
 			eval_B, eval_param);
 		

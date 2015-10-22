@@ -13,7 +13,10 @@ class mctools
 {
 	public:
 		mctools(Random& rng_) : rng(rng_) {}
-		~mctools() { moves.reserve(10); };
+		~mctools()
+		{
+			//moves.reserve(12);
+		}
 
 		template<typename T>
 		void add_move(T&& functor, const std::string& name, double prop_rate=1.0)
