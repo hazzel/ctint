@@ -24,8 +24,8 @@ class greens_function
 				for (int j = 0; j < l->n_sites(); ++j)
 					K(i, j) = (l->distance(i, j) == 1) ? -1.0 : 0.0;
 			Eigen::SelfAdjointEigenSolver<matrix_t> solver(K);
-			auto ev = solver.eigenvalues();
-			auto V = solver.eigenvectors();
+			vector_t ev = solver.eigenvalues();
+			matrix_t V = solver.eigenvectors();
 		
 			generate_index_map(ev, V);
 			fill_mesh(ev, V);
@@ -69,7 +69,7 @@ class greens_function
 			double threshold = std::pow(10.0, -13.0);
 			std::vector<double> values;
 			
-			auto g0 = bare_gf(0.1 * beta, ev, V);
+			matrix_t g0 = bare_gf(0.1 * beta, ev, V);
 			for (int i = 0; i < l->n_sites(); ++i)
 			{
 				for (int j = i; j < l->n_sites(); ++j)

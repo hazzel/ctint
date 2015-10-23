@@ -17,12 +17,7 @@ class measure_base
 				std::forward<T>(functor)));
 		}
 		
-		measure_base(const measure_base& rhs) {*this = rhs;}
-		measure_base(measure_base& rhs) {*this = rhs;} // to avoid clash with
-		//tempalte construction  !
 		measure_base(measure_base&& rhs) {*this = std::move(rhs);}
-		measure_base& operator = (const measure_base& rhs) { *this =
-			rhs.clone_fun(); return *this;}
 		measure_base& operator = (measure_base&& rhs) = default;
 
 		void perform() { perform_fun(); }

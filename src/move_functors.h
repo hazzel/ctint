@@ -24,10 +24,7 @@ struct full_g_entry
 
 	double operator()(const arg_t& x, const arg_t& y) const
 	{
-		if ((x.tau == y.tau) && (x.site == y.site))
-			return 0.0;
-		else
-			return g0(x.tau - y.tau, x.site, y.site);
+		return g0(x.tau - y.tau, x.site, y.site);
 	}
 };
 
@@ -36,6 +33,9 @@ struct parameters
 	double beta, V, zeta2, zeta4;
 	int worm_nhood_dist;
 	double ratio_w2, ratio_w4;
+	std::vector<double> add;
+	std::vector<double> rem;
+	double W2toZ, ZtoW2, ZtoW4, W4toZ, W2toW4, W4toW2, worm_shift;
 };
 
 // The Monte Carlo configuration
@@ -90,7 +90,8 @@ struct move_insert
 		int k = config->perturbation_order();
 		double det_ratio = config->M.try_add<N>(vec, nn_int);
 		assert(det_ratio == det_ratio && "nan value in det ratio");
-		return std::pow(-config->params.beta * config->params.V *
+		return config->params.rem[N-1] / config->params.add[N-1]
+			* std::pow(-config->params.beta * config->params.V *
 			config->l.n_bonds(), N) * factorial_ratio(k, N) * det_ratio;
 	}
 
@@ -126,7 +127,8 @@ struct move_remove
 		std::sort(vec.begin(), vec.end());
 		double det_ratio = config->M.try_remove<N>(vec, nn_int);
 		assert(det_ratio == det_ratio && "nan value in det ratio");
-		return std::pow(-config->params.beta * config->params.V *
+		return config->params.add[N-1] / config->params.rem[N-1]
+			* std::pow(-config->params.beta * config->params.V *
 			config->l.n_bonds(), -N) / factorial_ratio(k-N, N) * det_ratio;
 	}
 
@@ -163,8 +165,9 @@ struct move_ZtoW2
 		double det_ratio = config->M.try_add<1>(vec, worm);
 		assert(det_ratio == det_ratio && "nan value in det ratio");
 		save_acc = true; 
-		return config->l.parity(s1) * config->l.parity(s2)
-			* config->params.zeta2 * config->params.ratio_w2 * det_ratio;
+		return config->params.W2toZ / config->params.ZtoW2
+			* config->l.parity(s1) * config->l.parity(s2) * config->params.zeta2
+			* config->params.ratio_w2 * det_ratio;
 	}
 
 	double accept()
@@ -212,7 +215,8 @@ struct move_W2toZ
 		double det_ratio = config->M.try_remove<1>(vec, worm);
 		assert(det_ratio == det_ratio && "nan value in det ratio");
 		save_acc = true;
-		return config->l.parity(sites[0]) * config->l.parity(sites[1])
+		return config->params.W2toZ / config->params.ZtoW2
+			* config->l.parity(sites[0]) * config->l.parity(sites[1])
 			/ config->params.zeta2 / config->params.ratio_w2 * det_ratio;
 	}
 
@@ -255,9 +259,9 @@ struct move_W2toW4
 		double det_ratio = config->M.try_add<1>(vec, worm);
 		assert(det_ratio == det_ratio && "nan value in det ratio");
 		save_acc = true;
-		return config->l.parity(s1) * config->l.parity(s2)
-			* config->params.zeta4 / config->params.zeta2
-			* config->params.ratio_w2 * det_ratio;
+		return config->params.W4toW2 / config->params.W2toW4
+			* config->l.parity(s1) * config->l.parity(s2) * config->params.zeta4
+			/ config->params.zeta2 * config->params.ratio_w2 * det_ratio;
 	}
 
 	double accept()
@@ -305,7 +309,8 @@ struct move_W4toW2
 		double det_ratio = config->M.try_remove<1>(vec, worm);
 		assert(det_ratio == det_ratio && "nan value in det ratio");
 		save_acc = true;
-		return config->l.parity(sites[0]) * config->l.parity(sites[1])
+		return config->params.W2toW4 / config->params.W4toW2
+			* config->l.parity(sites[0]) * config->l.parity(sites[1])
 			* config->params.zeta2 / config->params.zeta4
 			/ config->params.ratio_w2 * det_ratio;
 	}
@@ -352,9 +357,9 @@ struct move_ZtoW4
 		double det_ratio = config->M.try_add<2>(vec, worm);
 		assert(det_ratio == det_ratio && "nan value in det ratio");
 		save_acc = true;
-		return config->l.parity(s1) * config->l.parity(s2) * config->l.parity(s3)
-			* config->l.parity(s4) * config->params.zeta4
-			* config->params.ratio_w4 * det_ratio;
+		return config->params.W4toZ / config->params.ZtoW4 * config->l.parity(s1)
+			* config->l.parity(s2) * config->l.parity(s3) * config->l.parity(s4)
+			* config->params.zeta4 * config->params.ratio_w4 * det_ratio;
 	}
 
 	double accept()
@@ -405,7 +410,8 @@ struct move_W4toZ
 		double det_ratio = config->M.try_remove<2>(vec, worm);
 		assert(det_ratio == det_ratio && "nan value in det ratio");
 		save_acc = true;
-		return config->l.parity(config->M.vertex(p, worm).site)
+		return config->params.ZtoW4 * config->params.W4toZ
+			* config->l.parity(config->M.vertex(p, worm).site)
 			* config->l.parity(config->M.vertex(p+1, worm).site)
 			* config->l.parity(config->M.vertex(p+2, worm).site)
 			* config->l.parity(config->M.vertex(p+3, worm).site)
@@ -458,26 +464,18 @@ struct move_shift
 			worm_vert[p].site, config->params.worm_nhood_dist);
 		int old_site = worm_vert[p].site;
 		worm_vert[p].site = neighbors[neighbors.size() * rng()];
-		std::random_shuffle(worm_vert.begin(), worm_vert.end());
+		int new_site = worm_vert[p].site;
+		//std::random_shuffle(worm_vert.begin(), worm_vert.end());
 		double det_ratio = config->M.try_shift(worm_vert);
 		assert(det_ratio == det_ratio && "nan value in det ratio");
 		save_acc = true;
-		//std::cout << "worm shift try:" << std::endl;
-		//std::cout << "shift buffer: " << tau_shift << std::endl;
-		//std::cout << worm_vert[0].tau << " , " << worm_vert[0].site << std::endl;
-		//std::cout << worm_vert[1].tau << " , " << worm_vert[1].site << std::endl;
-		//config->M.print_vertices();
-		return config->l.parity(old_site) * config->l.parity(worm_vert[p].site)
+		return config->l.parity(old_site) * config->l.parity(new_site)
 			* det_ratio;
 	}
 
 	double accept()
 	{
 		config->M.finish_shift();
-		//std::cout << "worm shift done:" << std::endl;
-		//config->M.print_vertices();
-		//std::cout << std::endl;
-		//std::cin.get();
 		if (save_acc)
 			config->measure.add("worm shift", 1.0);
 		return 1.0;

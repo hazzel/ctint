@@ -21,6 +21,19 @@ mc::mc(const std::string& dir)
 	param.zeta4 = pars.value_or_default<double>("zeta4", 30.0);
 	param.worm_nhood_dist = pars.value_or_default<int>("nhood_dist", 4);
 	n_tau_slices = pars.value_or_default<int>("tau_slices", 500);
+
+	//proposal probabilites
+	param.add.push_back(pars.value_or_default<double>("add_1", 1.0));
+	param.rem.push_back(pars.value_or_default<double>("rem_1", 1.0));
+	param.add.push_back(pars.value_or_default<double>("add_2", 1.0));
+	param.rem.push_back(pars.value_or_default<double>("rem_2", 1.0));
+	param.ZtoW2 = pars.value_or_default<double>("ZtoW2", 1.0);
+	param.W2toZ = pars.value_or_default<double>("W2toZ", 1.0);
+	param.ZtoW4 = pars.value_or_default<double>("ZtoW4", 1.0);
+	param.W4toZ = pars.value_or_default<double>("W4toZ", 1.0);
+	param.W2toW4 = pars.value_or_default<double>("W2toW4", 1.0);
+	param.W4toW2 = pars.value_or_default<double>("W4toW2", 1.0);
+	param.worm_shift = pars.value_or_default<double>("worm_shift", 1.0);
 }
 
 mc::~mc()
@@ -62,18 +75,17 @@ void mc::init()
 
 	//Set up Monte Carlo moves
 	config = new configuration(lat, g0, param, measure);
-	qmc.add_move(move_insert<1>{config, rng}, "insertion n=1");
-	qmc.add_move(move_remove<1>{config, rng}, "removal n=1");
-	//qmc.add_move(new move_insert<2>{config, rng}, "insertion n=2");
-	//qmc.add_move(new move_remove<2>{config, rng}, "removal n=2");
-	qmc.add_move(move_ZtoW2{config, rng, false}, "Z -> W2");
-	qmc.add_move(move_W2toZ{config, rng, false}, "W2 -> Z");
-	//qmc.add_move(new move_ZtoW4{config, rng, false}, "Z -> W4");
-	//qmc.add_move(new move_W4toZ{config, rng, false}, "W4 -> Z");
-	//qmc.add_move(new move_W2toW4{config, rng, false}, "W2 -> W4");
-	//qmc.add_move(new move_W4toW2{config, rng, false}, "W4 -> W2");
-	//qmc.add_move(move_shift{config, rng, false}, "worm shift");
-	std::cout << "Set up of moves done." << std::endl;
+	qmc.add_move(move_insert<1>{config, rng}, "insertion n=1", param.add[0]);
+	qmc.add_move(move_remove<1>{config, rng}, "removal n=1", param.rem[0]);
+	qmc.add_move(move_insert<2>{config, rng}, "insertion n=2", param.add[1]);
+	qmc.add_move(move_remove<2>{config, rng}, "removal n=2", param.rem[1]);
+	qmc.add_move(move_ZtoW2{config, rng, false}, "Z -> W2", param.ZtoW2);
+	qmc.add_move(move_W2toZ{config, rng, false}, "W2 -> Z", param.W2toZ);
+	qmc.add_move(move_ZtoW4{config, rng, false}, "Z -> W4", param.ZtoW4);
+	qmc.add_move(move_W4toZ{config, rng, false}, "W4 -> Z", param.W4toZ);
+	qmc.add_move(move_W2toW4{config, rng, false}, "W2 -> W4", param.W2toW4);
+	qmc.add_move(move_W4toW2{config, rng, false}, "W4 -> W2", param.W4toW2);
+	qmc.add_move(move_shift{config, rng, false}, "worm shift", param.worm_shift);
 
 	//Set up measurements
 	measure.add_observable("<k>_Z", n_prebin);

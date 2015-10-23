@@ -14,14 +14,12 @@ class mctools
 	public:
 		mctools(Random& rng_) : rng(rng_) {}
 		~mctools()
-		{
-			//moves.reserve(12);
-		}
+		{}
 
 		template<typename T>
 		void add_move(T&& functor, const std::string& name, double prop_rate=1.0)
 		{
-			moves.push_back(move_base{std::forward<T>(functor), name, prop_rate});
+			moves.push_back(move_base(std::forward<T>(functor), name, prop_rate));
 			normalize_proposal_rates();
 			acceptance.push_back(std::make_pair(name, 0.0));
 		}
@@ -93,11 +91,9 @@ class mctools
 			double sum = 0.0;
 			for (move_base& m : moves)
 				sum += m.proposal_rate();
-			for (move_base& m : moves)
-				m.proposal_rate(m.proposal_rate() / sum);
-			proposal[0] = moves[0].proposal_rate();
+			proposal[0] = moves[0].proposal_rate() / sum;
 			for (int i = 1; i < moves.size(); ++i)
-				proposal[i] = proposal[i-1] + moves[i].proposal_rate();
+				proposal[i] = proposal[i-1] + moves[i].proposal_rate() / sum;
 		}
 	private:
 		Random& rng;

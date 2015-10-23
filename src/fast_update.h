@@ -7,7 +7,7 @@
 struct helper_matrices
 {
 	typedef Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic,
-		Eigen::ColMajor> dmatrix_t;
+		Eigen::RowMajor> dmatrix_t;
 
 	dmatrix_t u;
 	dmatrix_t v;
@@ -15,7 +15,6 @@ struct helper_matrices
 	dmatrix_t a;
 	dmatrix_t S;
 	dmatrix_t m;
-	dmatrix_t mt;
 };
 
 template<typename function_t, typename arg_t>
@@ -76,7 +75,8 @@ class fast_update
 			helper.a.resize(n, n);
 			fill_helper_matrices();
 			helper.Mu.noalias() = M * helper.u;
-			helper.S.noalias() = helper.a - helper.v * helper.Mu;
+			helper.S = helper.a;
+			helper.S.noalias() -= helper.v * helper.Mu;
 
 			return helper.S.determinant();
 		}
@@ -100,7 +100,8 @@ class fast_update
 			pos_buffer.resize(n/2);
 			for (int i = 0; i < n/2; ++i)
 				pos_buffer[i] = vertices.size() - n + 2*i;
-			permute_backward();
+			if(last_flavor == 0)
+				permute_backward();
 			flavor_cnt[last_flavor] += n;
 		}
 
@@ -138,7 +139,7 @@ class fast_update
 				vertices.erase(vertices.end() - 1);
 			flavor_cnt[last_flavor] -= n;
 		}
-		
+	
 		double try_shift(std::vector<arg_t>& args)
 		{
 			int k = M.rows() - args.size();
@@ -150,19 +151,13 @@ class fast_update
 			helper.v.resize(n, k);
 			helper.a.resize(n, n);
 			helper.m.resize(k, k);
-			helper.mt.resize(k, k);
 			fill_helper_matrices();
 			
-			dmatrix_t t = M.block(k, 0, n, k).transpose()
-				* M.bottomRightCorner(n, n).inverse().transpose();
-			t.transposeInPlace();
 			helper.m = M.topLeftCorner(k, k);
-			helper.m.noalias() -= M.block(0, k, k, n) * t;
-			helper.mt.noalias() = helper.m.transpose();
-			helper.v.transposeInPlace();
+			helper.m.noalias() -= M.block(0, k, k, n)
+				* M.bottomRightCorner(n, n).inverse() * M.block(k, 0, n, k);
 			helper.S = helper.a;
-			helper.S	-= (helper.u.transpose() * helper.mt
-				* helper.v).transpose();
+			helper.S.noalias() -= helper.v * helper.m * helper.u;
 			return helper.S.determinant()
 				* M.bottomRightCorner(n, n).determinant();
 		}
@@ -173,14 +168,13 @@ class fast_update
 			int n = arg_buffer.size();
 			
 			helper.S = helper.S.inverse().eval();
-			dmatrix_t vM = helper.mt * helper.v;
-			vM.transposeInPlace();
+			dmatrix_t vM = helper.v * helper.m;
 			helper.Mu.noalias() = helper.m * helper.u;
 			M.block(k, 0, n, k).noalias() = -helper.S * vM;
-			M.topLeftCorner(k, k).noalias() = helper.m - helper.Mu
-				* M.block(k, 0, n, k);
+			M.topLeftCorner(k, k) = helper.m;
+			M.topLeftCorner(k, k).noalias() -= helper.Mu * M.block(k, 0, n, k);
 			M.block(0, k, k, n).noalias() = -helper.Mu * helper.S;
-			M.template block(k, k, n, n).noalias() = helper.S;
+			M.template block(k, k, n, n) = helper.S;
 			
 			for (int i = 0; i < arg_buffer.size(); ++i)
 				vertices[vertices.size() - arg_buffer.size() + i] = arg_buffer[i];
@@ -273,6 +267,12 @@ class fast_update
 					pos_buffer[i] = block_end + 2*i;
 				}
 			}
+		}
+		
+		void print_matrix(const dmatrix_t& m)
+		{
+			Eigen::IOFormat clean(4, 0, ", ", "\n", "[", "]");
+			std::cout << m.format(clean) << std::endl;
 		}
 	private:
 		function_t function;
