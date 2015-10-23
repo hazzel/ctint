@@ -45,6 +45,7 @@ struct configuration
 	fast_update<full_g_entry, arg_t> M;
 	const parameters& params;
 	measurements& measure;
+	std::vector<int> shellsize;
 
 	int perturbation_order() const { return M.perturbation_order(nn_int); }
 	int worms() const { return M.perturbation_order(worm); }
@@ -52,7 +53,16 @@ struct configuration
 	configuration(const lattice& l_, const greens_function& g0, 
 		const parameters& params_, measurements& measure_)
 		: l(l_), M{full_g_entry{g0}, l_, 2}, params(params_), measure(measure_)
-	{}
+	{
+		shellsize.resize(l.max_distance() + 1, 0);
+		for (int d = 0; d <= l.max_distance(); ++d)
+		{
+			int site = 0; //PBC used here
+			for (int j = 0; j < l.n_sites(); ++j)
+				if (l.distance(site, j) == d)
+					shellsize[d] += 1;
+		}
+	}
 };
 
 // k! / (k+n)!
@@ -465,7 +475,7 @@ struct move_shift
 		int old_site = worm_vert[p].site;
 		worm_vert[p].site = neighbors[neighbors.size() * rng()];
 		int new_site = worm_vert[p].site;
-		//std::random_shuffle(worm_vert.begin(), worm_vert.end());
+		std::random_shuffle(worm_vert.begin(), worm_vert.end());
 		double det_ratio = config->M.try_shift(worm_vert);
 		assert(det_ratio == det_ratio && "nan value in det ratio");
 		save_acc = true;

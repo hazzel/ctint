@@ -1,6 +1,8 @@
 #pragma once
 #include <ostream>
+#include <vector>
 #include "measurements.h"
+#include "parser.h"
 #include "move_functors.h"
 
 void eval_M2(double& out, std::vector< std::valarray<double>* >& o, double* p)
@@ -28,14 +30,26 @@ void eval_B(double& out, std::vector< std::valarray<double>* >& o, double* p)
 	out = (w4 * z) / (w2 * w2) * (p[0] * p[0] / p[1]);
 }
 
+void eval_corr(std::valarray<double>& out,
+	std::vector<std::valarray<double>*>& o, double* p)
+{
+	std::valarray<double>* corr = o[0];
+	double z=(*o[1])[0];
+	out.resize(corr->size());
+	for (int i = 0; i < corr->size(); ++i)
+		out[i] = (*corr)[i] / z * p[2] / p[3];
+}
+
 struct measure_M
 {
 	configuration* config;
 	measurements& measure;
 	parser& pars;
+	std::vector<double> correlations;
 
 	void perform()
 	{
+		std::fill(correlations.begin(), correlations.end(), 0.0);
 		if (config->worms() == 0) //measure Z
 		{
 			measure.add("<k>_Z", config->perturbation_order());
@@ -48,7 +62,14 @@ struct measure_M
 			measure.add("<k>_W2", config->perturbation_order());
 			measure.add("deltaZ", 0.0);
 			measure.add("deltaW2", 1.0);
-			measure.add("deltaW4", 0.0);		}
+			measure.add("deltaW4", 0.0);
+			int sites[] = {config->M.vertex(0, worm).site,
+				config->M.vertex(1, worm).site};
+			int R = config->l.distance(sites[0], sites[1]);
+			correlations[R] = config->l.parity(sites[0])
+				* config->l.parity(sites[1])
+				/ static_cast<double>(config->shellsize[R]);
+		}
 		else if (config->worms() == 2) //measure W4
 		{
 			measure.add("<k>_W4", config->perturbation_order());
@@ -56,15 +77,19 @@ struct measure_M
 			measure.add("deltaW2", 0.0);
 			measure.add("deltaW4", 1.0);
 		}
+		measure.add("corr", correlations);
 	}
 
 	void collect(std::ostream& os)
 	{
-		double eval_param[] = {config->params.zeta2, config->params.zeta4};
+		double eval_param[] = {config->params.zeta2, config->params.zeta4,
+			static_cast<double>(config->l.n_sites()), config->params.zeta2};
 		measure.add_evalable("M2", "deltaZ", "deltaW2", eval_M2, eval_param);
 		measure.add_evalable("M4", "deltaZ", "deltaW4", eval_M4, eval_param);
 		measure.add_evalable("BinderRatio", "deltaZ", "deltaW2", "deltaW4",
 			eval_B, eval_param);
+		measure.add_vectorevalable("Correlations", "corr", "deltaZ", eval_corr,
+			eval_param);
 		
 		os << "PARAMETERS" << std::endl;
 		pars.get_all(os);

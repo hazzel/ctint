@@ -99,6 +99,7 @@ void mc::init()
 	measure.add_observable("deltaZ", n_prebin);
 	measure.add_observable("deltaW2", n_prebin);
 	measure.add_observable("deltaW4", n_prebin);
+	measure.add_vectorobservable("corr", lat.max_distance() + 1, n_prebin);
 	//Measure acceptance probabilities
 	measure.add_observable("Z -> W2", n_prebin);
 	measure.add_observable("W2 -> Z", n_prebin);
@@ -107,7 +108,8 @@ void mc::init()
 	measure.add_observable("Z -> W4", n_prebin);
 	measure.add_observable("W4 -> Z", n_prebin);
 	measure.add_observable("worm shift", n_prebin);
-	qmc.add_measure(measure_M{config, measure, pars}, "measurement");
+	qmc.add_measure(measure_M{config, measure, pars,
+		std::vector<double>(lat.max_distance() + 1, 0.0)}, "measurement");
 }
 void mc::write(const std::string& dir)
 {
@@ -174,8 +176,8 @@ void mc::do_measurement()
 
 void mc::status()
 {
-	if (sweep == n_warmup)
-		std::cout << "Thermalization done." << std::endl;
+//	if (sweep == n_warmup)
+//		std::cout << "Thermalization done." << std::endl;
 //	if (is_thermalized() && sweep % (10000) == 0)
 //	{
 //		std::cout << "sweep: " << sweep << std::endl;
