@@ -18,7 +18,7 @@ class measure_base
 		}
 		
 		measure_base(measure_base&& rhs) {*this = std::move(rhs);}
-		measure_base& operator = (measure_base&& rhs) = default;
+		measure_base& operator=(measure_base&& rhs) = default;
 
 		void perform() { perform_fun(); }
 		void collect(std::ostream& os) { collect_fun(os); }

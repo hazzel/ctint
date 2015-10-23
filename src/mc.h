@@ -64,12 +64,12 @@ class mc
 		int n_cycles;
 		int n_warmup;
 		int n_prebin;
+		int n_rebuild;
+		int n_tau_slices;
 
 		honeycomb hc;
 		lattice lat;
 		greens_function g0;
 		parameters param;
 		configuration* config;
-
-		int n_tau_slices;
 };

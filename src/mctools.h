@@ -1,12 +1,15 @@
 #pragma once
 #include <vector>
+#include <map>
 #include <functional>
 #include <utility>
 #include <algorithm>
+#include <string>
 #include <ostream>
 #include <iostream>
 #include "Random.h"
 #include "move_base.h"
+#include "event_base.h"
 #include "measure_base.h"
 
 class mctools
@@ -25,17 +28,16 @@ class mctools
 		}
 
 		template<typename T>
-		void add_move(T* functor, const std::string& name, double prop_rate=1.0)
+		void add_event(T&& functor, const std::string& name)
 		{
-			moves.push_back(move_base{functor, name, prop_rate});
-			normalize_proposal_rates();
-			acceptance.push_back(std::make_pair(name, 0.0));
+			events.emplace(std::make_pair(name, event_base{std::forward<T>(
+				functor), name}));
 		}
 
 		template<typename T>
 		void add_measure(T&& functor, const std::string& name)
 		{
-			measures.push_back(measure_base{std::forward<T>(functor), name});
+			measures.push_back(measure_base(std::forward<T>(functor), name));
 		}
 
 		void do_update()
@@ -56,6 +58,12 @@ class mctools
 					break;
 				}
 			}
+		}
+
+		void trigger_event(const std::string& name)
+		{
+			//map[] operators requires constructor() without arguments
+			events.find(name)->second.trigger();
 		}
 
 		void do_measurement()
@@ -98,6 +106,7 @@ class mctools
 	private:
 		Random& rng;
 		std::vector<move_base> moves;
+		std::map<std::string, event_base> events;
 		std::vector<measure_base> measures;
 		std::vector<double> proposal;
 		std::vector<std::pair<std::string, double>> acceptance;

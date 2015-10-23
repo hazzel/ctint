@@ -62,6 +62,22 @@ class fast_update
 			}
 		}
 
+		void rebuild()
+		{
+			if (M.rows() == 0) return;
+			for (int i = 0; i < M.rows(); ++i)
+			{
+				M(i, i) = 0.0;
+				for (int j = i+1; j < M.cols(); ++j)
+				{
+					M(i, j) = function(vertices[i], vertices[j]);
+					M(j, i) = -M(i, j) * l.parity(vertices[i].site)
+						* l.parity(vertices[j].site);
+				}
+			}
+			M = M.inverse().eval();
+		}
+
 		template<int N>
 		double try_add(std::vector<arg_t>& args, int flavor=0)
 		{

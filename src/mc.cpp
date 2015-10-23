@@ -5,6 +5,7 @@
 #include <functional>
 #include "mc.h"
 #include "measure_functors.h"
+#include "event_functors.h"
 
 mc::mc(const std::string& dir)
 	: rng(Random()), qmc(rng)
@@ -14,13 +15,14 @@ mc::mc(const std::string& dir)
 	n_cycles = pars.value_or_default<int>("cycles", 300);
 	n_warmup = pars.value_or_default<int>("warmup", 100000);
 	n_prebin = pars.value_or_default<int>("prebin", 500);
+	n_rebuild = pars.value_or_default<int>("rebuild", 1000);
+	n_tau_slices = pars.value_or_default<int>("tau_slices", 500);
 	hc.L = pars.value_or_default<int>("L", 9);
 	param.beta = 1./pars.value_or_default<double>("T", 0.2);
 	param.V = pars.value_or_default<double>("V", 1.355);
 	param.zeta2 = pars.value_or_default<double>("zeta2", 10.0);
 	param.zeta4 = pars.value_or_default<double>("zeta4", 30.0);
 	param.worm_nhood_dist = pars.value_or_default<int>("nhood_dist", 4);
-	n_tau_slices = pars.value_or_default<int>("tau_slices", 500);
 
 	//proposal probabilites
 	param.add.push_back(pars.value_or_default<double>("add_1", 1.0));
@@ -87,6 +89,9 @@ void mc::init()
 	qmc.add_move(move_W4toW2{config, rng, false}, "W4 -> W2", param.W4toW2);
 	qmc.add_move(move_shift{config, rng, false}, "worm shift", param.worm_shift);
 
+	//Set up rebuild event
+	qmc.add_event(event_rebuild{config, measure}, "rebuild");
+
 	//Set up measurements
 	measure.add_observable("<k>_Z", n_prebin);
 	measure.add_observable("<k>_W2", n_prebin);
@@ -94,6 +99,7 @@ void mc::init()
 	measure.add_observable("deltaZ", n_prebin);
 	measure.add_observable("deltaW2", n_prebin);
 	measure.add_observable("deltaW4", n_prebin);
+	//Measure acceptance probabilities
 	measure.add_observable("Z -> W2", n_prebin);
 	measure.add_observable("W2 -> Z", n_prebin);
 	measure.add_observable("W2 -> W4", n_prebin);
@@ -134,12 +140,13 @@ void mc::write_output(const std::string& dir)
 	f.open(dir.c_str());
 	qmc.collect_results(f);
 	f.close();
-		
+	/*
 	const std::vector<std::pair<std::string, double>>& acc =
 		qmc.acceptance_rates();
 	for (auto a : acc)
 		std::cout << a.first << " : " << a.second << std::endl;
 	std::cout << "Average sign: " << qmc.average_sign() << std::endl;
+	*/
 }
 
 bool mc::is_thermalized()
@@ -155,6 +162,8 @@ void mc::do_update()
 		for (int i = 0; i < n_cycles; ++i)
 			qmc.do_update();
 	++sweep;
+	if (sweep % n_rebuild == 0)
+		qmc.trigger_event("rebuild");
 	status();
 }
 
@@ -167,9 +176,9 @@ void mc::status()
 {
 	if (sweep == n_warmup)
 		std::cout << "Thermalization done." << std::endl;
-	if (is_thermalized() && sweep % (10000) == 0)
-	{
-		std::cout << "sweep: " << sweep << std::endl;
-		std::cout << "pert order: " << config->perturbation_order() << std::endl;
-	}
+//	if (is_thermalized() && sweep % (10000) == 0)
+//	{
+//		std::cout << "sweep: " << sweep << std::endl;
+//		std::cout << "pert order: " << config->perturbation_order() << std::endl;
+//	}
 }

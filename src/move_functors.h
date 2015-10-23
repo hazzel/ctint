@@ -215,7 +215,7 @@ struct move_W2toZ
 		double det_ratio = config->M.try_remove<1>(vec, worm);
 		assert(det_ratio == det_ratio && "nan value in det ratio");
 		save_acc = true;
-		return config->params.W2toZ / config->params.ZtoW2
+		return config->params.ZtoW2 / config->params.W2toZ
 			* config->l.parity(sites[0]) * config->l.parity(sites[1])
 			/ config->params.zeta2 / config->params.ratio_w2 * det_ratio;
 	}
