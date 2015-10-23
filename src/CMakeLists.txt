@@ -38,7 +38,7 @@ endif()
 
 # Linking and include info
 include_directories(${CMAKE_SOURCE_DIR})
-include_directories(/home/stephan/libs/eigen $ENV{HOME}/eigen)
+include_directories($ENV{HOME}/libs/eigen $ENV{HOME}/eigen)
 include_directories(${MCLL})
 
 # Compiler flags

@@ -190,7 +190,7 @@ class fast_update
 			M.topLeftCorner(k, k) = helper.m;
 			M.topLeftCorner(k, k).noalias() -= helper.Mu * M.block(k, 0, n, k);
 			M.block(0, k, k, n).noalias() = -helper.Mu * helper.S;
-			M.template block(k, k, n, n) = helper.S;
+			M.block(k, k, n, n) = helper.S;
 			
 			for (int i = 0; i < arg_buffer.size(); ++i)
 				vertices[vertices.size() - arg_buffer.size() + i] = arg_buffer[i];
