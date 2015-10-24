@@ -17,7 +17,7 @@
 #include "honeycomb.h"
 #include "lattice.h"
 #include "greens_function.h"
-#include "move_functors.h"
+#include "configuration.h"
 
 class mc
 {

@@ -5,65 +5,8 @@
 #include "fast_update.h"
 #include "lattice.h"
 #include "greens_function.h"
+#include "configuration.h"
 #include "Random.h"
-
-// Argument type
-struct arg_t
-{
-	double tau;
-	int site;
-	bool worm;
-};
-
-enum { nn_int, worm };
-
-// The function that appears in the calculation of the determinant
-struct full_g_entry
-{
-	const greens_function& g0;
-
-	double operator()(const arg_t& x, const arg_t& y) const
-	{
-		return g0(x.tau - y.tau, x.site, y.site);
-	}
-};
-
-struct parameters
-{	
-	double beta, V, zeta2, zeta4;
-	int worm_nhood_dist;
-	double ratio_w2, ratio_w4;
-	std::vector<double> add;
-	std::vector<double> rem;
-	double W2toZ, ZtoW2, ZtoW4, W4toZ, W2toW4, W4toW2, worm_shift;
-};
-
-// The Monte Carlo configuration
-struct configuration
-{
-	const lattice& l;
-	fast_update<full_g_entry, arg_t> M;
-	const parameters& params;
-	measurements& measure;
-	std::vector<int> shellsize;
-
-	int perturbation_order() const { return M.perturbation_order(nn_int); }
-	int worms() const { return M.perturbation_order(worm); }
-
-	configuration(const lattice& l_, const greens_function& g0, 
-		const parameters& params_, measurements& measure_)
-		: l(l_), M{full_g_entry{g0}, l_, 2}, params(params_), measure(measure_)
-	{
-		shellsize.resize(l.max_distance() + 1, 0);
-		for (int d = 0; d <= l.max_distance(); ++d)
-		{
-			int site = 0; //PBC used here
-			for (int j = 0; j < l.n_sites(); ++j)
-				if (l.distance(site, j) == d)
-					shellsize[d] += 1;
-		}
-	}
-};
 
 // k! / (k+n)!
 template<typename T>
@@ -107,11 +50,15 @@ struct move_insert
 
 	double accept()
 	{
-		config->M.finish_add();
+		config->M.finish_add<N>();
+		config->measure.add("insertion n="+std::to_string(N), 1.0);
 		return 1.0;
 	}
 
-	void reject() {}
+	void reject()
+	{
+		config->measure.add("insertion n="+std::to_string(N), 0.0);
+	}
 };
 
 // ------------ QMC move : deleting a vertex ------------------
@@ -144,11 +91,15 @@ struct move_remove
 
 	double accept()
 	{
-		config->M.finish_remove();
+		config->M.finish_remove<N>();
+		config->measure.add("removal n="+std::to_string(N), 1.0);
 		return 1.0;
 	}
 
-	void reject() {}
+	void reject()
+	{
+		config->measure.add("removal n="+std::to_string(N), 0.0);
+	}
 };
 
 // ------------ QMC move : Z -> W2 ------------------
@@ -182,7 +133,7 @@ struct move_ZtoW2
 
 	double accept()
 	{
-		config->M.finish_add();
+		config->M.finish_add<1>();
 		if (save_acc)
 			config->measure.add("Z -> W2", 1.0);
 		return 1.0;
@@ -232,7 +183,7 @@ struct move_W2toZ
 
 	double accept()
 	{
-		config->M.finish_remove();
+		config->M.finish_remove<1>();
 		if (save_acc)
 			config->measure.add("W2 -> Z", 1.0);
 		return 1.0;
@@ -276,7 +227,7 @@ struct move_W2toW4
 
 	double accept()
 	{
-		config->M.finish_add();
+		config->M.finish_add<1>();
 		if (save_acc)
 			config->measure.add("W2 -> W4", 1.0);
 		return 1.0;
@@ -327,7 +278,7 @@ struct move_W4toW2
 
 	double accept()
 	{
-		config->M.finish_remove();
+		config->M.finish_remove<1>();
 		if (save_acc)
 			config->measure.add("W4 -> W2", 1.0);
 		return 1.0;
@@ -374,7 +325,7 @@ struct move_ZtoW4
 
 	double accept()
 	{
-		config->M.finish_add();
+		config->M.finish_add<2>();
 		if (save_acc)
 			config->measure.add("Z -> W4", 1.0);
 		return 1.0;
@@ -430,7 +381,7 @@ struct move_W4toZ
 
 	double accept()
 	{
-		config->M.finish_remove();
+		config->M.finish_remove<2>();
 		if (save_acc)
 			config->measure.add("W4 -> Z", 1.0);
 		return 1.0;
@@ -475,8 +426,12 @@ struct move_shift
 		int old_site = worm_vert[p].site;
 		worm_vert[p].site = neighbors[neighbors.size() * rng()];
 		int new_site = worm_vert[p].site;
-		std::random_shuffle(worm_vert.begin(), worm_vert.end());
-		double det_ratio = config->M.try_shift(worm_vert);
+		//std::random_shuffle(worm_vert.begin(), worm_vert.end());
+		double det_ratio;
+		if (config->worms() == 1)
+			det_ratio = config->M.try_shift<1>(worm_vert);
+		else if (config->worms() == 2)
+			det_ratio = config->M.try_shift<2>(worm_vert);
 		assert(det_ratio == det_ratio && "nan value in det ratio");
 		save_acc = true;
 		return config->l.parity(old_site) * config->l.parity(new_site)
@@ -485,7 +440,10 @@ struct move_shift
 
 	double accept()
 	{
-		config->M.finish_shift();
+		if (config->worms() == 1)
+			config->M.finish_shift<1>();
+		else if (config->worms() == 2)
+			config->M.finish_shift<2>();
 		if (save_acc)
 			config->measure.add("worm shift", 1.0);
 		return 1.0;

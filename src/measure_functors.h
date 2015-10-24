@@ -3,7 +3,7 @@
 #include <vector>
 #include "measurements.h"
 #include "parser.h"
-#include "move_functors.h"
+#include "configuration.h"
 
 void eval_M2(double& out, std::vector< std::valarray<double>* >& o, double* p)
 {

@@ -1,15 +1,15 @@
 #include <sstream>
 #include <fstream>
 #include <string>
-#include <limits>
-#include <functional>
 #include "mc.h"
+#include "move_functors.h"
 #include "measure_functors.h"
 #include "event_functors.h"
 
 mc::mc(const std::string& dir)
 	: rng(Random()), qmc(rng)
 {
+	//Read parameters
 	pars.read_file(dir);
 	sweep = 0;
 	n_cycles = pars.value_or_default<int>("cycles", 300);
@@ -24,7 +24,7 @@ mc::mc(const std::string& dir)
 	param.zeta4 = pars.value_or_default<double>("zeta4", 30.0);
 	param.worm_nhood_dist = pars.value_or_default<int>("nhood_dist", 4);
 
-	//proposal probabilites
+	//Proposal probabilites
 	param.add.push_back(pars.value_or_default<double>("add_1", 1.0));
 	param.rem.push_back(pars.value_or_default<double>("rem_1", 1.0));
 	param.add.push_back(pars.value_or_default<double>("add_2", 1.0));
@@ -36,31 +36,7 @@ mc::mc(const std::string& dir)
 	param.W2toW4 = pars.value_or_default<double>("W2toW4", 1.0);
 	param.W4toW2 = pars.value_or_default<double>("W4toW2", 1.0);
 	param.worm_shift = pars.value_or_default<double>("worm_shift", 1.0);
-}
 
-mc::~mc()
-{
-	delete config;
-}
-
-void mc::random_write(odump& d)
-{
-	rng.RngHandle()->write(d);
-}
-void mc::seed_write(const std::string& fn)
-{
-	std::ofstream s;
-	s.open(fn.c_str());
-	s << rng.Seed() << std::endl;
-	s.close();
-}
-void mc::random_read(idump& d)
-{
-	rng.NewRng();
-	rng.RngHandle()->read(d);
-}
-void mc::init()
-{
 	//Initialize lattice
 	lat.generate_graph(hc);
 	if (param.worm_nhood_dist == -1)
@@ -75,8 +51,10 @@ void mc::init()
 	//Set up bare greens function look up
 	g0.generate_mesh(&lat, param.beta, n_tau_slices);
 
-	//Set up Monte Carlo moves
+	//Create configuration
 	config = new configuration(lat, g0, param, measure);
+
+	//Set up Monte Carlo moves
 	qmc.add_move(move_insert<1>{config, rng}, "insertion n=1", param.add[0]);
 	qmc.add_move(move_remove<1>{config, rng}, "removal n=1", param.rem[0]);
 	qmc.add_move(move_insert<2>{config, rng}, "insertion n=2", param.add[1]);
@@ -101,6 +79,10 @@ void mc::init()
 	measure.add_observable("deltaW4", n_prebin);
 	measure.add_vectorobservable("corr", lat.max_distance() + 1, n_prebin);
 	//Measure acceptance probabilities
+	measure.add_observable("insertion n=1", n_prebin);
+	measure.add_observable("removal n=1", n_prebin);
+	measure.add_observable("insertion n=2", n_prebin);
+	measure.add_observable("removal n=2", n_prebin);
 	measure.add_observable("Z -> W2", n_prebin);
 	measure.add_observable("W2 -> Z", n_prebin);
 	measure.add_observable("W2 -> W4", n_prebin);
@@ -111,11 +93,36 @@ void mc::init()
 	qmc.add_measure(measure_M{config, measure, pars,
 		std::vector<double>(lat.max_distance() + 1, 0.0)}, "measurement");
 }
+
+mc::~mc()
+{
+	delete config;
+}
+
+void mc::random_write(odump& d)
+{
+	rng.RngHandle()->write(d);
+}
+void mc::seed_write(const std::string& fn)
+{
+	std::ofstream s;
+	s.open(fn.c_str());
+	s << rng.Seed() << std::endl;
+	s.close();
+}
+void mc::random_read(idump& d)
+{
+	rng.NewRng();
+	rng.RngHandle()->read(d);
+}
+void mc::init() {}
+
 void mc::write(const std::string& dir)
 {
 	odump d(dir+"dump");
 	random_write(d);
 	d.write(sweep);
+	config->serialize(d);
 	d.close();
 	seed_write(dir+"seed");
 }
@@ -131,6 +138,7 @@ bool mc::read(const std::string& dir)
 	{
 		random_read(d);
 		d.read(sweep);
+		config->serialize(d);
 		d.close();
 		return true;
 	}

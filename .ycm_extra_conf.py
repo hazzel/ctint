@@ -80,6 +80,8 @@ flags = [
 '/net/home/lxtsfs1/tpc/hesselmann/eigen',
 '-I',
 '/net/home/lxtsfs1/tpc/hesselmann/mc/load_leveller/trunk',
+'-I',
+'/home/stephan/mc/load_leveller/trunk',
 '-isystem',
 './tests/gmock/gtest',
 '-isystem',

@@ -1,6 +1,6 @@
 #pragma once
 #include "measurements.h"
-#include "move_functors.h"
+#include "configuration.h"
 
 struct event_rebuild
 {
