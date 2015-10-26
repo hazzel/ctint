@@ -4,6 +4,7 @@ project(ctint CXX)
 set(CMAKE_BUILD_TYPE Release)
 set(mode "mpi")
 
+MESSAGE("MCLL_SYSTEM_INFO set to $ENV{MCLL_SYSTEM_INFO}")
 # Add load leveller source directory
 set(MCLL "$ENV{HOME}/mc/load_leveller/trunk")
 MESSAGE("load_leveller source directory set to ${MCLL}")
@@ -44,7 +45,6 @@ include_directories(${MCLL})
 
 # Compiler flags
 set(DEFINES "${DEFINES} -DMCL_DUMP_BUFFER=0 -DMCL_MEASUREMENTS_APPEND -DMCL_MCL_RNG_MT")
-MESSAGE("MCLL_SYSTEM_INFO set to $ENV{MCLL_SYSTEM_INFO}")
 if("$ENV{MCLL_SYSTEM_INFO}" STREQUAL "rwthcluster")
 	set(CMAKE_CXX_FLAGS "-O3 -DMKL_DIRECT_CALL -ip -axCORE-AVX2,AVX,SSE4.2,SSE4.1 -fp-model fast=2 -std=c++11 ${DEFINES}")
 else()
