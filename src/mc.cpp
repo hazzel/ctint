@@ -40,10 +40,10 @@ mc::mc(const std::string& dir)
 	if (param.worm_nhood_dist == -1)
 		param.worm_nhood_dist = lat.max_distance();
 	lat.generate_neighbor_map("nearest neighbors", [this]
-		(typename lattice::vertex_t i, typename lattice::vertex_t j) {
+		(lattice::vertex_t i, lattice::vertex_t j) {
 		return lat.distance(i, j) == 1; });
 	lat.generate_neighbor_map("worm nhood", [this]
-		(typename lattice::vertex_t i, typename lattice::vertex_t j) {
+		(lattice::vertex_t i, lattice::vertex_t j) {
 		return i != j && lat.distance(i, j) <= param.worm_nhood_dist; });
 	param.ratio_w2 = static_cast<double>(lat.neighbors(0, "worm nhood").size())
 		/ static_cast<double>(lat.n_sites());
