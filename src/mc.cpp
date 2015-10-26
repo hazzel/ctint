@@ -1,5 +1,3 @@
-#include <sstream>
-#include <fstream>
 #include <string>
 #include "mc.h"
 #include "move_functors.h"
@@ -41,12 +39,16 @@ mc::mc(const std::string& dir)
 	lat.generate_graph(hc);
 	if (param.worm_nhood_dist == -1)
 		param.worm_nhood_dist = lat.max_distance();
-	lat.generate_neighbor_map(param.worm_nhood_dist);
-	lat.generate_neighbor_map(1);
-	param.ratio_w2 = static_cast<double>(lat.neighbors(0,
-		param.worm_nhood_dist).size()) / static_cast<double>(lat.n_sites());
+	lat.generate_neighbor_map("nearest neighbors", [this]
+		(lattice::vertex_t i, lattice::vertex_t j) {
+		return lat.distance(i, j) == 1; });
+	lat.generate_neighbor_map("worm nhood", [this]
+		(lattice::vertex_t i, lattice::vertex_t j) {
+		return i != j && lat.distance(i, j) <= param.worm_nhood_dist; });
+	param.ratio_w2 = static_cast<double>(lat.neighbors(0, "worm nhood").size())
+		/ static_cast<double>(lat.n_sites());
 	param.ratio_w4 = std::pow(static_cast<double>(lat.neighbors(0,
-		param.worm_nhood_dist).size()) / static_cast<double>(lat.n_sites()), 3.0);
+		"worm nhood").size()) / static_cast<double>(lat.n_sites()), 3.0);
 
 	//Set up bare greens function look up
 	g0.generate_mesh(&lat, param.beta, n_tau_slices);

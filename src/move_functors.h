@@ -35,8 +35,8 @@ struct move_insert
 		{
 			double tau = config->params.beta * rng();
 			int s1 = config->l.n_sites() * rng();
-			int s2 = config->l.neighbors(s1, 1)
-				[config->l.neighbors(s1, 1).size() * rng()];
+			int s2 = config->l.neighbors(s1, "nearest neighbors")
+				[config->l.neighbors(s1, "nearest neighbors").size() * rng()];
 			vec.push_back(arg_t{tau, s1, false});
 			vec.push_back(arg_t{tau, s2, false});
 		}
@@ -120,7 +120,7 @@ struct move_ZtoW2
 		double tau = config->params.beta * rng();
 		int s1 = config->l.n_sites() * rng();
 		const std::vector<int>& neighbors =
-			config->l.neighbors(s1, config->params.worm_nhood_dist);
+			config->l.neighbors(s1, "worm nhood");
 		int s2 = neighbors[neighbors.size() * rng()];
 		std::vector<arg_t> vec = {arg_t{tau, s1, true}, arg_t{tau, s2, true}};
 		double det_ratio = config->M.try_add<1>(vec, worm);
@@ -165,7 +165,7 @@ struct move_W2toZ
 		int sites[] = {config->M.vertex(p, worm).site,
 							config->M.vertex(p+1, worm).site};
 		const std::vector<int>& neighbors =
-			config->l.neighbors(sites[0], config->params.worm_nhood_dist);
+			config->l.neighbors(sites[0], "worm nhood");
 		if (std::find(neighbors.begin(), neighbors.end(), sites[1])
 			== neighbors.end())
 		{
@@ -214,7 +214,7 @@ struct move_W2toW4
 		double tau = config->M.vertex(0, worm).tau;
 		int s1 = config->l.n_sites() * rng();
 		const std::vector<int>& neighbors =
-			config->l.neighbors(s1, config->params.worm_nhood_dist);
+			config->l.neighbors(s1, "worm nhood");
 		int s2 = neighbors[neighbors.size() * rng()];
 		std::vector<arg_t> vec = {arg_t{tau, s1, true}, arg_t{tau, s2, true}};
 		double det_ratio = config->M.try_add<1>(vec, worm);
@@ -259,7 +259,7 @@ struct move_W4toW2
 		int sites[] = {config->M.vertex(2*p, worm).site,
 							config->M.vertex(2*p+1, worm).site};
 		const std::vector<int>& neighbors =
-			config->l.neighbors(sites[0], config->params.worm_nhood_dist);
+			config->l.neighbors(sites[0], "worm nhood");
 		if (std::find(neighbors.begin(), neighbors.end(), sites[1])
 			== neighbors.end())
 		{
@@ -309,7 +309,7 @@ struct move_ZtoW4
 		double tau = config->params.beta * rng();
 		int s1 = config->l.n_sites() * rng();
 		const std::vector<int>& neighbors =
-			config->l.neighbors(s1, config->params.worm_nhood_dist);
+			config->l.neighbors(s1, "worm nhood");
 		int s2 = neighbors[neighbors.size() * rng()];
 		int s3 = neighbors[neighbors.size() * rng()];
 		int s4 = neighbors[neighbors.size() * rng()];
@@ -359,7 +359,7 @@ struct move_W4toZ
 							config->M.vertex(p+2, worm).site,
 							config->M.vertex(p+3, worm).site};
 		const std::vector<int>& neighbors =
-			config->l.neighbors(sites[0], config->params.worm_nhood_dist);
+			config->l.neighbors(sites[0], "worm nhood");
 		for (int i = 1; i < 4; ++i)	
 			if (std::find(neighbors.begin(), neighbors.end(), sites[i])
 				== neighbors.end())
@@ -371,7 +371,7 @@ struct move_W4toZ
 		double det_ratio = config->M.try_remove<2>(vec, worm);
 		assert(det_ratio == det_ratio && "nan value in det ratio");
 		save_acc = true;
-		return config->params.ZtoW4 * config->params.W4toZ
+		return config->params.ZtoW4 / config->params.W4toZ
 			* config->l.parity(config->M.vertex(p, worm).site)
 			* config->l.parity(config->M.vertex(p+1, worm).site)
 			* config->l.parity(config->M.vertex(p+2, worm).site)
@@ -422,11 +422,11 @@ struct move_shift
 			worm_vert[i].tau += tau_shift;
 		int p = worm_vert.size() * rng();
 		const std::vector<int>& neighbors = config->l.neighbors(
-			worm_vert[p].site, config->params.worm_nhood_dist);
+			worm_vert[p].site, "worm nhood");
 		int old_site = worm_vert[p].site;
 		worm_vert[p].site = neighbors[neighbors.size() * rng()];
 		int new_site = worm_vert[p].site;
-		//std::random_shuffle(worm_vert.begin(), worm_vert.end());
+		std::random_shuffle(worm_vert.begin(), worm_vert.end());
 		double det_ratio;
 		if (config->worms() == 1)
 			det_ratio = config->M.try_shift<1>(worm_vert);

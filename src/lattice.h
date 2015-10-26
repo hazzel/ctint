@@ -3,6 +3,8 @@
 #include <array>
 #include <vector>
 #include <map>
+#include <string>
+#include <functional>
 #include <boost/graph/graph_traits.hpp>
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/breadth_first_search.hpp>
@@ -22,7 +24,7 @@ class lattice
 		typedef graph_t::edge_iterator edge_it_t;
 		typedef boost::multi_array<int, 2> multi_array_t;
 		typedef std::vector<std::vector<int>> nested_vector_t;
-		typedef std::map<int, nested_vector_t> neighbor_map_t;
+		typedef std::map<std::string, nested_vector_t> neighbor_map_t;
 
 		lattice()
 			: graph(0) {}
@@ -34,20 +36,23 @@ class lattice
 			delete graph;
 			graph = generator.graph();
 			generate_distance_map();
-			generate_neighbor_map(1);
 		}
 
-		void generate_neighbor_map(int neighbor_dist)
+		void generate_neighbor_map(const std::string& name,
+			std::function<bool(vertex_t, vertex_t)> fun)
 		{
-			if (neighbor_map.find(neighbor_dist) != neighbor_map.end())
+			if (neighbor_maps.count(name))
+			{
+				std::cerr << "Neighbor map already exists." << std::endl;
 				return;
-			neighbor_map[neighbor_dist] = nested_vector_t(n_sites());
+			}
+			neighbor_maps[name] = nested_vector_t(n_sites());
 			for (int i = 0; i < n_sites(); ++i)
 			{
 				for (int j = 0; j < n_sites(); ++j)
 				{
-					if (i != j && distance_map[i][j] <= neighbor_dist)
-						neighbor_map[neighbor_dist][i].push_back(j);
+					if (fun(i, j))
+						neighbor_maps[name][i].push_back(j);
 				}
 			}
 		}
@@ -73,9 +78,9 @@ class lattice
 		}
 
 		const std::vector<int>& neighbors(vertex_t site,
-			int neighbor_dist) const
+			const std::string& name) const
 		{
-			return neighbor_map.at(neighbor_dist)[site];
+			return neighbor_maps.at(name)[site];
 		}
 
 		//TODO: generalize as vertex property on graph
@@ -135,5 +140,5 @@ class lattice
 		int neighbor_dist;
 		int max_dist;
 		multi_array_t distance_map;
-		neighbor_map_t neighbor_map;
+		neighbor_map_t neighbor_maps;
 };

@@ -43,7 +43,7 @@ include_directories(${MCLL})
 
 # Compiler flags
 set(DEFINES "${DEFINES} -DMCL_DUMP_BUFFER=0 -DMCL_MEASUREMENTS_APPEND -DMCL_MCL_RNG_MT")
-set(CMAKE_CXX_FLAGS "-O3 -msse2 -DNDEBUG -std=c++11 ${DEFINES}")
+set(CMAKE_CXX_FLAGS "-Ofast -ffast-math -march=native -flto -fwhole-program -std=c++11 ${DEFINES}")
 
 # Create executable
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ../bin)
