@@ -9,13 +9,23 @@ MESSAGE("MCLL_SYSTEM_INFO set to $ENV{MCLL_SYSTEM_INFO}")
 set(MCLL "$ENV{HOME}/mc/load_leveller/trunk")
 MESSAGE("load_leveller source directory set to ${MCLL}")
 
+# Linking and include info
+include_directories(${CMAKE_SOURCE_DIR})
+include_directories($ENV{HOME}/libs/eigen $ENV{HOME}/eigen)
+include_directories(${MCLL})
+
 if(mode STREQUAL "mpi")
 	# Set up MPI
-	MESSAGE("Using mpi implementation.")
+	MESSAGE("Using MPI implementation.")
 	find_package(MPI REQUIRED)
-	set(CMAKE_CXX_COMPILE_FLAGS ${CMAKE_CXX_COMPILE_FLAGS} ${MPI_COMPILE_FLAGS})
-	set(CMAKE_CXX_LINK_FLAGS ${CMAKE_CXX_LINK_FLAGS} ${MPI_LINK_FLAGS})
-	include_directories(${MPI_INCLUDE_PATH})
+	if (MPI_FOUND)
+		set(CMAKE_CXX_COMPILE_FLAGS "${CMAKE_CXX_COMPILE_FLAGS} ${MPI_COMPILE_FLAGS} -fopenmp")
+		set(CMAKE_CXX_LINK_FLAGS "${CMAKE_CXX_LINK_FLAGS} ${MPI_LINK_FLAGS} -fopenmp")
+		
+		include_directories(${MPI_INCLUDE_PATH})
+	else()
+		MESSAGE("MPI not found.")
+	endif()
 	
 	file(GLOB LL_SRC ${MCLL}/dump.cpp 
 						${MCLL}/parser.cpp
@@ -38,22 +48,22 @@ elseif(mode STREQUAL "single")
 	set(DEFINES "${DEFINES} -DMCL_SINGLE")
 endif()
 
-# Linking and include info
-include_directories(${CMAKE_SOURCE_DIR})
-include_directories($ENV{HOME}/libs/eigen $ENV{HOME}/eigen)
-include_directories(${MCLL})
+#find_package(OpenMP)
+#if (OPENMP_FOUND)
+#	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+#	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+#	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
+#endif()
 
 # Compiler flags
 set(DEFINES "${DEFINES} -DMCL_DUMP_BUFFER=0 -DMCL_MEASUREMENTS_APPEND -DMCL_MCL_RNG_MT")
 if("$ENV{MCLL_SYSTEM_INFO}" STREQUAL "rwthcluster")
-	set(CMAKE_CXX_FLAGS "-O3 -DMKL_DIRECT_CALL -ip -axCORE-AVX2,AVX,SSE4.2,SSE4.1 -fp-model fast=2 -std=c++11 ${DEFINES}")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -DMKL_DIRECT_CALL -ip -axCORE-AVX2,AVX,SSE4.2,SSE4.1 -fp-model fast=2 -std=c++11 ${DEFINES}")
 else()
-	set(CMAKE_CXX_FLAGS "-Ofast -ffast-math -march=native -flto -fwhole-program -std=c++11 ${DEFINES}")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Ofast -ffast-math -march=native -flto -fwhole-program -std=c++11 ${DEFINES}")
 endif()
 
 # Create executable
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ../bin)
 add_executable(ctint ${LL_SRC} mc.cpp)
-if(mode STREQUAL "mpi")
-	target_link_libraries(ctint ${MPI_LIBRARIES})
-endif()
+target_link_libraries(ctint ${MPI_LIBRARIES})

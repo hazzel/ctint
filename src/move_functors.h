@@ -422,7 +422,7 @@ struct move_shift
 			worm_vert[i].tau += tau_shift;
 		int p = worm_vert.size() * rng();
 		const std::vector<int>& neighbors = config->l.neighbors(
-			worm_vert[p].site, "worm nhood");
+			worm_vert[p].site, "shift nhood");
 		int old_site = worm_vert[p].site;
 		worm_vert[p].site = neighbors[neighbors.size() * rng()];
 		int new_site = worm_vert[p].site;
@@ -453,5 +453,67 @@ struct move_shift
 	{
 		if (save_acc)
 			config->measure.add("worm shift", 0.0);
+	}
+
+};
+// ------------ QMC move : worm shift ------------------
+
+struct move_shift_2
+{
+	configuration* config;
+	Random& rng;
+	bool save_acc;
+
+	double attempt()
+	{
+		if (config->worms() == 0)
+		{
+			save_acc = false;
+			return 0.0;
+		}
+		std::vector<arg_t> worm_vert(2*config->worms());
+		for (int i = 0; i < worm_vert.size(); ++i)
+			worm_vert[i] = config->M.vertex(i, worm);
+		double tau_shift = -0.05*config->params.beta + 0.1*config->params.beta
+			* rng();
+		if (worm_vert[0].tau + tau_shift > config->params.beta)
+			tau_shift -= config->params.beta;
+		else if(worm_vert[0].tau + tau_shift < 0.0)
+			tau_shift += config->params.beta;
+		for (int i = 0; i < worm_vert.size(); ++i)
+			worm_vert[i].tau += tau_shift;
+		int p = worm_vert.size() * rng();
+		const std::vector<int>& neighbors = config->l.neighbors(
+			worm_vert[p].site, "shift nhood");
+		int old_site = worm_vert[p].site;
+		worm_vert[p].site = neighbors[neighbors.size() * rng()];
+		int new_site = worm_vert[p].site;
+		std::random_shuffle(worm_vert.begin(), worm_vert.end());
+		double det_ratio;
+		if (config->worms() == 1)
+			det_ratio = config->M.try_shift<1>(worm_vert);
+		else if (config->worms() == 2)
+			det_ratio = config->M.try_shift<2>(worm_vert);
+		assert(det_ratio == det_ratio && "nan value in det ratio");
+		save_acc = true;
+		return config->l.parity(old_site) * config->l.parity(new_site)
+			* det_ratio;
+	}
+
+	double accept()
+	{
+		if (config->worms() == 1)
+			config->M.finish_shift<1>();
+		else if (config->worms() == 2)
+			config->M.finish_shift<2>();
+		if (save_acc)
+			config->measure.add("worm shift 2", 1.0);
+		return 1.0;
+	}
+
+	void reject()
+	{
+		if (save_acc)
+			config->measure.add("worm shift 2", 0.0);
 	}
 };

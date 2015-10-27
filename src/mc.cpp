@@ -1,4 +1,5 @@
 #include <string>
+#include <fstream>
 #include "mc.h"
 #include "move_functors.h"
 #include "measure_functors.h"
@@ -44,6 +45,9 @@ mc::mc(const std::string& dir)
 		return lat.distance(i, j) == 1; });
 	lat.generate_neighbor_map("worm nhood", [this]
 		(lattice::vertex_t i, lattice::vertex_t j) {
+		return lat.distance(i, j) <= param.worm_nhood_dist; });
+	lat.generate_neighbor_map("shift nhood", [this]
+		(lattice::vertex_t i, lattice::vertex_t j) {
 		return i != j && lat.distance(i, j) <= param.worm_nhood_dist; });
 	param.ratio_w2 = static_cast<double>(lat.neighbors(0, "worm nhood").size())
 		/ static_cast<double>(lat.n_sites());
@@ -68,6 +72,8 @@ mc::mc(const std::string& dir)
 	qmc.add_move(move_W2toW4{config, rng, false}, "W2 -> W4", param.W2toW4);
 	qmc.add_move(move_W4toW2{config, rng, false}, "W4 -> W2", param.W4toW2);
 	qmc.add_move(move_shift{config, rng, false}, "worm shift", param.worm_shift);
+	//qmc.add_move(move_shift_2{config, rng, false}, "worm shift 2",
+	//	param.worm_shift);
 
 	//Set up rebuild event
 	qmc.add_event(event_rebuild{config, measure}, "rebuild");
@@ -92,6 +98,8 @@ mc::mc(const std::string& dir)
 	measure.add_observable("Z -> W4", n_prebin);
 	measure.add_observable("W4 -> Z", n_prebin);
 	measure.add_observable("worm shift", n_prebin);
+	measure.add_observable("worm shift 2", n_prebin);
+	
 	qmc.add_measure(measure_M{config, measure, pars,
 		std::vector<double>(lat.max_distance() + 1, 0.0)}, "measurement");
 }
@@ -127,6 +135,21 @@ void mc::write(const std::string& dir)
 	config->serialize(d);
 	d.close();
 	seed_write(dir+"seed");
+	std::ofstream f(dir+"bins");
+	if (is_thermalized())
+	{
+		f << "Thermalization: Done." << std::endl;
+		f << "Sweeps: " << (sweep - n_warmup) << std::endl;
+		f << "Bins: " << static_cast<int>((sweep - n_warmup) / n_prebin)
+			<< std::endl;
+	}
+	else
+	{
+		f << "Thermalization: " << sweep << std::endl;
+		f << "Sweeps: 0" << std::endl;
+		f << "Bins: 0" << std::endl;
+	}
+	f.close();
 }
 bool mc::read(const std::string& dir)
 {

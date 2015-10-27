@@ -48,7 +48,7 @@ class mctools
 				if (r < proposal[i])
 				{
 					double q = moves[i].attempt();
-					if (q < 0.0)
+					if (q < 0.0 && verbose)
 						std::cout << "Negative sign at " << moves[i].name()
 							<< std::endl;
 					if (rng() < std::abs(q))
@@ -110,4 +110,5 @@ class mctools
 		std::vector<measure_base> measures;
 		std::vector<double> proposal;
 		std::vector<std::pair<std::string, double>> acceptance;
+		bool verbose = false;
 };
