@@ -14,15 +14,20 @@ include_directories(${CMAKE_SOURCE_DIR})
 include_directories($ENV{HOME}/libs/eigen $ENV{HOME}/eigen)
 include_directories(${MCLL})
 
+find_package(OpenMP)
+if (OPENMP_CXX_FOUND)
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+endif()
+
 if(mode STREQUAL "mpi")
 	# Set up MPI
 	MESSAGE("Using MPI implementation.")
 	find_package(MPI REQUIRED)
-	if (MPI_FOUND)
-		set(CMAKE_CXX_COMPILE_FLAGS "${CMAKE_CXX_COMPILE_FLAGS} ${MPI_COMPILE_FLAGS} -fopenmp")
-		set(CMAKE_CXX_LINK_FLAGS "${CMAKE_CXX_LINK_FLAGS} ${MPI_LINK_FLAGS} -fopenmp")
+	if (MPI_CXX_FOUND)
+		set(CMAKE_CXX_COMPILE_FLAGS "${CMAKE_CXX_COMPILE_FLAGS} ${MPI_CXX_COMPILE_FLAGS}")
+		set(CMAKE_CXX_LINK_FLAGS "${CMAKE_CXX_LINK_FLAGS} ${MPI_CXX_LINK_FLAGS}")
 		
-		include_directories(${MPI_INCLUDE_PATH})
+		include_directories(${MPI_CXX_INCLUDE_PATH})
 	else()
 		MESSAGE("MPI not found.")
 	endif()
@@ -47,13 +52,6 @@ elseif(mode STREQUAL "single")
 						${MCLL}/runner_single.cpp)
 	set(DEFINES "${DEFINES} -DMCL_SINGLE")
 endif()
-
-#find_package(OpenMP)
-#if (OPENMP_FOUND)
-#	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
-#	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
-#	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
-#endif()
 
 # Compiler flags
 set(DEFINES "${DEFINES} -DMCL_DUMP_BUFFER=0 -DMCL_MEASUREMENTS_APPEND -DMCL_MCL_RNG_MT")
