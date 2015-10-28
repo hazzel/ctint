@@ -98,7 +98,8 @@ mc::mc(const std::string& dir)
 	measure.add_observable("Z -> W4", n_prebin);
 	measure.add_observable("W4 -> Z", n_prebin);
 	measure.add_observable("worm shift", n_prebin);
-	measure.add_observable("worm shift 2", n_prebin);
+	//measure.add_observable("worm shift 2", n_prebin);
+	measure.add_observable("sign", n_prebin);
 	
 	qmc.add_measure(measure_M{config, measure, pars,
 		std::vector<double>(lat.max_distance() + 1, 0.0)}, "measurement");
@@ -192,10 +193,10 @@ bool mc::is_thermalized()
 void mc::do_update()
 {
 	if (!is_thermalized())
-		qmc.do_update();
+		qmc.do_update(measure);
 	else
 		for (int i = 0; i < n_cycles; ++i)
-			qmc.do_update();
+			qmc.do_update(measure);
 	++sweep;
 	if (sweep % n_rebuild == 0)
 		qmc.trigger_event("rebuild");

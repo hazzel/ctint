@@ -8,6 +8,7 @@
 #include <ostream>
 #include <iostream>
 #include "Random.h"
+#include "measurements.h"
 #include "move_base.h"
 #include "event_base.h"
 #include "measure_base.h"
@@ -40,7 +41,7 @@ class mctools
 			measures.push_back(measure_base(std::forward<T>(functor), name));
 		}
 
-		void do_update()
+		void do_update(measurements& measure_sign)
 		{
 			double r = rng();
 			for (int i = 0; i < moves.size(); ++i)
@@ -51,6 +52,7 @@ class mctools
 					if (q < 0.0 && verbose)
 						std::cout << "Negative sign at " << moves[i].name()
 							<< std::endl;
+					measure_sign.add("sign", (q >= 0.0) - (q < 0.0));
 					if (rng() < std::abs(q))
 						moves[i].accept();
 					else

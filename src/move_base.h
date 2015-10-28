@@ -10,8 +10,8 @@ class move_base
 	public:
 		template<typename T>
 		move_base(T&& functor, const std::string& name_, double prop_rate_=1.0)
-			: name_str(name_), prop_rate(prop_rate_), n_attempted(0),
-				n_accepted(0)
+			: name_str(name_), prop_rate(prop_rate_), avg_sign(1.0),
+				n_attempted(0), n_accepted(0)
 		{
 			construct_delegation(new typename std::remove_reference<T>::type(
 				std::forward<T>(functor)));
@@ -57,6 +57,6 @@ class move_base
 		std::string name_str;
 		double prop_rate;
 		double avg_sign;
-		unsigned int n_attempted;
-		unsigned int n_accepted;
+		unsigned long n_attempted;
+		unsigned long n_accepted;
 };
