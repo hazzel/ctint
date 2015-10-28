@@ -68,6 +68,14 @@ class fast_update
 			}
 		}
 
+		void build(std::vector<arg_t>& args, std::vector<int>&& flavors)
+		{
+			vertices = std::move(args);
+			flavor_cnt = std::move(flavors);
+			M.resize(vertices.size(), vertices.size());
+			rebuild();
+		}
+
 		void rebuild()
 		{
 			if (M.rows() == 0) return;
@@ -98,6 +106,7 @@ class fast_update
 
 		void serialize(idump& in)
 		{
+			vertices.clear();
 			int size; in.read(size);
 			for (int i = 0; i < size; ++i)
 			{
@@ -123,7 +132,7 @@ class fast_update
 			const int n = 2*N;
 			last_flavor = flavor;
 			
-			arg_buffer.swap(args);
+			arg_buffer = std::move(args);
 			helper<n>().u.resize(k, n);
 			helper<n>().v.resize(n, k);
 			helper<n>().a.resize(n, n);
@@ -168,7 +177,7 @@ class fast_update
 			if (flavor_cnt[flavor] < n)
 				return 0.0;
 			last_flavor = flavor;
-			pos_buffer.swap(pos);
+			pos_buffer = std::move(pos);
 			int pos_offset = 0;
 			for (int f = 0; f < flavor; ++f)
 				pos_offset += flavor_cnt[f];
@@ -207,7 +216,7 @@ class fast_update
 			const int n = 2*N;
 			last_flavor = 1; //shift worm vertices
 			
-			arg_buffer.swap(args);
+			arg_buffer = std::move(args);
 			helper<n>().u.resize(k, n);
 			helper<n>().v.resize(n, k);
 			helper<n>().a.resize(n, n);

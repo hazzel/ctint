@@ -75,8 +75,11 @@ mc::mc(const std::string& dir)
 	//qmc.add_move(move_shift_2{config, rng, false}, "worm shift 2",
 	//	param.worm_shift);
 
-	//Set up rebuild event
+	//Set up events
 	qmc.add_event(event_rebuild{config, measure}, "rebuild");
+	qmc.add_event(event_build{config, rng}, "initial build");
+	//Initialize vertex list to reduce warm up time
+	qmc.trigger_event("initial build");
 
 	//Set up measurements
 	measure.add_observable("<k>_Z", n_prebin);
