@@ -198,7 +198,7 @@ class fast_update
 			flavor_cnt[last_flavor] -= n;
 		}
 
-		//Assume that vertices to shift are already located at end
+		//Assume that vertices to shift are already located at the end
 		//TODO: include permute operation
 		template<int N>
 		double try_shift(std::vector<arg_t>& args)
