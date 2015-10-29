@@ -11,14 +11,23 @@ struct helper_matrices
 {
 	template<int n, int m>
 	using matrix_t = Eigen::Matrix<double, n, m, Eigen::ColMajor>;
-	static const int dynamic = Eigen::Dynamic;
-
+/*
 	matrix_t<dynamic, N> u;
 	matrix_t<N, dynamic> v;
 	matrix_t<dynamic, N> Mu;
 	matrix_t<N, N> a;
 	matrix_t<N, N> S;
 	matrix_t<dynamic, dynamic> m;
+*/
+	
+	matrix_t<Eigen::Dynamic, N> u;
+	matrix_t<N, Eigen::Dynamic> v;
+	matrix_t<Eigen::Dynamic, N> Mu;
+	//TODO: fix allignment issues when a is of type matrix_t<N, N>
+	matrix_t<Eigen::Dynamic, Eigen::Dynamic> a;
+	matrix_t<N, N> S;
+	matrix_t<Eigen::Dynamic, Eigen::Dynamic> m;
+
 };
 
 template<typename function_t, typename arg_t>
@@ -26,9 +35,8 @@ class fast_update
 {
 	public:
 		template<int n, int m>
-		using matrix_t = Eigen::Matrix<double, n, m, Eigen::ColMajor>;
-		static const int dynamic = Eigen::Dynamic;
-		using dmatrix_t = matrix_t<dynamic, dynamic>;
+		using matrix_t = Eigen::Matrix<double, n, m, Eigen::ColMajor>; 
+		using dmatrix_t = matrix_t<Eigen::Dynamic, Eigen::Dynamic>;
 
 		fast_update(const function_t& function_, const lattice& l_,
 			int n_flavors_)
@@ -70,8 +78,8 @@ class fast_update
 
 		void build(std::vector<arg_t>& args, std::vector<int>&& flavors)
 		{
-			vertices.swap(args);
-			flavor_cnt.swap(flavors);
+			vertices = std::move(args);
+			flavor_cnt = std::move(flavors);
 			M.resize(vertices.size(), vertices.size());
 			rebuild();
 		}
@@ -132,7 +140,7 @@ class fast_update
 			const int n = 2*N;
 			last_flavor = flavor;
 			
-			arg_buffer.swap(args);
+			arg_buffer = std::move(args);
 			helper<n>().u.resize(k, n);
 			helper<n>().v.resize(n, k);
 			helper<n>().a.resize(n, n);
@@ -177,7 +185,7 @@ class fast_update
 			if (flavor_cnt[flavor] < n)
 				return 0.0;
 			last_flavor = flavor;
-			pos_buffer.swap(pos);
+			pos_buffer = std::move(pos);
 			int pos_offset = 0;
 			for (int f = 0; f < flavor; ++f)
 				pos_offset += flavor_cnt[f];
@@ -216,7 +224,7 @@ class fast_update
 			const int n = 2*N;
 			last_flavor = 1; //shift worm vertices
 			
-			arg_buffer.swap(args);
+			arg_buffer = std::move(args);
 			helper<n>().u.resize(k, n);
 			helper<n>().v.resize(n, k);
 			helper<n>().a.resize(n, n);
@@ -268,17 +276,17 @@ class fast_update
 			const int n = 2*N;
 			for (int i = 0; i < helper<n>().u.rows(); ++i)
 			{
-				for (int j = 0; j < helper<n>().u.cols(); ++j)
+				for (int j = 0; j < n; ++j)
 				{
 					helper<n>().u(i, j) = function(vertices[i], arg_buffer[j]);
 					helper<n>().v(j, i) = -helper<n>().u(i, j)
 						* l.parity(vertices[i].site) * l.parity(arg_buffer[j].site);
 				}
 			}
-			for (int i = 0; i < helper<n>().a.rows(); ++i)
+			for (int i = 0; i < n; ++i)
 			{
 				helper<n>().a(i, i) = 0.0;
-				for (int j = i+1; j < helper<2*N>().a.cols(); ++j)
+				for (int j = i+1; j < n; ++j)
 				{
 					helper<n>().a(i, j) = function(arg_buffer[i], arg_buffer[j]);
 					helper<n>().a(j, i) = -helper<n>().a(i, j)
