@@ -63,23 +63,17 @@ mc::mc(const std::string& dir)
 	//Set up Monte Carlo moves
 	qmc.add_move(move_insert<1>{config, rng}, "insertion n=1", param.add[0]);
 	qmc.add_move(move_remove<1>{config, rng}, "removal n=1", param.rem[0]);
-	qmc.add_move(move_insert<2>{config, rng}, "insertion n=2", param.add[1]);
-	qmc.add_move(move_remove<2>{config, rng}, "removal n=2", param.rem[1]);
-	qmc.add_move(move_ZtoW2{config, rng, false}, "Z -> W2", param.ZtoW2);
-	qmc.add_move(move_W2toZ{config, rng, false}, "W2 -> Z", param.W2toZ);
-	qmc.add_move(move_ZtoW4{config, rng, false}, "Z -> W4", param.ZtoW4);
-	qmc.add_move(move_W4toZ{config, rng, false}, "W4 -> Z", param.W4toZ);
-	qmc.add_move(move_W2toW4{config, rng, false}, "W2 -> W4", param.W2toW4);
-	qmc.add_move(move_W4toW2{config, rng, false}, "W4 -> W2", param.W4toW2);
-	qmc.add_move(move_shift{config, rng, false}, "worm shift", param.worm_shift);
+	//qmc.add_move(move_insert<2>{config, rng}, "insertion n=2", param.add[1]);
+	//qmc.add_move(move_remove<2>{config, rng}, "removal n=2", param.rem[1]);
+	//qmc.add_move(move_ZtoW2{config, rng, false}, "Z -> W2", param.ZtoW2);
+	//qmc.add_move(move_W2toZ{config, rng, false}, "W2 -> Z", param.W2toZ);
+	//qmc.add_move(move_ZtoW4{config, rng, false}, "Z -> W4", param.ZtoW4);
+	//qmc.add_move(move_W4toZ{config, rng, false}, "W4 -> Z", param.W4toZ);
+	//qmc.add_move(move_W2toW4{config, rng, false}, "W2 -> W4", param.W2toW4);
+	//qmc.add_move(move_W4toW2{config, rng, false}, "W4 -> W2", param.W4toW2);
+	//qmc.add_move(move_shift{config, rng, false}, "worm shift", param.worm_shift);
 	//qmc.add_move(move_shift_2{config, rng, false}, "worm shift 2",
 	//	param.worm_shift);
-
-	//Set up events
-	qmc.add_event(event_rebuild{config, measure}, "rebuild");
-	qmc.add_event(event_build{config, rng}, "initial build");
-	//Initialize vertex list to reduce warm up time
-	qmc.trigger_event("initial build");
 
 	//Set up measurements
 	measure.add_observable("<k>_Z", n_prebin);
@@ -106,6 +100,12 @@ mc::mc(const std::string& dir)
 	
 	qmc.add_measure(measure_M{config, measure, pars,
 		std::vector<double>(lat.max_distance() + 1, 0.0)}, "measurement");
+	
+	//Set up events
+	qmc.add_event(event_rebuild{config, measure}, "rebuild");
+	qmc.add_event(event_build{config, rng}, "initial build");
+	//Initialize vertex list to reduce warm up time
+	qmc.trigger_event("initial build");
 }
 
 mc::~mc()
@@ -175,8 +175,7 @@ bool mc::read(const std::string& dir)
 
 void mc::write_output(const std::string& dir)
 {
-	std::ofstream f;
-	f.open(dir.c_str());
+	std::ofstream f(dir);
 	qmc.collect_results(f);
 	f.close();
 	/*

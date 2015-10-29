@@ -70,8 +70,8 @@ class fast_update
 
 		void build(std::vector<arg_t>& args, std::vector<int>&& flavors)
 		{
-			vertices = std::move(args);
-			flavor_cnt = std::move(flavors);
+			vertices.swap(args);
+			flavor_cnt.swap(flavors);
 			M.resize(vertices.size(), vertices.size());
 			rebuild();
 		}
@@ -132,7 +132,7 @@ class fast_update
 			const int n = 2*N;
 			last_flavor = flavor;
 			
-			arg_buffer = std::move(args);
+			arg_buffer.swap(args);
 			helper<n>().u.resize(k, n);
 			helper<n>().v.resize(n, k);
 			helper<n>().a.resize(n, n);
@@ -177,7 +177,7 @@ class fast_update
 			if (flavor_cnt[flavor] < n)
 				return 0.0;
 			last_flavor = flavor;
-			pos_buffer = std::move(pos);
+			pos_buffer.swap(pos);
 			int pos_offset = 0;
 			for (int f = 0; f < flavor; ++f)
 				pos_offset += flavor_cnt[f];
@@ -216,7 +216,7 @@ class fast_update
 			const int n = 2*N;
 			last_flavor = 1; //shift worm vertices
 			
-			arg_buffer = std::move(args);
+			arg_buffer.swap(args);
 			helper<n>().u.resize(k, n);
 			helper<n>().v.resize(n, k);
 			helper<n>().a.resize(n, n);
@@ -261,8 +261,6 @@ class fast_update
 		}
 		helper_matrices<2>& helper(type<2>) { return helper_2; }
 		helper_matrices<4>& helper(type<4>) { return helper_4; }
-		helper_matrices<6>& helper(type<6>) { return helper_6; }
-		helper_matrices<8>& helper(type<8>) { return helper_8; }
 
 		template<int N>
 		void fill_helper_matrices()
@@ -371,6 +369,4 @@ class fast_update
 		dmatrix_t M;
 		helper_matrices<2> helper_2;
 		helper_matrices<4> helper_4;
-		helper_matrices<6> helper_6;
-		helper_matrices<8> helper_8;
 };
