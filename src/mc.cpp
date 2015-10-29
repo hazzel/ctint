@@ -90,19 +90,19 @@ mc::mc(const std::string& dir)
 	measure.add_observable("deltaW4", n_prebin);
 	measure.add_vectorobservable("corr", lat.max_distance() + 1, n_prebin);
 	//Measure acceptance probabilities
-	measure.add_observable("insertion n=1", n_prebin);
-	measure.add_observable("removal n=1", n_prebin);
-	measure.add_observable("insertion n=2", n_prebin);
-	measure.add_observable("removal n=2", n_prebin);
-	measure.add_observable("Z -> W2", n_prebin);
-	measure.add_observable("W2 -> Z", n_prebin);
-	measure.add_observable("W2 -> W4", n_prebin);
-	measure.add_observable("W4 -> W2", n_prebin);
-	measure.add_observable("Z -> W4", n_prebin);
-	measure.add_observable("W4 -> Z", n_prebin);
-	measure.add_observable("worm shift", n_prebin);
-	//measure.add_observable("worm shift 2", n_prebin);
-	measure.add_observable("sign", n_prebin);
+	measure.add_observable("insertion n=1", n_prebin * n_cycles);
+	measure.add_observable("removal n=1", n_prebin * n_cycles);
+	measure.add_observable("insertion n=2", n_prebin * n_cycles);
+	measure.add_observable("removal n=2", n_prebin * n_cycles);
+	measure.add_observable("Z -> W2", n_prebin * n_cycles);
+	measure.add_observable("W2 -> Z", n_prebin * n_cycles);
+	measure.add_observable("W2 -> W4", n_prebin * n_cycles);
+	measure.add_observable("W4 -> W2", n_prebin * n_cycles);
+	measure.add_observable("Z -> W4", n_prebin * n_cycles);
+	measure.add_observable("W4 -> Z", n_prebin * n_cycles);
+	measure.add_observable("worm shift", n_prebin * n_cycles);
+	//measure.add_observable("worm shift 2", n_prebin * n_cycles);
+	measure.add_observable("sign", n_prebin * n_cycles);
 	
 	qmc.add_measure(measure_M{config, measure, pars,
 		std::vector<double>(lat.max_distance() + 1, 0.0)}, "measurement");

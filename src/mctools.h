@@ -52,7 +52,8 @@ class mctools
 					if (q < 0.0 && verbose)
 						std::cout << "Negative sign at " << moves[i].name()
 							<< std::endl;
-					measure_sign.add("sign", (q >= 0.0) - (q < 0.0));
+					if (q != 0.0)
+						measure_sign.add("sign", (q >= 0.0) - (q < 0.0));
 					if (rng() < std::abs(q))
 						moves[i].accept();
 					else
