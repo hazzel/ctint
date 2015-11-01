@@ -79,6 +79,8 @@ flags = [
 '-I',
 '/net/home/lxtsfs1/tpc/hesselmann/eigen',
 '-I',
+'/home/stephan/libs/armadillo-6.200.2/include',
+'-I',
 '/net/home/lxtsfs1/tpc/hesselmann/mc/load_leveller/trunk',
 '-I',
 '/home/stephan/mc/load_leveller/trunk',
