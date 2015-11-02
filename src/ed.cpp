@@ -1,10 +1,13 @@
 #include <iostream>
+#include <vector>
 #include <map>
 #include <functional>
 #include <fstream>
 #include <cmath>
+#include <cstdlib>
 #include <armadillo>
 #include <boost/program_options.hpp>
+#include <boost/multiprecision/mpfr.hpp>
 #include "lattice.h"
 #include "honeycomb.h"
 #include "hilbert.h"
@@ -12,30 +15,66 @@
 
 namespace po = boost::program_options;
 
+namespace mp {
+typedef boost::multiprecision::mpfr_float mp_float;
+
+mp_float trace(arma::mat& M)
+{
+	boost::multiprecision::mpfr_float::default_precision(1000000);
+	mp_float Z = 0;
+	for (int_t i = 0; i < M.n_rows; ++i)
+		Z += M(i, i);
+	return Z;
+}
+mp_float trace(arma::mat&& M)
+{
+	boost::multiprecision::mpfr_float::default_precision(1000000);
+	mp_float Z = 0;
+	for (int_t i = 0; i < M.n_rows; ++i)
+		Z += M(i, i);
+	return Z;
+}}
+
+template<typename T>
+void print_help(const T& desc)
+{
+	std::cout << desc << "n\n"; std::exit(1);
+}
+
 int main(int ac, char** av)
 {
+	int L;
+	double V;
+	std::vector<double> temperature;
+	int k;
+	std::string ensemble;
+
 	po::options_description desc("Allowed options");
 	desc.add_options()
 		("help", "produce help message")
-		("L", po::value<int>(), "linear lattice dimension")
-		("V", po::value<double>(), "interaction strength")
-		("ensemble", po::value<std::string>(), "ensemble: gc or c");
+		("L", po::value<int>(&L)->default_value(3), "linear lattice dimension")
+		("V", po::value<double>(&V)->default_value(1.355), "interaction strength")
+		("T", po::value<std::vector<double>>()->multitoken(),
+		 "temperature interval: T_start T_end steps")
+		("k", po::value<int>(&k)->default_value(100), "number of eigenstates")
+		("ensemble,e", po::value<std::string>(&ensemble)->default_value("c"),
+			"ensemble: gc or c");
 	po::variables_map vm;
 	po::store(po::parse_command_line(ac, av, desc), vm);
 	po::notify(vm);
 
-	int L = 3;
-	double V = 1.355;
-	std::string ensemble = "c";
-	if (vm.count("help")) { std::cout << desc << "\n"; return 1; }
-	if (vm.count("L"))
-		L = vm["L"].as<int>();
-	if (vm.count("V"))
-		V = vm["V"].as<double>();
-	if (vm.count("ensemble"))
-		ensemble = vm["ensemble"].as<std::string>();
+	if (vm.count("help")) print_help(desc);
+	if (vm.count("T"))
+		temperature = vm["T"].as<std::vector<double>>();
+	else
+		print_help(desc);
 	std::cout << "L = " << L << std::endl;
 	std::cout << "V = " << V << std::endl;
+	if (temperature.size() != 3)
+		print_help(desc);
+	else
+		std::cout << "T = " << temperature[0] << "..." << temperature[1]
+			<< " in " << temperature[2] << " steps." << std::endl;
 	std::cout << "ensemble: " << ensemble << std::endl;
 	//Generate lattice
 	honeycomb h(L);
@@ -106,27 +145,36 @@ int main(int ac, char** av)
 	arma::sp_mat M4 = M4_st.build_matrix();
 	std::cout << "Operator construction done." << std::endl;
 
-	std::ofstream out("../data/ed.txt");
-	out.precision(10);
-	double Tmin = 0.1, Tmax = 0.1;
-	int N = 0, k = 50;
-	for (int t = 0; t <= N; ++t)
+	std::string out_file = "../data/ed_L_" + std::to_string(L) + "__"
+		+ "V_" + std::to_string(V) + "__"
+		+ "T_" + std::to_string(temperature[0]) + "_"
+		+ std::to_string(temperature[1]) + "_" + std::to_string(temperature[2])
+		+ "__" + ensemble;
+	std::ofstream out("../data/" + out_file);
+	out.precision(12);
+	arma::vec ev; arma::mat es;
+	arma::eigs_sym(ev, es, H, std::min(hspace.sub_dimension()-2,
+		static_cast<int_t>(k)), "sa");
+	for (int t = 0; t <= temperature[2]; ++t)
 	{
-		double T = Tmin + (Tmax - Tmin) * static_cast<double>(t)
-			/ static_cast<double>(N);
+		boost::multiprecision::mpfr_float::default_precision(1000000);
+		double T = temperature[0] + (temperature[1]- temperature[0])
+			* static_cast<double>(t) / temperature[2];
 		double beta = 1./T;
-		arma::vec ev;
-		arma::mat es;
-		arma::eigs_sym(ev, es, H, k, "sa");
+		std::cout << "T = " << T << std::endl;
+		std::cout << "beta = " << beta << std::endl;
 		arma::vec boltzmann(ev.n_rows);
 		for (int i = 0; i < ev.n_rows; ++i)
 			boltzmann(i) = std::exp(-beta * ev(i));
 		arma::mat D = arma::diagmat(boltzmann);
-		long double Z = arma::trace(D);
-		double E = arma::trace(D*arma::diagmat(ev))/Z;
-		double m2 = arma::trace(D*es.t()*M2*es)/Z;
-		double m4 = arma::trace(D*es.t()*M4*es)/Z;
+		mp::mp_float Z = mp::trace(D);
+		std::cout << "Z = " << Z << std::endl;
+		mp::mp_float E = mp::trace(D*arma::diagmat(ev))/Z;
+		mp::mp_float m2 = mp::trace(D*es.t()*M2*es)/Z;
+		mp::mp_float m4 = mp::trace(D*es.t()*M4*es)/Z;
 		out << k << "\t" << L << "\t" << V << "\t" << T << "\t"
+			<< E << "\t" << m2 << "\t" << m4 << "\t" << m4/(m2*m2) << std::endl;
+		std::cout << k << "\t" << L << "\t" << V << "\t" << T << "\t"
 			<< E << "\t" << m2 << "\t" << m4 << "\t" << m4/(m2*m2) << std::endl;
 	}
 	out.close();

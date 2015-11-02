@@ -81,7 +81,7 @@ def generate_graph(L):
 
 L = 3
 V = 1.5
-T = 0.2
+T = 0.1
 beta = 1./T
 N = 2*L**2
 start_time = time.time()
