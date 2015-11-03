@@ -87,9 +87,9 @@ int main(int ac, char** av)
 	hilbert hspace(lat);
 	hspace.build_basis([&hspace, &lat, &ensemble](int_t state_id) {
 		if (ensemble == "gc")
-			return hspace.n_el(state{1, state_id}) >= 0;
+			return hspace.n_el({1, state_id}) >= 0;
 		else
-			return hspace.n_el(state{1, state_id}) == lat.n_sites()/2; });
+			return hspace.n_el({1, state_id}) == lat.n_sites()/2; });
 	std::cout << "Dimension of total Hilbert space: " << hspace.dimension()
 		<< std::endl;
 	std::cout << "Dimension of sub space: " << hspace.sub_dimension()
@@ -107,7 +107,9 @@ int main(int ac, char** av)
 				state m = hspace.c_i({-1, n.first}, j);
 				m = hspace.c_dag_i(m, i);
 				if (m.sign != 0)
+				{
 					H_st(hspace.index(m.id), n.second) += m.sign * (-1.);
+				}
 
 				//Interaction: V sum_<ij> (n_i - 0.5) (n_j - 0.5)
 				if (i < j)
