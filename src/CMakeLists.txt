@@ -1,17 +1,9 @@
 # Start configuration
 cmake_minimum_required(VERSION 2.8)
+project(ctint)
 MESSAGE("MCLL_SYSTEM_INFO set to $ENV{MCLL_SYSTEM_INFO}")
 set(mode "mpi")
 
-# Set up compiler
-if("$ENV{MCLL_SYSTEM_INFO}" STREQUAL "juqueen")
-	if(mode STREQUAL "mpi")
-		set(CMAKE_CXX_COMPILER mpixlcxx)
-	else()
-		set(CMAKE_CXX_COMPILER bgxlc++)
-	endif()
-endif()
-project(ctint)
 enable_language(CXX C)
 set(CMAKE_BUILD_TYPE Release)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
