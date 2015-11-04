@@ -1,12 +1,22 @@
 # Start configuration
 cmake_minimum_required(VERSION 2.8)
 project(ctint)
+MESSAGE("MCLL_SYSTEM_INFO set to $ENV{MCLL_SYSTEM_INFO}")
+set(mode "mpi")
+
+# Set up compiler
+if("$ENV{MCLL_SYSTEM_INFO}" STREQUAL "juqueen")
+	if(mode STREQUAL "mpi")
+		set(ENV{CC} mpixlc)
+		set(ENV{CXX} mpixlcxx)
+	else()
+		set(ENV{CC} bgxlc)
+		set(ENV{CXX} bgxlC)
+	endif()
 enable_language(CXX C)
 set(CMAKE_BUILD_TYPE Release)
-set(mode "mpi")
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 
-MESSAGE("MCLL_SYSTEM_INFO set to $ENV{MCLL_SYSTEM_INFO}")
 # Add load leveller source directory
 set(MCLL "$ENV{HOME}/mc/load_leveller/trunk")
 MESSAGE("load_leveller source directory set to ${MCLL}")
@@ -85,14 +95,6 @@ set(DEFINES "${DEFINES} -DMCL_DUMP_BUFFER=0 -DMCL_MEASUREMENTS_APPEND=0 -DMCL_MC
 if("$ENV{MCLL_SYSTEM_INFO}" STREQUAL "rwthcluster")
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -DMKL_DIRECT_CALL -ip -axCORE-AVX2,AVX,SSE4.2,SSE4.1 -fp-model fast=2 -std=c++11 ${DEFINES}")
 elseif("$ENV{MCLL_SYSTEM_INFO}" STREQUAL "juqueen")
-	if(mode STREQUAL "mpi")
-		set(ENV{CC} mpixlc)
-		set(ENV{CXX} mpixlcxx)
-	else()
-		set(ENV{CC} bgxlc)
-		set(ENV{CXX} bgxlC)
-	endif()
-
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DNDEBUG -O3 -qarch=qp -qtune=qp -qhot -qlanglvl=extended0x ${DEFINES}")
 else()
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Ofast -ffast-math -march=native -flto -fwhole-program -std=c++11 ${DEFINES}")
