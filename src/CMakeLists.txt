@@ -5,7 +5,6 @@ MESSAGE("MCLL_SYSTEM_INFO set to $ENV{MCLL_SYSTEM_INFO}")
 set(mode "mpi")
 
 enable_language(CXX C)
-set(CMAKE_BUILD_TYPE Release)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 
 # Add load leveller source directory
@@ -59,7 +58,7 @@ elseif(mode STREQUAL "single")
 	set(DEFINES "${DEFINES} -DMCL_SINGLE")
 endif()
 
-FIND_PACKAGE( Boost 1.40 COMPONENTS program_options )
+FIND_PACKAGE( Boost 1.40 )
 INCLUDE_DIRECTORIES( ${Boost_INCLUDE_DIR} )
 find_library(MPFR_LIBRARIES mpfr PATHS $ENV{GMPDIR} ${LIB_INSTALL_DIR})
 find_library(GMP_LIBRARIES gmp PATHS $ENV{GMPDIR} ${LIB_INSTALL_DIR})
