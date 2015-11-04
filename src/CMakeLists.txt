@@ -20,6 +20,7 @@ include_directories(${MCLL})
 if(mode STREQUAL "mpi")
 	# Set up MPI
 	MESSAGE("Using MPI implementation.")
+	set(MPI_CXX_COMPILER /bgsys/drivers/ppcfloor/comm/xl.ndebug/bin/mpicxx)
 	FIND_PACKAGE(MPI REQUIRED)
 	if (MPI_CXX_FOUND)
 		set(CMAKE_CXX_COMPILE_FLAGS "${CMAKE_CXX_COMPILE_FLAGS} ${MPI_CXX_COMPILE_FLAGS}")
