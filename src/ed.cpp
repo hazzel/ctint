@@ -7,33 +7,12 @@
 #include <cstdlib>
 #include <armadillo>
 #include <boost/program_options.hpp>
-#include <boost/multiprecision/mpfr.hpp>
 #include "lattice.h"
 #include "honeycomb.h"
 #include "hilbert.h"
 #include "sparse_storage.h"
 
 namespace po = boost::program_options;
-
-namespace mp {
-typedef boost::multiprecision::mpfr_float mp_float;
-
-mp_float trace(arma::mat& M)
-{
-	boost::multiprecision::mpfr_float::default_precision(1000000);
-	mp_float Z = 0;
-	for (int_t i = 0; i < M.n_rows; ++i)
-		Z += M(i, i);
-	return Z;
-}
-mp_float trace(arma::mat&& M)
-{
-	boost::multiprecision::mpfr_float::default_precision(1000000);
-	mp_float Z = 0;
-	for (int_t i = 0; i < M.n_rows; ++i)
-		Z += M(i, i);
-	return Z;
-}}
 
 template<typename T>
 void print_help(const T& desc)
@@ -159,21 +138,20 @@ int main(int ac, char** av)
 		static_cast<int_t>(k)), "sa");
 	for (int t = 0; t <= temperature[2]; ++t)
 	{
-		boost::multiprecision::mpfr_float::default_precision(1000000);
 		double T = temperature[0] + (temperature[1]- temperature[0])
 			* static_cast<double>(t) / temperature[2];
 		double beta = 1./T;
 		std::cout << "T = " << T << std::endl;
 		std::cout << "beta = " << beta << std::endl;
 		arma::vec boltzmann(ev.n_rows);
+		double max_ev = ev.min();
 		for (int i = 0; i < ev.n_rows; ++i)
-			boltzmann(i) = std::exp(-beta * ev(i));
+			boltzmann(i) = std::exp(-beta * (ev(i) - max_ev));
 		arma::mat D = arma::diagmat(boltzmann);
-		mp::mp_float Z = mp::trace(D);
-		std::cout << "Z = " << Z << std::endl;
-		mp::mp_float E = mp::trace(D*arma::diagmat(ev))/Z;
-		mp::mp_float m2 = mp::trace(D*es.t()*M2*es)/Z;
-		mp::mp_float m4 = mp::trace(D*es.t()*M4*es)/Z;
+		double Z = arma::trace(D);
+		double E = arma::trace(D*arma::diagmat(ev))/Z;
+		double m2 = arma::trace(D*es.t()*M2*es)/Z;
+		double m4 = arma::trace(D*es.t()*M4*es)/Z;
 		out << k << "\t" << L << "\t" << V << "\t" << T << "\t"
 			<< E << "\t" << m2 << "\t" << m4 << "\t" << m4/(m2*m2) << std::endl;
 		std::cout << k << "\t" << L << "\t" << V << "\t" << T << "\t"
