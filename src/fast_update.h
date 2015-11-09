@@ -11,19 +11,11 @@ struct helper_matrices
 {
 	template<int n, int m>
 	using matrix_t = Eigen::Matrix<double, n, m, Eigen::ColMajor>;
-/*
-	matrix_t<dynamic, N> u;
-	matrix_t<N, dynamic> v;
-	matrix_t<dynamic, N> Mu;
-	matrix_t<N, N> a;
-	matrix_t<N, N> S;
-	matrix_t<dynamic, dynamic> m;
-*/
 	
+	//TODO: fix allignment issues when fixed size matrix_t<N, N>
 	matrix_t<Eigen::Dynamic, Eigen::Dynamic> u;
 	matrix_t<Eigen::Dynamic, Eigen::Dynamic> v;
 	matrix_t<Eigen::Dynamic, Eigen::Dynamic> Mu;
-	//TODO: fix allignment issues when a is of type matrix_t<N, N>
 	matrix_t<Eigen::Dynamic, Eigen::Dynamic> a;
 	matrix_t<Eigen::Dynamic, Eigen::Dynamic> S;
 	matrix_t<Eigen::Dynamic, Eigen::Dynamic> m;

@@ -77,6 +77,8 @@ ELSE ()
 	MESSAGE("Armadillo library not found.")
 ENDIF ()
 
+#find_library(PROFILER NAMES profiler PATHS $ENV{HOME}/gperftools-2.4/install/lib)
+
 # Compiler flags
 set(DEFINES "${DEFINES} -DMCL_DUMP_BUFFER=0 -DMCL_MEASUREMENTS_APPEND=0 -DMCL_MCL_RNG_MT")
 if("$ENV{MCLL_SYSTEM_INFO}" STREQUAL "rwthcluster")
@@ -85,14 +87,17 @@ elseif("$ENV{MCLL_SYSTEM_INFO}" STREQUAL "juqueen")
 	#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DNDEBUG -O3 -qarch=qp -qtune=qp -qstrict -qlanglvl=extended0x ${DEFINES}")
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Ofast -ffast-math -mtune=native -flto -fwhole-program -std=c++11 ${DEFINES}")
 else()
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Ofast -ffast-math -march=native -flto -fwhole-program -std=c++11 ${DEFINES}")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Ofast -ffast-math -march=native -flto -fwhole-program -std=c++11 -pipe ${DEFINES}")
 endif()
 
 # Create executable
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ../bin)
 add_executable(ctint ${LL_SRC} mc.cpp)
 target_link_libraries(ctint ${MPI_LIBRARIES})
+if (PROFILER)
+	target_link_libraries(ctint ${PROFILER})
+endif()
 if(Boost_FOUND AND LAPACK_FOUND AND BLAS_FOUND AND ARPACK_LIBRARY AND ARMADILLO_LIBRARY)
 	add_executable(ed ed.cpp)
-	target_link_libraries(ed ${Boost_LIBRARIES} ${MPFR_LIBRARIES} ${GMP_LIBRARIES} ${LAPACK} ${BLAS} ${ARPACK_LIBRARY} ${ARMADILLO_LIBRARY})
+	target_link_libraries(ed ${Boost_LIBRARIES} ${LAPACK} ${BLAS} ${ARPACK_LIBRARY} ${ARMADILLO_LIBRARY})
 endif()

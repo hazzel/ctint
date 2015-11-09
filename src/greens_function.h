@@ -41,7 +41,8 @@ class greens_function
 			int t = static_cast<int>(std::abs(tau_p) / dtau);
 			int x = index_map[i][j];
 			double tau_t = t * dtau;
-			double G_t = mesh[x][t], G_tt = mesh[x][t + 1];
+			double G_t = mesh[x][t];
+			double G_tt = t < n_slices ? mesh[x][t + 1] : G_t;
 			double g = G_t + (tau_p - tau_t) * (G_tt - G_t) / dtau;
 			double sign = 1.0;
 			bool same_sl = l->sublattice(i) == l->sublattice(j);
