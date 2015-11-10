@@ -3,7 +3,7 @@ matplotlib.use('TkAgg')
 import pylab
 import glob
 
-list_of_files = glob.glob("../data/V1.355/ed*")
+list_of_files = glob.glob("../data/V1.3/ed*")
 datalist = [ ( pylab.loadtxt(filename), label ) for label, filename in enumerate(list_of_files) ]
 
 for data, label in datalist:
