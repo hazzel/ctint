@@ -5,7 +5,6 @@ MESSAGE("MCLL_SYSTEM_INFO set to $ENV{MCLL_SYSTEM_INFO}")
 set(mode "mpi")
 
 enable_language(CXX C)
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 
 # Add load leveller source directory
 set(MCLL "$ENV{HOME}/mc/load_leveller/trunk")
@@ -82,10 +81,10 @@ ENDIF ()
 # Compiler flags
 set(DEFINES "${DEFINES} -DMCL_DUMP_BUFFER=0 -DMCL_MEASUREMENTS_APPEND=0 -DMCL_MCL_RNG_MT")
 if("$ENV{MCLL_SYSTEM_INFO}" STREQUAL "rwthcluster")
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -DMKL_DIRECT_CALL -ip -axCORE-AVX2,AVX,SSE4.2,SSE4.1 -fp-model fast=2 -std=c++11 ${DEFINES}")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -DMKL_DIRECT_CALL -ip -axCORE-AVX2,AVX,SSE4.2,SSE4.1 -fp-model fast=2 -std=c++11 -DNDEBUG ${DEFINES}")
 elseif("$ENV{MCLL_SYSTEM_INFO}" STREQUAL "juqueen")
 	#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DNDEBUG -O3 -qarch=qp -qtune=qp -qstrict -qlanglvl=extended0x ${DEFINES}")
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Ofast -ffast-math -mtune=native -flto -fwhole-program -std=c++11 ${DEFINES}")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Ofast -ffast-math -mtune=native -flto -fwhole-program -std=c++11 -DNDEBUG ${DEFINES}")
 else()
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Ofast -ffast-math -march=native -flto -fwhole-program -std=c++11 -pipe ${DEFINES}")
 endif()
