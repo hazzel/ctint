@@ -3,6 +3,7 @@
 #include <vector>
 #include <cmath>
 #include "boost/multi_array.hpp"
+#include "interpolation.h"
 #include <Eigen/Dense>
 #include <Eigen/Eigenvalues> 
 #include "lattice.h"
@@ -38,12 +39,18 @@ class greens_function
 				tau_p = beta - std::abs(tau);
 			else
 				tau_p = std::abs(tau);
-			int t = static_cast<int>(std::abs(tau_p) / dtau);
 			int x = index_map[i][j];
-			double tau_t = t * dtau;
-			double G_t = mesh[x][t];
-			double G_tt = t < n_slices ? mesh[x][t + 1] : G_t;
-			double g = G_t + (tau_p - tau_t) * (G_tt - G_t) / dtau;
+			
+			// Linear spline
+			//int t = static_cast<int>(std::abs(tau_p) / dtau);
+			//double tau_t = t * dtau;
+			//double G_t = mesh[x][t];
+			//double G_tt = t < n_slices ? mesh[x][t + 1] : G_t;
+			//double g = G_t + (tau_p - tau_t) * (G_tt - G_t) / dtau;
+			
+			// Cubic spline
+			double g = alglib::spline1dcalc(mesh_spline[x], tau_p);
+			
 			double sign = 1.0;
 			bool same_sl = l->sublattice(i) == l->sublattice(j);
 			if (std::abs(tau) > beta/2.0 && (!same_sl))
@@ -93,19 +100,32 @@ class greens_function
 					}
 				}
 			}
-			mesh.resize(boost::extents[values.size()][n_slices + 1]);
+			//mesh.resize(boost::extents[values.size()][n_slices + 1]);
+			mesh_y.resize(values.size());
+			for (auto& y : mesh_y)
+				y.setlength(n_slices + 1);
+			mesh_spline.resize(values.size());
 		}
 		
 		void fill_mesh(const vector_t& ev,
 			const matrix_t& V)
 		{
+			alglib::real_1d_array x;
+			x.setlength(n_slices + 1);
+			for (int i = 0; i <= n_slices; ++i)
+					x[i] = dtau * i;
 			for (int t = 0; t <= n_slices; ++t)
 			{
 				matrix_t g0 = bare_gf(dtau * t, ev, V);
 				for (int i = 0; i < l->n_sites(); ++i)
 					for (int j = i; j < l->n_sites(); ++j)
-						mesh[index_map[i][j]][t] = g0(i, j);
+					{
+						//mesh[index_map[i][j]][t] = g0(i, j);
+						mesh_y[index_map[i][j]][t] = g0(i, j);
+					}
 			}
+			for (int i = 0; i < mesh_y.size(); ++i)
+				alglib::spline1dbuildakima(x, mesh_y[i], mesh_spline[i]);
 		}
 	private:
 		lattice* l;
@@ -113,5 +133,7 @@ class greens_function
 		double dtau;
 		int n_slices;
 		boost::multi_array<int, 2> index_map;
-		boost::multi_array<double, 2> mesh;
+		//boost::multi_array<double, 2> mesh;
+		std::vector<alglib::real_1d_array> mesh_y;
+		std::vector<alglib::spline1dinterpolant> mesh_spline;
 };
