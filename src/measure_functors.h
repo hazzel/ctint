@@ -40,7 +40,7 @@ void eval_corr(std::valarray<double>& out,
 		out[i] = (*corr)[i] / z * p[2] / p[3];
 }
 
-struct measure_M
+struct measure_worm
 {
 	configuration* config;
 	measurements& measure;
@@ -91,6 +91,31 @@ struct measure_M
 		measure.add_vectorevalable("Correlations", "corr", "deltaZ", eval_corr,
 			eval_param);
 		
+		os << "PARAMETERS" << std::endl;
+		pars.get_all(os);
+		measure.get_statistics(os);
+	}
+};
+
+struct measure_estimator
+{
+	configuration* config;
+	measurements& measure;
+	parser& pars;
+	std::vector<double> matsubara_G;
+
+	void perform()
+	{
+		measure.add("<k>_Z", config->perturbation_order());
+		std::vector<arg_t> vec = {arg_t{0., 3, 0}, arg_t{0., 2, 0}};
+		std::complex<double> m = config->M.matsubara_gf<1>(1, config->params.beta,
+			vec, 0);
+		measure.add("G(omega_0)_r", std::real(m));
+		measure.add("G(omega_0)_i", std::imag(m));
+	}
+
+	void collect(std::ostream& os)
+	{
 		os << "PARAMETERS" << std::endl;
 		pars.get_all(os);
 		measure.get_statistics(os);

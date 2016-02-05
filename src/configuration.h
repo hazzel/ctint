@@ -39,7 +39,14 @@ struct full_g_entry
 
 	double operator()(const arg_t& x, const arg_t& y) const
 	{
-		return g0(x.tau - y.tau, x.site, y.site);
+		return g0.imaginary_time(x.tau - y.tau, x.site, y.site);
+	}
+
+	std::complex<double> matsubara_frequency(int omega_n, const arg_t& x,
+		const arg_t& y) const
+	{
+		return g0.matsubara_frequency(omega_n, x.site, y.site)
+			* std::exp(g0.matsubara_decimal(omega_n) * (x.tau - y.tau));
 	}
 };
 

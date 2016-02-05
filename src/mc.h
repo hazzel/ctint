@@ -66,6 +66,7 @@ class mc
 		int n_prebin;
 		int n_rebuild;
 		int n_tau_slices;
+		int n_matsubara;
 
 		honeycomb hc;
 		lattice lat;

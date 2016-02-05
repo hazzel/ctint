@@ -16,6 +16,7 @@ mc::mc(const std::string& dir)
 	n_prebin = pars.value_or_default<int>("prebin", 500);
 	n_rebuild = pars.value_or_default<int>("rebuild", 1000);
 	n_tau_slices = pars.value_or_default<int>("tau_slices", 500);
+	n_matsubara = pars.value_or_default<int>("matsubara_freqs", 10);
 	hc.L = pars.value_or_default<int>("L", 9);
 	param.beta = 1./pars.value_or_default<double>("T", 0.2);
 	param.V = pars.value_or_default<double>("V", 1.355);
@@ -55,7 +56,7 @@ mc::mc(const std::string& dir)
 		"worm nhood").size()) / static_cast<double>(lat.n_sites()), 3.0);
 
 	//Set up bare greens function look up
-	g0.generate_mesh(&lat, param.beta, n_tau_slices);
+	g0.generate_mesh(&lat, param.beta, n_tau_slices, n_matsubara);
 
 	//Create configuration
 	config = new configuration(lat, g0, param, measure);
@@ -98,7 +99,11 @@ mc::mc(const std::string& dir)
 	//measure.add_observable("worm shift 2", n_prebin * n_cycles);
 	measure.add_observable("sign", n_prebin * n_cycles);
 	
-	qmc.add_measure(measure_M{config, measure, pars,
+	//qmc.add_measure(measure_worm{config, measure, pars,
+	//	std::vector<double>(lat.max_distance() + 1, 0.0)}, "measurement");
+	measure.add_observable("G(omega_0)_r", n_prebin);
+	measure.add_observable("G(omega_0)_i", n_prebin);
+	qmc.add_measure(measure_estimator{config, measure, pars,
 		std::vector<double>(lat.max_distance() + 1, 0.0)}, "measurement");
 	
 	//Set up events
