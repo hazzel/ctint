@@ -18,6 +18,8 @@ mc::mc(const std::string& dir)
 	n_tau_slices = pars.value_or_default<int>("tau_slices", 500);
 	config.param.n_matsubara = pars.value_or_default<int>("matsubara_freqs",
 		10);
+	config.param.n_discrete_tau = pars.value_or_default<int>("discrete_tau",
+		100);
 	hc.L = pars.value_or_default<int>("L", 9);
 	config.param.beta = 1./pars.value_or_default<double>("T", 0.2);
 	config.param.V = pars.value_or_default<double>("V", 1.355);
@@ -101,6 +103,9 @@ mc::mc(const std::string& dir)
 	for (int r = 0; r < config.l.max_distance() + 1; ++r)
 		config.measure.add_vectorobservable("G(omega)_" + std::to_string(r),
 			config.param.n_matsubara, n_prebin);
+	for (int r = 0; r < config.l.max_distance() + 1; ++r)
+		config.measure.add_vectorobservable("G(tau)_" + std::to_string(r),
+			config.param.n_discrete_tau, n_prebin);
 	//Measure acceptance probabilities
 	if (config.param.add[0] > 0.)
 		config.measure.add_observable("insertion n=1", n_prebin * n_cycles);
@@ -132,8 +137,10 @@ mc::mc(const std::string& dir)
 	//	n_prebin);
 	qmc.add_measure(measure_estimator{config, rng, config.measure, pars,
 		std::vector<std::vector<double>>(config.l.max_distance() + 1,
-			std::vector<double>(config.param.n_matsubara, 0.0)),
-			std::vector<double>(config.param.n_matsubara, 0.0)}, "measurement");
+		std::vector<double>(config.param.n_matsubara, 0.0)),
+		std::vector<double>(config.param.n_matsubara, 0.0),
+		std::vector<std::vector<double>>(config.l.max_distance() + 1,
+		std::vector<double>(config.param.n_discrete_tau, 0.0))}, "measurement");
 	
 	//Set up events
 	qmc.add_event(event_rebuild{config, config.measure}, "rebuild");
