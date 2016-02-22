@@ -6,6 +6,7 @@
 #include "fast_update.h"
 #include "lattice.h"
 #include "greens_function.h"
+#include "parameters.h"
 #include "Random.h"
 
 // Argument type
@@ -50,29 +51,21 @@ struct full_g_entry
 	}
 };
 
-struct parameters
-{	
-	double beta, V, zeta2, zeta4;
-	int worm_nhood_dist;
-	double ratio_w2, ratio_w4;
-	//Proposal probabilities
-	std::vector<double> add;
-	std::vector<double> rem;
-	double W2toZ, ZtoW2, ZtoW4, W4toZ, W2toW4, W4toW2, worm_shift;
-};
-
 // The Monte Carlo configuration
 struct configuration
 {
-	const lattice& l;
+	lattice l;
+	greens_function g0;
+	parameters param;
 	fast_update<full_g_entry, arg_t> M;
-	const parameters& params;
-	measurements& measure;
+	measurements measure;
 	std::vector<int> shellsize;
 
-	configuration(const lattice& l_, const greens_function& g0, 
-		const parameters& params_, measurements& measure_)
-		: l(l_), M{full_g_entry{g0}, l_, 2}, params(params_), measure(measure_)
+	configuration()
+		: l{}, g0{}, param{}, M{full_g_entry{g0}, l, param, 2}
+	{}
+	
+	void initialize()
 	{
 		shellsize.resize(l.max_distance() + 1, 0);
 		for (int d = 0; d <= l.max_distance(); ++d)
@@ -82,6 +75,7 @@ struct configuration
 				if (l.distance(site, j) == d)
 					shellsize[d] += 1;
 		}
+		M.initialize();
 	}
 
 	int perturbation_order() const { return M.perturbation_order(nn_int); }

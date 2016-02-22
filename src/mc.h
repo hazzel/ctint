@@ -69,8 +69,5 @@ class mc
 		int n_matsubara;
 
 		honeycomb hc;
-		lattice lat;
-		greens_function g0;
-		parameters param;
-		configuration* config;
+		configuration config;
 };

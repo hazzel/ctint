@@ -5,6 +5,7 @@
 #include <Eigen/Dense>
 #include "dump.h"
 #include "lattice.h"
+#include "parameters.h"
 
 template<int N, typename T>
 struct helper_matrices
@@ -31,8 +32,12 @@ class fast_update
 		using dmatrix_t = matrix_t<Eigen::Dynamic, Eigen::Dynamic>;
 
 		fast_update(const function_t& entry_function_, const lattice& l_,
-			int n_flavors_)
-			: entry_function(entry_function_), l(l_), flavor_cnt(n_flavors_, 0)
+			const parameters& param_, int n_flavors_)
+			: entry_function(entry_function_), l(l_), param(param_),
+			flavor_cnt(n_flavors_, 0)
+		{}
+		
+		void initialize()
 		{}
 
 		int perturbation_order(int flavor) const
@@ -126,24 +131,25 @@ class fast_update
 		}
 		
 		template<int N>
-		std::complex<double> matsubara_gf(int omega_n, double beta,
-			std::vector<arg_t>& args, int flavor=0)
+		void matsubara_gf(double beta, std::vector<arg_t>& args,
+			std::vector<double>& mgf)
 		{
 			typedef std::complex<double> C;
 			int k = M.rows();
 			const int n = 2*N;
-			last_flavor = flavor;
 			
 			arg_buffer = std::move(args);
 			helper<n, C>().u.resize(k, n);
 			helper<n, C>().v.resize(n, k);
 			helper<n, C>().a.resize(n, n);
-			fill_matsubara_matrices<N>(omega_n);
-			helper<n, C>().Mu.noalias() = M * helper<n, C>().u / beta;
-			helper<n, C>().S = helper<n, C>().a;
-			helper<n, C>().S.noalias() -= helper<n, C>().v * helper<n, C>().Mu;
-
-			return helper<n, C>().S.determinant();
+			for (int omega_n = 0; omega_n < param.n_matsubara; ++omega_n)
+			{
+				fill_matsubara_matrices<N>(omega_n);
+				helper<n, C>().Mu.noalias() = M * helper<n, C>().u / beta;
+				helper<n, C>().S = helper<n, C>().a;
+				helper<n, C>().S.noalias() -= helper<n, C>().v * helper<n, C>().Mu;
+				mgf[omega_n] = std::real(helper<n, C>().S.determinant());
+			}
 		}
 
 		template<int N>
@@ -414,6 +420,7 @@ class fast_update
 	private:
 		function_t entry_function;
 		const lattice& l;
+		const parameters& param;
 		std::vector<arg_t> vertices;
 		std::vector<int> flavor_cnt;
 		std::vector<arg_t> arg_buffer;

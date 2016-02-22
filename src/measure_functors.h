@@ -42,7 +42,7 @@ void eval_corr(std::valarray<double>& out,
 
 struct measure_worm
 {
-	configuration* config;
+	configuration& config;
 	measurements& measure;
 	parser& pars;
 	std::vector<double> correlations;
@@ -50,29 +50,29 @@ struct measure_worm
 	void perform()
 	{
 		std::fill(correlations.begin(), correlations.end(), 0.0);
-		if (config->worms() == 0) //measure Z
+		if (config.worms() == 0) //measure Z
 		{
-			measure.add("<k>_Z", config->perturbation_order());
+			measure.add("<k>_Z", config.perturbation_order());
 			measure.add("deltaZ", 1.0);
 			measure.add("deltaW2", 0.0);
 			measure.add("deltaW4", 0.0);
 		}
-		else if (config->worms() == 1) //measure W2
+		else if (config.worms() == 1) //measure W2
 		{
-			measure.add("<k>_W2", config->perturbation_order());
+			measure.add("<k>_W2", config.perturbation_order());
 			measure.add("deltaZ", 0.0);
 			measure.add("deltaW2", 1.0);
 			measure.add("deltaW4", 0.0);
-			int sites[] = {config->M.vertex(0, worm).site,
-				config->M.vertex(1, worm).site};
-			int R = config->l.distance(sites[0], sites[1]);
-			correlations[R] = config->l.parity(sites[0])
-				* config->l.parity(sites[1])
-				/ static_cast<double>(config->shellsize[R]);
+			int sites[] = {config.M.vertex(0, worm).site,
+				config.M.vertex(1, worm).site};
+			int R = config.l.distance(sites[0], sites[1]);
+			correlations[R] = config.l.parity(sites[0])
+				* config.l.parity(sites[1])
+				/ static_cast<double>(config.shellsize[R]);
 		}
-		else if (config->worms() == 2) //measure W4
+		else if (config.worms() == 2) //measure W4
 		{
-			measure.add("<k>_W4", config->perturbation_order());
+			measure.add("<k>_W4", config.perturbation_order());
 			measure.add("deltaZ", 0.0);
 			measure.add("deltaW2", 0.0);
 			measure.add("deltaW4", 1.0);
@@ -82,8 +82,8 @@ struct measure_worm
 
 	void collect(std::ostream& os)
 	{
-		double eval_param[] = {config->params.zeta2, config->params.zeta4,
-			static_cast<double>(config->l.n_sites()), config->params.zeta2};
+		double eval_param[] = {config.param.zeta2, config.param.zeta4,
+			static_cast<double>(config.l.n_sites()), config.param.zeta2};
 		measure.add_evalable("M2", "deltaZ", "deltaW2", eval_M2, eval_param);
 		measure.add_evalable("M4", "deltaZ", "deltaW4", eval_M4, eval_param);
 		measure.add_evalable("BinderRatio", "deltaZ", "deltaW2", "deltaW4",
@@ -99,19 +99,32 @@ struct measure_worm
 
 struct measure_estimator
 {
-	configuration* config;
+	configuration& config;
+	Random& rng;
 	measurements& measure;
 	parser& pars;
-	std::vector<double> matsubara_G;
+	std::vector<std::vector<double>> mgf_r;
+	std::vector<double> mgf_omega;
 
 	void perform()
 	{
-		measure.add("<k>_Z", config->perturbation_order());
-		std::vector<arg_t> vec = {arg_t{0., 3, 0}, arg_t{0., 2, 0}};
-		std::complex<double> m = config->M.matsubara_gf<1>(1, config->params.beta,
-			vec, 0);
-		measure.add("G(omega_0)_r", std::real(m));
-		measure.add("G(omega_0)_i", std::imag(m));
+		measure.add("<k>_Z", config.perturbation_order());
+		for (auto& g : mgf_r)
+			std::fill(g.begin(), g.end(), 0.);
+		int i = rng() * config.l.n_sites();
+//		for (int i = 0; i < config.l.n_sites(); ++i)
+		for (int j = 0; j < config.l.n_sites(); ++j)
+		{
+			std::vector<arg_t> vec = {arg_t{0., i, 0}, arg_t{0., j, 0}};
+			config.M.matsubara_gf<1>(config.param.beta, vec, mgf_omega);
+			for (int n = 0; n < config.param.n_matsubara; ++n)
+				mgf_r[config.l.distance(i, j)][n] += config.l.parity(i)
+					* config.l.parity(j) * mgf_omega[n]
+					/ config.shellsize[config.l.distance(i, j)];
+//					/ config.l.n_sites();
+		}
+		for (int r = 0; r < config.l.max_distance() + 1; ++r)
+			measure.add("G(omega)_" + std::to_string(r), mgf_r[r]);
 	}
 
 	void collect(std::ostream& os)
