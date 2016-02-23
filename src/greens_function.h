@@ -5,7 +5,7 @@
 #include "boost/multi_array.hpp"
 #include "interpolation.h"
 #include <Eigen/Dense>
-#include <Eigen/Eigenvalues> 
+#include <Eigen/Eigenvalues>
 #include "lattice.h"
 
 class greens_function
@@ -59,9 +59,10 @@ class greens_function
 		complex_t matsubara_frequency(int n, int i, int j) const
 		{
 			complex_t omega = matsubara_decimal(n);
-			double re = alglib::spline1dcalc(matsubara_re_mesh_spline[n],
+			int x = matsubara_index_map[i][j];
+			double re = alglib::spline1dcalc(matsubara_re_mesh_spline[x],
 				std::imag(omega));
-			double im = alglib::spline1dcalc(matsubara_im_mesh_spline[n],
+			double im = alglib::spline1dcalc(matsubara_im_mesh_spline[x],
 				std::imag(omega));
 			return {re, im};
 		}
