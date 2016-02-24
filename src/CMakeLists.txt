@@ -106,3 +106,7 @@ if(Boost_FOUND AND LAPACK_FOUND AND BLAS_FOUND AND ARPACK_LIBRARY AND ARMADILLO_
 	add_executable(ed ed.cpp)
 	target_link_libraries(ed ${Boost_LIBRARIES} ${LAPACK} ${BLAS} ${ARPACK_LIBRARY} ${ARMADILLO_LIBRARY})
 endif()
+if(Boost_FOUND AND LAPACK_FOUND AND BLAS_FOUND AND ARPACK_LIBRARY AND ARMADILLO_LIBRARY)
+	add_executable(ed-spectrum ed-spectrum.cpp)
+	target_link_libraries(ed-spectrum ${Boost_LIBRARIES} ${LAPACK} ${BLAS} ${ARPACK_LIBRARY} ${ARMADILLO_LIBRARY})
+endif()

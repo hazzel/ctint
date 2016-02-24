@@ -69,7 +69,10 @@ class greens_function
 
 		complex_t matsubara_decimal(int n) const
 		{
-			return {0., (2.*n + 1.) * 4. * std::atan(1.) / beta};
+			// Fermionic matsubara frequencies
+			//return {0., (2.*n + 1.) * 4. * std::atan(1.) / beta};
+			// Bosonic matsubara frequencies
+			return {0., 2.*n * 4. * std::atan(1.) / beta};
 		}
 	private:
 		matrix_t bare_time_gf(double tau, const vector_t& ev, const matrix_t& V)

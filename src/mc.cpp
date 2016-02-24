@@ -98,14 +98,17 @@ mc::mc(const std::string& dir)
 		config.measure.add_observable("deltaZ", n_prebin);
 		config.measure.add_observable("deltaW2", n_prebin);
 		config.measure.add_observable("deltaW4", n_prebin);
-		config.measure.add_vectorobservable("corr", config.l.max_distance() + 1, n_prebin);
+		config.measure.add_vectorobservable("corr", config.l.max_distance() + 1,
+			n_prebin);
 	}
-	for (int r = 0; r < config.l.max_distance() + 1; ++r)
-		config.measure.add_vectorobservable("G(omega)_" + std::to_string(r),
-			config.param.n_matsubara, n_prebin);
-	for (int r = 0; r < config.l.max_distance() + 1; ++r)
-		config.measure.add_vectorobservable("G(tau)_" + std::to_string(r),
-			config.param.n_discrete_tau, n_prebin);
+	config.measure.add_vectorobservable("dynamical_M2", config.param.n_matsubara,
+		n_prebin);
+//	for (int r = 0; r < config.l.max_distance() + 1; ++r)
+//		config.measure.add_vectorobservable("G(omega)_" + std::to_string(r),
+//			config.param.n_matsubara, n_prebin);
+//	for (int r = 0; r < config.l.max_distance() + 1; ++r)
+//		config.measure.add_vectorobservable("G(tau)_" + std::to_string(r),
+//			config.param.n_discrete_tau, n_prebin);
 	//Measure acceptance probabilities
 	if (config.param.add[0] > 0.)
 		config.measure.add_observable("insertion n=1", n_prebin * n_cycles);
@@ -136,6 +139,7 @@ mc::mc(const std::string& dir)
 	//config.measure.add_vectorobservable("Correlations", config.l.max_distance(),
 	//	n_prebin);
 	qmc.add_measure(measure_estimator{config, rng, config.measure, pars,
+		std::vector<double>(config.param.n_matsubara, 0.0),
 		std::vector<std::vector<double>>(config.l.max_distance() + 1,
 		std::vector<double>(config.param.n_matsubara, 0.0)),
 		std::vector<double>(config.param.n_matsubara, 0.0),

@@ -103,6 +103,7 @@ struct measure_estimator
 	Random& rng;
 	measurements& measure;
 	parser& pars;
+	std::vector<double> dyn_M2;
 	std::vector<std::vector<double>> mgf_r;
 	std::vector<double> mgf_omega;
 	std::vector<std::vector<double>> mgf_tau;
@@ -145,12 +146,28 @@ struct measure_estimator
 		for (int r = 0; r < config.l.max_distance() + 1; ++r)
 			measure.add("G(omega)_" + std::to_string(r), mgf_r[r]);
 	}
+	
+	void measure_dynamical_M2()
+	{
+		std::fill(dyn_M2.begin(), dyn_M2.end(), 0.);
+		int i = rng() * config.l.n_sites();
+		for (int j = 0; j < config.l.n_sites(); ++j)
+		{
+			std::vector<arg_t> vec = {arg_t{0., i, 0}, arg_t{0., j, 0}};
+			config.M.matsubara_gf<1>(config.param.beta, vec, mgf_omega);
+			for (int n = 0; n < config.param.n_matsubara; ++n)
+				dyn_M2[n] += config.l.parity(i) * config.l.parity(j) * mgf_omega[n]
+					/ config.l.n_sites();
+		}
+		measure.add("dynamical_M2", dyn_M2);
+	}
 
 	void perform()
 	{
 		measure.add("<k>_Z", config.perturbation_order());
-		measure_matsubara_gf();
-		measure_imaginary_time_gf();
+//		measure_matsubara_gf();
+//		measure_imaginary_time_gf();
+		measure_dynamical_M2();
 	}
 
 	void collect(std::ostream& os)
