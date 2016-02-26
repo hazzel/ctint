@@ -84,7 +84,7 @@ class greens_function
 		
 		cmatrix_t bare_matsubara_gf(int n, const vector_t& ev, const matrix_t& V)
 		{
-			complex_t omega = {0., (2.*n + 1.) * 4. * std::atan(1.) / beta};
+			complex_t omega = {0., 2.*n * 4. * std::atan(1.) / beta};
 			cmatrix_t D = ev.cast<complex_t>().unaryExpr([&](complex_t e)
 				{ return 1.0 / (omega - e); }).asDiagonal();
 			return V.cast<complex_t>() * D * V.adjoint().cast<complex_t>();

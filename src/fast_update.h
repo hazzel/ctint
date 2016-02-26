@@ -147,7 +147,7 @@ class fast_update
 				fill_matsubara_matrices<N>(omega_n);
 				helper<n, C>().Mu.noalias() = M * helper<n, C>().u / beta;
 				helper<n, C>().S = helper<n, C>().a;
-//				helper<n, C>().S.noalias() -= helper<n, C>().v * helper<n, C>().Mu;
+				helper<n, C>().S.noalias() -= helper<n, C>().v * helper<n, C>().Mu;
 				mgf[omega_n] = std::real(helper<n, C>().S.determinant());
 			}
 		}

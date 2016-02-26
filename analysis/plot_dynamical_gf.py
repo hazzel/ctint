@@ -34,12 +34,14 @@ color_cycle = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'orange', 'darkgreen']
 marker_cycle = ['o', 'D', '<', 'p', '>', 'v', '*', '^', 's']
 
 filelist = []
+filelist.append(glob.glob("../bin/job/*.out"))
 filelist.append(glob.glob("../bin/job-2/*.out"))
 filelist.sort()
 
 Delta = []
 filelist = [item for sublist in filelist for item in sublist]
 for f in filelist:
+	plt.figure()
 	plist = ParseParameters(f)
 	elist = ParseEvalables(f)
 	
@@ -53,8 +55,8 @@ for f in filelist:
 	
 		#x = (np.array(range(0, n_matsubara)) * 2. + 1.) * np.pi * T
 		x = (np.array(range(0, n_matsubara)) * 2.) * np.pi * T
-		y = np.array(ArrangePlot(elist[i], "dynamical_M2")[0]) * x**2.
-		err = np.array(ArrangePlot(elist[i], "dynamical_M2")[1]) * x**2.
+		y = np.array(ArrangePlot(elist[i], "dynamical_M2_mat")[0])# * x**2.
+		err = np.array(ArrangePlot(elist[i], "dynamical_M2_mat")[1])# * x**2.
 		for n in range(1, 10):
 			Delta.append(estimator(n, 1./T, y))
 		

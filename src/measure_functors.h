@@ -187,6 +187,7 @@ struct measure_estimator
 //		measure_matsubara_gf();
 //		measure_imaginary_time_gf();
 		measure_dynamical_M2_mat();
+		measure_dynamical_M2_tau();
 	}
 
 	void collect(std::ostream& os)
