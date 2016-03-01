@@ -165,7 +165,7 @@ struct measure_estimator
 	
 	void measure_dynamical_M2_tau()
 	{
-		std::fill(dyn_M2.begin(), dyn_M2.end(), 0.);
+		std::fill(dyn_M2_tau.begin(), dyn_M2_tau.end(), 0.);
 		int i = rng() * config.l.n_sites();
 		for (int j = 0; j < config.l.n_sites(); ++j)
 		{
@@ -175,11 +175,11 @@ struct measure_estimator
 					/ static_cast<double>(config.param.n_discrete_tau);
 				double tau_0 = rng() * (config.param.beta - tau);
 				std::vector<arg_t> vec = {arg_t{tau + tau_0, i, 0}, arg_t{tau_0, j, 0}};
-				dyn_M2[t] += config.l.parity(i) * config.l.parity(j)
+				dyn_M2_tau[t] += config.l.parity(i) * config.l.parity(j)
 				* config.M.try_add<1>(vec, 0) / config.l.n_sites();
 			}
 		}
-		measure.add("dynamical_M2_tau", dyn_M2);
+		measure.add("dynamical_M2_tau", dyn_M2_tau);
 	}
 
 	void perform()

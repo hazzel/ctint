@@ -47,7 +47,7 @@ for f in filelist:
 	
 	for i in range(len(plist)):
 		n_matsubara = int(plist[i]["matsubara_freqs"])
-		n_discrete_tau = int(plist[i]["discrete_tau"])
+		n_discrete_tau = int(plist[i]["discrete_tau"]) + 1
 		h = float(plist[i]["V"])
 		T = float(plist[i]["T"])
 		L = float(plist[i]["L"])
@@ -56,8 +56,8 @@ for f in filelist:
 		y_mat = np.array(ArrangePlot(elist[i], "dynamical_M2_mat")[0])# * x**2.
 		err_mat = np.array(ArrangePlot(elist[i], "dynamical_M2_mat")[1])# * x**2.
 		x_tau = np.array(range(0, n_discrete_tau)) / float(n_discrete_tau) / T
-		y_tau = np.log(np.array(ArrangePlot(elist[i], "dynamical_M2_tau")[0]))
-		err_tau = np.array(ArrangePlot(elist[i], "dynamical_M2_tau")[1]) / y_tau
+		y_tau = np.array(ArrangePlot(elist[i], "dynamical_M2_tau")[0])
+		err_tau = np.array(ArrangePlot(elist[i], "dynamical_M2_tau")[1])
 		for n in range(1, 10):
 			Delta.append(estimator(n, 1./T, y_mat))
 
@@ -73,6 +73,7 @@ for f in filelist:
 		c = 1
 		ax2.set_xlabel(r"$\tau$")
 		ax2.set_ylabel(r"$M_2(\tau)$")
+		ax2.set_yscale("log")
 		ax2.plot(np.array(x_tau), np.array(y_tau), marker=marker_cycle[c%len(marker_cycle)], color=color_cycle[c%len(color_cycle)], markersize=10.0, linewidth=2.0, label=r'$L='+str(int(L))+'$')
 		ax2.plot(np.array(x_tau), np.array(y_tau), marker=marker_cycle[c%len(marker_cycle)], color=color_cycle[c%len(color_cycle)], markersize=10.0, linewidth=2.0, label=r'$L='+str(int(L))+'$')
 		(_, caps, _) = ax2.errorbar(np.array(x_tau), np.array(y_tau), yerr=np.array(err_tau), marker='None', capsize=10, color=color_cycle[c%len(color_cycle)])
