@@ -169,11 +169,12 @@ struct measure_estimator
 		int i = rng() * config.l.n_sites();
 		for (int j = 0; j < config.l.n_sites(); ++j)
 		{
-			for (int t = 0; t < config.param.n_discrete_tau; ++t)
+			for (int t = 0; t <= config.param.n_discrete_tau; ++t)
 			{
 				double tau = config.param.beta * static_cast<double>(t)
 					/ static_cast<double>(config.param.n_discrete_tau);
-				std::vector<arg_t> vec = {arg_t{tau, i, 0}, arg_t{0., j, 0}};
+				double tau_0 = rng() * (config.param.beta - tau);
+				std::vector<arg_t> vec = {arg_t{tau + tau_0, i, 0}, arg_t{tau_0, j, 0}};
 				dyn_M2[t] += config.l.parity(i) * config.l.parity(j)
 				* config.M.try_add<1>(vec, 0) / config.l.n_sites();
 			}

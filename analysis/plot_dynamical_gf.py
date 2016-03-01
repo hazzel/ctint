@@ -35,13 +35,13 @@ marker_cycle = ['o', 'D', '<', 'p', '>', 'v', '*', '^', 's']
 
 filelist = []
 filelist.append(glob.glob("../bin/job/*.out"))
-filelist.append(glob.glob("../bin/job-2/*.out"))
+#filelist.append(glob.glob("../bin/job-2/*.out"))
 filelist.sort()
 
 Delta = []
 filelist = [item for sublist in filelist for item in sublist]
 for f in filelist:
-	plt.figure()
+	figure, (ax1, ax2) = plt.subplots(1, 2)
 	plist = ParseParameters(f)
 	elist = ParseEvalables(f)
 	
@@ -50,25 +50,35 @@ for f in filelist:
 		n_discrete_tau = int(plist[i]["discrete_tau"])
 		h = float(plist[i]["V"])
 		T = float(plist[i]["T"])
-		beta = 1./T
 		L = float(plist[i]["L"])
 	
-		#x = (np.array(range(0, n_matsubara)) * 2. + 1.) * np.pi * T
-		x = (np.array(range(0, n_matsubara)) * 2.) * np.pi * T
-		y = np.array(ArrangePlot(elist[i], "dynamical_M2_mat")[0])# * x**2.
-		err = np.array(ArrangePlot(elist[i], "dynamical_M2_mat")[1])# * x**2.
+		x_mat = (np.array(range(0, n_matsubara)) * 2.) * np.pi * T
+		y_mat = np.array(ArrangePlot(elist[i], "dynamical_M2_mat")[0])# * x**2.
+		err_mat = np.array(ArrangePlot(elist[i], "dynamical_M2_mat")[1])# * x**2.
+		x_tau = np.array(range(0, n_discrete_tau)) / float(n_discrete_tau) / T
+		y_tau = np.log(np.array(ArrangePlot(elist[i], "dynamical_M2_tau")[0]))
+		err_tau = np.array(ArrangePlot(elist[i], "dynamical_M2_tau")[1]) / y_tau
 		for n in range(1, 10):
-			Delta.append(estimator(n, 1./T, y))
-		
+			Delta.append(estimator(n, 1./T, y_mat))
+
 		c = 0
-		ax = plt.gca()
-		ax.set_xlabel(r"$\omega_n$")
-		ax.set_ylabel(r"$M_2(\omega_n) \cdot \omega_n^2$")
-		ax.plot(np.array(x), np.array(y), marker=marker_cycle[c%len(marker_cycle)], color=color_cycle[c%len(color_cycle)], markersize=10.0, linewidth=2.0, label=r'$L='+str(int(L))+'$')
-		ax.plot(np.array(x), np.array(y), marker=marker_cycle[c%len(marker_cycle)], color=color_cycle[c%len(color_cycle)], markersize=10.0, linewidth=2.0, label=r'$L='+str(int(L))+'$')
-		(_, caps, _) = ax.errorbar(np.array(x), np.array(y), yerr=np.array(err), marker='None', capsize=10, color=color_cycle[c%len(color_cycle)])
+		ax1.set_xlabel(r"$\omega_n$")
+		ax1.set_ylabel(r"$M_2(\omega_n) \cdot \omega_n^2$")
+		ax1.plot(np.array(x_mat), np.array(y_mat), marker=marker_cycle[c%len(marker_cycle)], color=color_cycle[c%len(color_cycle)], markersize=10.0, linewidth=2.0, label=r'$L='+str(int(L))+'$')
+		ax1.plot(np.array(x_mat), np.array(y_mat), marker=marker_cycle[c%len(marker_cycle)], color=color_cycle[c%len(color_cycle)], markersize=10.0, linewidth=2.0, label=r'$L='+str(int(L))+'$')
+		(_, caps, _) = ax1.errorbar(np.array(x_mat), np.array(y_mat), yerr=np.array(err_mat), marker='None', capsize=10, color=color_cycle[c%len(color_cycle)])
 		for cap in caps:
 			cap.set_markeredgewidth(1.4)
+			
+		c = 1
+		ax2.set_xlabel(r"$\tau$")
+		ax2.set_ylabel(r"$M_2(\tau)$")
+		ax2.plot(np.array(x_tau), np.array(y_tau), marker=marker_cycle[c%len(marker_cycle)], color=color_cycle[c%len(color_cycle)], markersize=10.0, linewidth=2.0, label=r'$L='+str(int(L))+'$')
+		ax2.plot(np.array(x_tau), np.array(y_tau), marker=marker_cycle[c%len(marker_cycle)], color=color_cycle[c%len(color_cycle)], markersize=10.0, linewidth=2.0, label=r'$L='+str(int(L))+'$')
+		(_, caps, _) = ax2.errorbar(np.array(x_tau), np.array(y_tau), yerr=np.array(err_tau), marker='None', capsize=10, color=color_cycle[c%len(color_cycle)])
+		for cap in caps:
+			cap.set_markeredgewidth(1.4)
+		
 	plt.tight_layout()
 print Delta
 plt.show()

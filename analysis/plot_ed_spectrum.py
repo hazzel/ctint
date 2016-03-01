@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import pylab
 import glob
 import sys
+from itertools import groupby
 sys.path.append('/home/stephan/mc/ctqmc')
 sys.path.append("/net/home/lxtsfs1/tpc/hesselmann/mc/ctqmc")
 from texify import *
@@ -19,11 +20,17 @@ for data, label in datalist:
 	plt.figure()
 	k = int(data[:,0][0])
 	L = int(data[:,1][0])
-	for i in range(k):
-		x = data[:,2]
-		y = data[:,3+i] - data[:,3]
-		plt.plot( x, y, "o", markersize=10, color=color_cycle[i%len(color_cycle)] )
+	plt.xlabel(r"$V$")
+	plt.ylabel(r"$\frac{E_n(V) - E_0(V)}{E_1(0)}$")
+	plt.title(r"$L = " + str(L) + "$")
+	x = data[:,2]
+	undegenerate_spectrum = {}
+	color_spectrum = {}
+	for i in range(len(x)):
+		undegenerate_spectrum[x[i]] = [list(group)[0] - min(data[i,3:]) for key, group in groupby(data[i,3:])]
+		color_spectrum[x[i]] = [color_cycle[(len(list(group))-1)%len(color_cycle)] for key, group in groupby(data[i,3:])]
 
-plt.xlabel(r"$V$")
-plt.ylabel(r"$E_n - E_0$")
+		y = [p / undegenerate_spectrum[x[0]][1] for p in undegenerate_spectrum[x[i]]]
+		plt.scatter([x[i]]*len(y), y, marker='o', color=color_spectrum[x[i]], s=[50.]*len(y))
+
 plt.show()

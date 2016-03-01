@@ -142,7 +142,7 @@ mc::mc(const std::string& dir)
 	//	n_prebin);
 	qmc.add_measure(measure_estimator{config, rng, config.measure, pars,
 		std::vector<double>(config.param.n_matsubara, 0.0),
-		std::vector<double>(config.param.n_discrete_tau, 0.0),
+		std::vector<double>(config.param.n_discrete_tau + 1, 0.0),
 		std::vector<std::vector<double>>(config.l.max_distance() + 1,
 		std::vector<double>(config.param.n_matsubara, 0.0)),
 		std::vector<double>(config.param.n_matsubara, 0.0),
