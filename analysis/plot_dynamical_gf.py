@@ -40,7 +40,7 @@ color_cycle = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'orange', 'darkgreen']
 marker_cycle = ['o', 'D', '<', 'p', '>', 'v', '*', '^', 's']
 
 filelist = []
-filelist.append(glob.glob("../bin/job/*.out"))
+#filelist.append(glob.glob("../bin/job/*.out"))
 filelist.append(glob.glob("../data/dyn_M2/*.out"))
 filelist.sort()
 
@@ -64,7 +64,7 @@ for f in filelist:
 		x_tau = np.array(range(0, n_discrete_tau)) / float(n_discrete_tau) / T
 		y_tau = np.array(ArrangePlot(elist[i], "dynamical_M2_tau")[0])
 		err_tau = np.array(ArrangePlot(elist[i], "dynamical_M2_tau")[1])
-		#n_matsubara = 100
+		n_matsubara = 500
 		x_delta = np.array(range(1, n_matsubara))
 		y_delta = []
 		for n in range(1, n_matsubara):
@@ -87,16 +87,16 @@ for f in filelist:
 		for cap in caps:
 			cap.set_markeredgewidth(1.4)
 		
-		'''
-		parameter, perr = fit_function( [0.0, 1., 1.], x_tau[:len(x_tau)/2-1], y_tau[:len(x_tau)/2-1], FitFunction, datayerrors=err_tau[:len(x_tau)/2-1])
-		px = np.linspace(x_tau[0], x_tau[len(x_tau)/2-1], 1000)
+		
+		parameter, perr = fit_function( [0.0, 1., 1.], x_tau[:len(x_tau)/2-10], y_tau[:len(x_tau)/2-10], FitFunction, datayerrors=err_tau[:len(x_tau)/2-10])
+		px = np.linspace(x_tau[0], x_tau[len(x_tau)/2-10], 1000)
 		ax2.plot(px, FitFunction(px, *parameter), 'k-', linewidth=3.0)
 		d = -int(np.log10(abs(perr[2])))+2
 		ax2.text(0.05, 0.98, r"$\Delta_{FIT} = " + ("{:."+str(d)+"f}").format(parameter[2]) + "(" + str(round(perr[2], d)*10.**d).partition('.')[0] + ")$", transform=ax2.transAxes, fontsize=20, va='top')
 		ax2.text(0.05, 0.92, r"$\Delta_{ED} = 0.9264$", transform=ax2.transAxes, fontsize=20, va='top')
 		print parameter
 		print perr
-		'''
+		
 			
 		c = 2
 		ax3.set_xlabel(r"$n$")
