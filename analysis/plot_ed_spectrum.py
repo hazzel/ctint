@@ -7,6 +7,7 @@ import sys
 from itertools import groupby
 sys.path.append('/home/stephan/mc/ctqmc')
 sys.path.append("/net/home/lxtsfs1/tpc/hesselmann/mc/ctqmc")
+sys.path.append('/home/stephan/mc/qising-SSE')
 from texify import *
 
 latexify()

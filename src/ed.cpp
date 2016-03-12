@@ -36,7 +36,7 @@ int main(int ac, char** av)
 		("T", po::value<std::vector<double>>()->multitoken(),
 		 "temperature interval: T_start T_end steps")
 		("k", po::value<int>(&k)->default_value(100), "number of eigenstates")
-		("ensemble,e", po::value<std::string>(&ensemble)->default_value("c"),
+		("ensemble,e", po::value<std::string>(&ensemble)->default_value("gc"),
 			"ensemble: gc or c");
 	po::variables_map vm;
 	po::store(po::parse_command_line(ac, av, desc), vm);
@@ -100,7 +100,7 @@ int main(int ac, char** av)
 	});
 	arma::sp_mat H = H_st.build_matrix();
 	
-	//Build observables
+	//Build static observables
 	sparse_storage<int_t> M2_st, M4_st;
 	hspace.build_operator([&lat, &hspace, &M2_st, &M4_st, V]
 		(const std::pair<int_t, int_t>& n)
@@ -136,26 +136,66 @@ int main(int ac, char** av)
 	arma::vec ev; arma::mat es;
 	arma::eigs_sym(ev, es, H, std::min(hspace.sub_dimension()-2,
 		static_cast<int_t>(k)), "sa");
+	
+	// Build dynamic observables
+	std::vector<arma::sp_mat> n_i(lat.n_sites());
+	for (int_t i = 0; i < lat.n_sites(); ++i)
+	{
+		sparse_storage<int_t> ni_st;
+		hspace.build_operator([&lat, &hspace, &ni_st, i]
+			(const std::pair<int_t, int_t>& n) { ni_st(n.second, n.second)
+				+= hspace.n_i({1, n.first}, i) - 0.5; });
+		n_i[i] = ni_st.build_matrix();
+	}
+
 	for (int t = 0; t <= temperature[2]; ++t)
 	{
-		double T = temperature[0] + (temperature[1]- temperature[0])
+		double T = temperature[0] + (temperature[1] - temperature[0])
 			* static_cast<double>(t) / temperature[2];
 		double beta = 1./T;
 		std::cout << "T = " << T << std::endl;
 		std::cout << "beta = " << beta << std::endl;
+		
 		arma::vec boltzmann(ev.n_rows);
-		double max_ev = ev.min();
 		for (int i = 0; i < ev.n_rows; ++i)
-			boltzmann(i) = std::exp(-beta * (ev(i) - max_ev));
+			boltzmann(i) = std::exp(-beta * (ev(i) - ev.min()));
 		arma::mat D = arma::diagmat(boltzmann);
 		double Z = arma::trace(D);
 		double E = arma::trace(D*arma::diagmat(ev))/Z;
 		double m2 = arma::trace(D*es.t()*M2*es)/Z;
 		double m4 = arma::trace(D*es.t()*M4*es)/Z;
+		int Ntau = 100;
 		out << k << "\t" << L << "\t" << V << "\t" << T << "\t"
-			<< E << "\t" << m2 << "\t" << m4 << "\t" << m4/(m2*m2) << std::endl;
+			<< E << "\t" << m2 << "\t" << m4 << "\t" << m4/(m2*m2) << "\t"
+			<< Ntau << "\t";
 		std::cout << k << "\t" << L << "\t" << V << "\t" << T << "\t"
-			<< E << "\t" << m2 << "\t" << m4 << "\t" << m4/(m2*m2) << std::endl;
+			<< E << "\t" << m2 << "\t" << m4 << "\t" << m4/(m2*m2) << "\t"
+			<< Ntau << "\t";
+	
+		for (int n = 0; n < Ntau; ++n)
+		{
+			arma::sp_mat M2_tau(H.n_rows, H.n_cols);
+			arma::vec U_vec(ev.n_rows), Ut_vec(ev.n_rows);
+			double tau = static_cast<double>(n) /static_cast<double>(Ntau-1)
+				* beta / 2.;
+			for (int i = 0; i < ev.n_rows; ++i)
+			{
+				U_vec(i) = std::exp(-tau * (ev(i) - ev.max()));
+				Ut_vec(i) = std::exp(tau * (ev(i) - ev.max()));
+			}
+			arma::mat U = es * arma::diagmat(U_vec) * es.t();
+			arma::mat Ut = es * arma::diagmat(Ut_vec) * es.t();
+			for (int_t i = 0; i < lat.n_sites(); ++i)
+				for (int_t j = 0; j < lat.n_sites(); ++j)
+					M2_tau += lat.parity(i) * lat.parity(j)
+						/ std::pow(lat.n_sites(), 2) * Ut * n_i[i] * U * n_i[j];
+			double m2_tau = arma::trace(D*es.t()*M2_tau*es)/Z;
+			out << m2_tau << "\t";
+			std::cout << m2_tau << "\t";
+			std::cout.flush();
+		}
+		out << std::endl;
+		std::cout << std::endl;
 	}
 	out.close();
 }
