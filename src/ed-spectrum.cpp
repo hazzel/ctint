@@ -34,7 +34,7 @@ int main(int ac, char** av)
 		("V", po::value<std::vector<double>>()->multitoken(),
 		 "interaction strength interval: V_start V_end steps")
 		("k", po::value<int>(&k)->default_value(10), "number of eigenstates")
-		("ensemble,e", po::value<std::string>(&ensemble)->default_value("c"),
+		("ensemble,e", po::value<std::string>(&ensemble)->default_value("gc"),
 			"ensemble: gc or c");
 	po::variables_map vm;
 	po::store(po::parse_command_line(ac, av, desc), vm);

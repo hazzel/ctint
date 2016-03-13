@@ -177,17 +177,18 @@ int main(int ac, char** av)
 			arma::sp_mat M2_tau(H.n_rows, H.n_cols);
 			arma::vec U_vec(ev.n_rows), Ut_vec(ev.n_rows);
 			double tau = static_cast<double>(n) /static_cast<double>(Ntau-1)
-				* beta / 2.;
+				* beta;
 			for (int i = 0; i < ev.n_rows; ++i)
 			{
-				U_vec(i) = std::exp(-tau * (ev(i) - ev.max()));
+				U_vec(i) = std::exp(-tau * (ev(i) - ev.min()));
 				Ut_vec(i) = std::exp(tau * (ev(i) - ev.max()));
 			}
+			double prefactor = std::exp(tau * (ev.max() - ev.min()));
 			arma::mat U = es * arma::diagmat(U_vec) * es.t();
 			arma::mat Ut = es * arma::diagmat(Ut_vec) * es.t();
 			for (int_t i = 0; i < lat.n_sites(); ++i)
 				for (int_t j = 0; j < lat.n_sites(); ++j)
-					M2_tau += lat.parity(i) * lat.parity(j)
+					M2_tau += prefactor * lat.parity(i) * lat.parity(j)
 						/ std::pow(lat.n_sites(), 2) * Ut * n_i[i] * U * n_i[j];
 			double m2_tau = arma::trace(D*es.t()*M2_tau*es)/Z;
 			out << m2_tau << "\t";

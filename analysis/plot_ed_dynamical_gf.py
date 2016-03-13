@@ -6,7 +6,8 @@ sys.path.append('/home/stephan/mc/ctqmc')
 sys.path.append("/net/home/lxtsfs1/tpc/hesselmann/mc/ctqmc")
 import numpy as np
 from decimal import *
-import matplotlib.pyplot as plt
+from scipy.optimize import curve_fit
+import matplotlib as plt
 import pylab
 from ParseDataOutput import *
 sys.path.append("/net/home/lxtsfs1/tpc/hesselmann/mc/qising-SSE")
@@ -34,7 +35,7 @@ def estimator(n, beta, C):
 		sum2 += combinatorial_factor(n, k) * Decimal(str(C[k]))
 	return float(omega1 * abs(- sum1 / sum2).sqrt())
 
-#latexify()
+latexify()
 color_cycle = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'orange', 'darkgreen']
 marker_cycle = ['o', 'D', '<', 'p', '>', 'v', '*', '^', 's']
 
@@ -64,16 +65,17 @@ for data, label in datalist:
 		ax2.set_yscale("log")
 		ax2.plot(x_tau, y_tau, marker=marker_cycle[c%len(marker_cycle)], color=color_cycle[c%len(color_cycle)], markersize=10.0, linewidth=2.0, label=r'$L='+str(int(L))+'$')
 		
-		'''
-		parameter, perr = fit_function( [0.0, 1., 1.], x_tau[:len(x_tau)/2-10], y_tau[:len(x_tau)/2-10], FitFunction, datayerrors=err_tau[:len(x_tau)/2-10])
-		px = np.linspace(x_tau[0], x_tau[len(x_tau)/2-10], 1000)
-		ax2.plot(px, FitFunction(px, *parameter), 'k-', linewidth=3.0)
-		d = -int(np.log10(abs(perr[2])))+2
-		ax2.text(0.05, 0.98, r"$\Delta_{FIT} = " + ("{:."+str(d)+"f}").format(parameter[2]) + "(" + str(round(perr[2], d)*10.**d).partition('.')[0] + ")$", transform=ax2.transAxes, fontsize=20, va='top')
-		ax2.text(0.05, 0.92, r"$\Delta_{ED} = 0.9264$", transform=ax2.transAxes, fontsize=20, va='top')
-		print parameter
-		print perr
-		'''
+		try:
+			nmin = 10; nmax = len(x_tau)/2-18
+			parameter, perr = curve_fit(FitFunction, x_tau[nmin:nmax], y_tau[nmin:nmax])
+			px = np.linspace(x_tau[nmin], x_tau[nmax], 1000)
+			ax2.plot(px, FitFunction(px, *parameter), 'k-', linewidth=3.0)
+			ax2.text(0.05, 0.98, r"$\Delta_{FIT} = " + ("{:.4f}").format(parameter[2]) + "$", transform=ax2.transAxes, fontsize=20, va='top')
+			ax2.text(0.05, 0.92, r"$\Delta_{ED} = 0.9264$", transform=ax2.transAxes, fontsize=20, va='top')
+			print parameter
+			print perr
+		except:
+			print "runtime error"
 		
 		c = 2
 		ax3.set_xlabel(r"$n$")
