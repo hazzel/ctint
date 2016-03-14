@@ -7,12 +7,16 @@
 #include <cstdlib>
 #include <armadillo>
 #include <boost/program_options.hpp>
+#include <boost/multiprecision/mpfr.hpp>
 #include "lattice.h"
 #include "honeycomb.h"
 #include "hilbert.h"
 #include "sparse_storage.h"
 
 namespace po = boost::program_options;
+
+namespace mp = boost::multiprecision;
+typedef mp::number<mp::mpfr_float_backend<300> >  mp_float;
 
 template<typename T>
 void print_help(const T& desc)
@@ -136,6 +140,7 @@ int main(int ac, char** av)
 	arma::vec ev; arma::mat es;
 	arma::eigs_sym(ev, es, H, std::min(hspace.sub_dimension()-2,
 		static_cast<int_t>(k)), "sa");
+	arma::mat esT = es.t();
 	
 	// Build dynamic observables
 	std::vector<arma::sp_mat> n_i(lat.n_sites());
@@ -159,40 +164,59 @@ int main(int ac, char** av)
 		arma::vec boltzmann(ev.n_rows);
 		for (int i = 0; i < ev.n_rows; ++i)
 			boltzmann(i) = std::exp(-beta * (ev(i) - ev.min()));
-		arma::mat D = arma::diagmat(boltzmann);
-		double Z = arma::trace(D);
-		double E = arma::trace(D*arma::diagmat(ev))/Z;
-		double m2 = arma::trace(D*es.t()*M2*es)/Z;
-		double m4 = arma::trace(D*es.t()*M4*es)/Z;
+		double Z = 0., E = 0., m2 = 0., m4 = 0.;
+		for (int i = 0; i < ev.n_rows; ++i)
+		{
+			Z += boltzmann(i);
+			E += boltzmann(i) * ev(i);
+			// Trace over 1x1 matrices
+			m2 += boltzmann(i) * arma::trace(esT.row(i) * M2 * es.col(i));
+			m4 += boltzmann(i) * arma::trace(esT.row(i) * M4 * es.col(i));
+		}
+
 		int Ntau = 100;
 		out << k << "\t" << L << "\t" << V << "\t" << T << "\t"
-			<< E << "\t" << m2 << "\t" << m4 << "\t" << m4/(m2*m2) << "\t"
+			<< E/Z << "\t" << m2/Z << "\t" << m4/Z << "\t" << m4/(m2*m2) << "\t"
 			<< Ntau << "\t";
 		std::cout << k << "\t" << L << "\t" << V << "\t" << T << "\t"
-			<< E << "\t" << m2 << "\t" << m4 << "\t" << m4/(m2*m2) << "\t"
+			<< E/Z << "\t" << m2/Z << "\t" << m4/Z << "\t" << m4/(m2*m2) << "\t"
 			<< Ntau << "\t";
-	
-		for (int n = 0; n < Ntau; ++n)
+
+		std::cout << std::endl << std::endl;
+		for (int n = 0; n <= Ntau; ++n)
 		{
 			arma::sp_mat M2_tau(H.n_rows, H.n_cols);
 			arma::vec U_vec(ev.n_rows), Ut_vec(ev.n_rows);
-			double tau = static_cast<double>(n) /static_cast<double>(Ntau-1)
-				* beta;
+			double tau = static_cast<double>(n) /static_cast<double>(Ntau) * beta;
 			for (int i = 0; i < ev.n_rows; ++i)
 			{
-				U_vec(i) = std::exp(-tau * (ev(i) - ev.min()));
-				Ut_vec(i) = std::exp(tau * (ev(i) - ev.max()));
+				U_vec(i) = std::exp(-tau * (ev(i) - (ev.max() - ev.min())));
+				Ut_vec(i) = std::exp(tau * (ev(i) - (ev.max() - ev.min())));
 			}
-			double prefactor = std::exp(tau * (ev.max() - ev.min()));
 			arma::mat U = es * arma::diagmat(U_vec) * es.t();
 			arma::mat Ut = es * arma::diagmat(Ut_vec) * es.t();
-			for (int_t i = 0; i < lat.n_sites(); ++i)
-				for (int_t j = 0; j < lat.n_sites(); ++j)
-					M2_tau += prefactor * lat.parity(i) * lat.parity(j)
-						/ std::pow(lat.n_sites(), 2) * Ut * n_i[i] * U * n_i[j];
-			double m2_tau = arma::trace(D*es.t()*M2_tau*es)/Z;
-			out << m2_tau << "\t";
-			std::cout << m2_tau << "\t";
+			double m2_tau = 0.;
+			mp_float m2_tau_mp(0.);
+			int i = 0;
+			for (int_t j = 0; j < lat.n_sites(); ++j)
+			{
+				M2_tau = lat.parity(i) * lat.parity(j)
+					/ std::pow(lat.n_sites(), 2) * Ut * n_i[i] * U * n_i[j];
+				for (int k = 0; k < ev.n_rows; ++k)
+				{
+					m2_tau += boltzmann(k) * arma::trace(esT.row(k) * M2_tau
+						* es.col(k));
+					m2_tau_mp += mp_float(boltzmann(k) * arma::trace(esT.row(k)
+						* M2_tau * es.col(k)));
+//					std::cout << boltzmann(k) * arma::trace(esT.row(k) * M2_tau
+//						* es.col(k)) << std::endl;
+				}
+			}
+			m2_tau *= lat.n_sites();
+//			out << m2_tau/Z << "\t";
+			m2_tau_mp *= mp_float(lat.n_sites());
+			out << m2_tau_mp/mp_float(Z) << "\t";
+			std::cout << m2_tau_mp/mp_float(Z) << "\t";
 			std::cout.flush();
 		}
 		out << std::endl;

@@ -7,7 +7,9 @@ sys.path.append("/net/home/lxtsfs1/tpc/hesselmann/mc/ctqmc")
 import numpy as np
 from decimal import *
 from scipy.optimize import curve_fit
-import matplotlib as plt
+import matplotlib
+matplotlib.use('TkAgg')
+import matplotlib.pyplot as plt
 import pylab
 from ParseDataOutput import *
 sys.path.append("/net/home/lxtsfs1/tpc/hesselmann/mc/qising-SSE")
