@@ -174,7 +174,7 @@ int main(int ac, char** av)
 			m4 += boltzmann(i) * arma::trace(esT.row(i) * M4 * es.col(i));
 		}
 
-		int Ntau = 100;
+		int Ntau = 200;
 		out << k << "\t" << L << "\t" << V << "\t" << T << "\t"
 			<< E/Z << "\t" << m2/Z << "\t" << m4/Z << "\t" << m4/(m2*m2) << "\t"
 			<< Ntau << "\t";
@@ -183,6 +183,7 @@ int main(int ac, char** av)
 			<< Ntau << "\t";
 
 		std::cout << std::endl << std::endl;
+		// Dynamic structure factor
 		for (int n = 0; n <= Ntau; ++n)
 		{
 			arma::sp_mat M2_tau(H.n_rows, H.n_cols);
@@ -190,35 +191,40 @@ int main(int ac, char** av)
 			double tau = static_cast<double>(n) /static_cast<double>(Ntau) * beta;
 			for (int i = 0; i < ev.n_rows; ++i)
 			{
-				U_vec(i) = std::exp(-tau * (ev(i) - (ev.max() - ev.min())));
-				Ut_vec(i) = std::exp(tau * (ev(i) - (ev.max() - ev.min())));
+				U_vec(i) = std::exp(-tau * (ev(i) - (ev.max() + ev.min())/2.));
+				Ut_vec(i) = std::exp(tau * (ev(i) - (ev.max() + ev.min())/2.));
 			}
 			arma::mat U = es * arma::diagmat(U_vec) * es.t();
 			arma::mat Ut = es * arma::diagmat(Ut_vec) * es.t();
 			double m2_tau = 0.;
-			mp_float m2_tau_mp(0.);
 			int i = 0;
 			for (int_t j = 0; j < lat.n_sites(); ++j)
 			{
 				M2_tau = lat.parity(i) * lat.parity(j)
 					/ std::pow(lat.n_sites(), 2) * Ut * n_i[i] * U * n_i[j];
 				for (int k = 0; k < ev.n_rows; ++k)
-				{
 					m2_tau += boltzmann(k) * arma::trace(esT.row(k) * M2_tau
 						* es.col(k));
-					m2_tau_mp += mp_float(boltzmann(k) * arma::trace(esT.row(k)
-						* M2_tau * es.col(k)));
-//					std::cout << boltzmann(k) * arma::trace(esT.row(k) * M2_tau
-//						* es.col(k)) << std::endl;
-				}
 			}
 			m2_tau *= lat.n_sites();
-//			out << m2_tau/Z << "\t";
-			m2_tau_mp *= mp_float(lat.n_sites());
-			out << m2_tau_mp/mp_float(Z) << "\t";
-			std::cout << m2_tau_mp/mp_float(Z) << "\t";
+			out << m2_tau/Z << "\t";
+			std::cout << m2_tau/Z << "\t";
 			std::cout.flush();
 		}
+		// Matsubara structure factor
+		int Nmat = 50;
+		for (int n = 0; n < Nmat; ++n)
+		{
+			double m2_mat = 0.;
+			int i = 0;
+			for (int j = 0; j < lat.n_sites(); ++j)
+				for (int a = 0; a < ev.n_rows; ++a)
+					for (int b = 0; b < ev.n_rows; ++b)
+						m2_mat += arma::trace(esT.row(a) * n_i[i] * es.col(b)
+							* esT.row(b) * n_i[j] * es.col(a));
+		}
+
+
 		out << std::endl;
 		std::cout << std::endl;
 	}

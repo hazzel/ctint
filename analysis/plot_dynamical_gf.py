@@ -46,6 +46,7 @@ filelist = []
 filelist.append(glob.glob("../bin/job/*.out"))
 #filelist.append(glob.glob("../data/dyn_M2/*.out"))
 filelist.append(glob.glob("/net/home/lxtsfs1/tpc/hesselmann/cluster_work/code/ctint/jobs/spectroscopy/L2-V1.355-T0.02/*task*.out"))
+filelist.append(glob.glob("/net/home/lxtsfs1/tpc/hesselmann/cluster_work/code/ctint/jobs/spectroscopy/job-L2-V1.355-T0.20/*task*.out"))
 filelist.sort()
 ed_data = pylab.loadtxt(glob.glob("../data/ed*")[0])
 
