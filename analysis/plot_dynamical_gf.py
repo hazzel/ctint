@@ -62,6 +62,10 @@ for f in filelist:
 		h = float(plist[i]["V"])
 		T = float(plist[i]["T"])
 		L = float(plist[i]["L"])
+		for j in range(len(ed_data)):
+			if h == ed_data[j,2] and T == ed_data[j,3] and L == int(ed_data[j,1]):
+				n_ed_tau = int(ed_data[j,8])
+				n_ed_mat = int(ed_data[j,10+n_ed_tau])
 		figure.suptitle(r"$L = " + str(L) + ",\ V = " + str(h) + ",\ T = " + str(T) + "$")
 	
 		x_mat = (np.array(range(0, n_matsubara)) * 2.) * np.pi * T
@@ -88,10 +92,13 @@ for f in filelist:
 			for j in range(len(y_tau)):
 				y_tmp[j] = y_tau[j] * np.cos(x_mat[n]*x_tau[j])
 			y_int[n] = scipy.integrate.simps(y_tmp, x_tau)
-		ax1.plot(x_mat, y_int * x_mat**2., marker="o", color="red", markersize=10.0, linewidth=2.0, label=r'$L='+str(int(L))+'$')
+		ax1.plot(x_mat, y_int * x_mat**2., marker="o", color="g", markersize=10.0, linewidth=2.0, label=r'$L='+str(int(L))+'$')
 		ax3.plot(x_delta, y_delta, marker=marker_cycle[c%len(marker_cycle)], color="blue", markersize=10.0, linewidth=2.0, label=r'$L='+str(int(L))+'$')
 		for n in range(1, n_matsubara):
 			y_delta[n-1] = estimator(n, 1./T, y_int)
+		for j in range(len(ed_data)):
+			if h == ed_data[j,2] and T == ed_data[j,3] and L == int(ed_data[j,1]):
+				ax1.plot(np.array(range(0, n_ed_mat)) * 2. * np.pi * T, ed_data[j,11+n_ed_tau:] * x_mat**2., marker='o', color="r", markersize=10.0, linewidth=2.0, label=r'$L='+str(int(L))+'$')
 			
 		c = 1
 		ax2.set_xlabel(r"$\tau$")
@@ -103,7 +110,7 @@ for f in filelist:
 			cap.set_markeredgewidth(1.4)
 		for j in range(len(ed_data)):
 			if h == ed_data[j,2] and T == ed_data[j,3] and L == int(ed_data[j,1]):
-				ax2.plot(np.linspace(0., 1./T, int(ed_data[j,8]) + 1), ed_data[j,9:], marker='o', color="r", markersize=10.0, linewidth=2.0, label=r'$L='+str(int(L))+'$')
+				ax2.plot(np.linspace(0., 1./T, int(ed_data[j,8]) + 1), ed_data[j,9:10+n_ed_tau], marker='o', color="r", markersize=10.0, linewidth=2.0, label=r'$L='+str(int(L))+'$')
 		
 		try:
 			nmin = 0; nmax = len(x_tau)/2-1
@@ -121,7 +128,7 @@ for f in filelist:
 		c = 2
 		ax3.set_xlabel(r"$n$")
 		ax3.set_ylabel(r"$\Delta_n$")
-		ax3.plot(x_delta, y_delta, marker="o", color=color_cycle[c%len(color_cycle)], markersize=10.0, linewidth=2.0, label=r'$L='+str(int(L))+'$')
+		ax3.plot(x_delta, y_delta, marker="o", color="g", markersize=10.0, linewidth=2.0, label=r'$L='+str(int(L))+'$')
 		
 	plt.tight_layout()
 plt.show()

@@ -206,13 +206,15 @@ int main(int ac, char** av)
 					m2_tau += boltzmann(k) * arma::trace(esT.row(k) * M2_tau
 						* es.col(k));
 			}
-			m2_tau *= lat.n_sites();
-			out << m2_tau/Z << "\t";
-			std::cout << m2_tau/Z << "\t";
+			m2_tau *= lat.n_sites() / Z;
+			out << m2_tau << "\t";
+			std::cout << m2_tau << "\t";
 			std::cout.flush();
 		}
 		// Matsubara structure factor
 		int Nmat = 50;
+		out << Nmat << "\t";
+		std::cout << Nmat << "\t";
 		for (int n = 0; n < Nmat; ++n)
 		{
 			double m2_mat = 0.;
@@ -220,11 +222,22 @@ int main(int ac, char** av)
 			for (int j = 0; j < lat.n_sites(); ++j)
 				for (int a = 0; a < ev.n_rows; ++a)
 					for (int b = 0; b < ev.n_rows; ++b)
-						m2_mat += arma::trace(esT.row(a) * n_i[i] * es.col(b)
-							* esT.row(b) * n_i[j] * es.col(a));
+					{
+						double omega = ev(b) - ev(a);
+						if (omega > 0.)
+						{
+							double omega_n = 2. * 4. * std::atan(1.) * n * T;
+							m2_mat += 2.* boltzmann(a) * (1. - std::exp(-omega/T))
+								* omega / (omega*omega + omega_n*omega_n)
+								* arma::trace(esT.row(a) * n_i[i] * es.col(b))
+								* arma::trace(esT.row(b) * n_i[j] * es.col(a));
+						}
+					}
+			m2_mat *= lat.n_sites() / Z;
+			out << m2_mat << "\t";
+			std::cout << m2_mat << "\t";
+			std::cout.flush();
 		}
-
-
 		out << std::endl;
 		std::cout << std::endl;
 	}
