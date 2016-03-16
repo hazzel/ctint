@@ -101,7 +101,7 @@ for f in filelist:
 			cap.set_markeredgewidth(1.4)
 		for j in range(len(ed_data)):
 			if h == ed_data[j,2] and T == ed_data[j,3] and L == int(ed_data[j,1]):
-				ax2.plot(np.linspace(0., 1./T, n_ed_tau + 1), ed_data[j,9:10+n_ed_tau], marker='o', color="r", markersize=10.0, linewidth=2.0, label=r'$L='+str(int(L))+'$')
+				ax2.plot(np.linspace(0., 1./T/2., n_ed_tau + 1), ed_data[j,9:10+n_ed_tau], marker='o', color="r", markersize=10.0, linewidth=2.0, label=r'$L='+str(int(L))+'$')
 		
 		try:
 			nmin = 0; nmax = len(x_tau)/2
