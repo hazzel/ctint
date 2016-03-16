@@ -171,13 +171,18 @@ struct measure_estimator
 		{
 			for (int t = 0; t <= config.param.n_discrete_tau; ++t)
 			{
-				double tau = config.param.beta * static_cast<double>(t)
+				double tau = config.param.beta/2. * static_cast<double>(t)
 					/ static_cast<double>(config.param.n_discrete_tau);
-				double tau_0 = rng() * (config.param.beta - tau);
+				double tau_0 = rng() * (config.param.beta/2. - tau);
 				std::vector<arg_t> vec = {arg_t{tau + tau_0, i, 0},
 					arg_t{tau_0, j, 0}};
-				dyn_M2_tau[t] += config.l.parity(i) * config.l.parity(j)
+				double m1 = config.l.parity(i) * config.l.parity(j)
 					* config.M.try_add<1>(vec, 0) / config.l.n_sites();
+				vec = {arg_t{config.param.beta - (tau + tau_0), i, 0},
+					arg_t{config.param.beta - tau_0, j, 0}};
+				double m2 = config.l.parity(i) * config.l.parity(j)
+					* config.M.try_add<1>(vec, 0) / config.l.n_sites();
+				dyn_M2_tau[t] += (m1 + m2) / 2.;
 			}
 		}
 		measure.add("dynamical_M2_tau", dyn_M2_tau);

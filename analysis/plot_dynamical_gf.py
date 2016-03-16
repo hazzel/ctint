@@ -5,7 +5,7 @@ import sys
 sys.path.append('/home/stephan/mc/ctqmc')
 sys.path.append("/net/home/lxtsfs1/tpc/hesselmann/mc/ctqmc")
 import numpy as np
-from decimal import *
+from cdecimal import *
 import matplotlib
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
@@ -45,7 +45,7 @@ marker_cycle = ['o', 'D', '<', 'p', '>', 'v', '*', '^', 's']
 filelist = []
 filelist.append(glob.glob("../bin/job/*.out"))
 #filelist.append(glob.glob("../data/dyn_M2/*.out"))
-filelist.append(glob.glob("/net/home/lxtsfs1/tpc/hesselmann/cluster_work/code/ctint/jobs/spectroscopy/L2-V1.355-T0.02/*task*.out"))
+#filelist.append(glob.glob("/net/home/lxtsfs1/tpc/hesselmann/cluster_work/code/ctint/jobs/spectroscopy/L2-V1.355-T0.02/*task*.out"))
 filelist.append(glob.glob("/net/home/lxtsfs1/tpc/hesselmann/cluster_work/code/ctint/jobs/spectroscopy/job-L2-V1.355-T0.20/*task*.out"))
 filelist.sort()
 ed_data = pylab.loadtxt(glob.glob("../data/ed*")[0])
@@ -71,7 +71,7 @@ for f in filelist:
 		x_mat = (np.array(range(0, n_matsubara)) * 2.) * np.pi * T
 		y_mat = np.array(ArrangePlot(elist[i], "dynamical_M2_mat")[0])
 		err_mat = np.array(ArrangePlot(elist[i], "dynamical_M2_mat")[1])
-		x_tau = np.array(range(0, n_discrete_tau + 1)) / float(n_discrete_tau) / T
+		x_tau = np.array(range(0, n_discrete_tau + 1)) / float(n_discrete_tau) / T / 2.
 		y_tau = np.array(ArrangePlot(elist[i], "dynamical_M2_tau")[0])
 		err_tau = np.array(ArrangePlot(elist[i], "dynamical_M2_tau")[1])
 		n_matsubara = 50
@@ -87,18 +87,9 @@ for f in filelist:
 		(_, caps, _) = ax1.errorbar(x_mat, y_mat * x_mat**2., yerr=err_mat * x_mat**2., marker='None', capsize=8, color=color_cycle[c%len(color_cycle)])
 		for cap in caps:
 			cap.set_markeredgewidth(1.4)
-		y_int = np.zeros(len(x_mat)); y_tmp = np.zeros(len(y_tau))
-		for n in range(len(x_mat)):
-			for j in range(len(y_tau)):
-				y_tmp[j] = y_tau[j] * np.cos(x_mat[n]*x_tau[j])
-			y_int[n] = scipy.integrate.simps(y_tmp, x_tau)
-		ax1.plot(x_mat, y_int * x_mat**2., marker="o", color="g", markersize=10.0, linewidth=2.0, label=r'$L='+str(int(L))+'$')
-		ax3.plot(x_delta, y_delta, marker=marker_cycle[c%len(marker_cycle)], color="blue", markersize=10.0, linewidth=2.0, label=r'$L='+str(int(L))+'$')
-		for n in range(1, n_matsubara):
-			y_delta[n-1] = estimator(n, 1./T, y_int)
 		for j in range(len(ed_data)):
 			if h == ed_data[j,2] and T == ed_data[j,3] and L == int(ed_data[j,1]):
-				ax1.plot(np.array(range(0, n_ed_mat)) * 2. * np.pi * T, ed_data[j,11+n_ed_tau:] * x_mat**2., marker='o', color="r", markersize=10.0, linewidth=2.0, label=r'$L='+str(int(L))+'$')
+				ax1.plot(np.array(range(0, n_ed_mat)) * 2. * np.pi * T, ed_data[j,11+n_ed_tau:] * ((np.array(range(0, n_ed_mat)) * 2.) * np.pi * T)**2., marker='o', color="r", markersize=10.0, linewidth=2.0, label=r'$L='+str(int(L))+'$')
 			
 		c = 1
 		ax2.set_xlabel(r"$\tau$")
@@ -110,10 +101,10 @@ for f in filelist:
 			cap.set_markeredgewidth(1.4)
 		for j in range(len(ed_data)):
 			if h == ed_data[j,2] and T == ed_data[j,3] and L == int(ed_data[j,1]):
-				ax2.plot(np.linspace(0., 1./T, int(ed_data[j,8]) + 1), ed_data[j,9:10+n_ed_tau], marker='o', color="r", markersize=10.0, linewidth=2.0, label=r'$L='+str(int(L))+'$')
+				ax2.plot(np.linspace(0., 1./T, n_ed_tau + 1), ed_data[j,9:10+n_ed_tau], marker='o', color="r", markersize=10.0, linewidth=2.0, label=r'$L='+str(int(L))+'$')
 		
 		try:
-			nmin = 0; nmax = len(x_tau)/2-1
+			nmin = 0; nmax = len(x_tau)/2
 			parameter, perr = fit_function( [0.0, 1., 1.], x_tau[nmin:nmax], y_tau[nmin:nmax], FitFunction, datayerrors=err_tau[nmin:nmax])
 			px = np.linspace(x_tau[nmin], x_tau[nmax], 1000)
 			ax2.plot(px, FitFunction(px, *parameter), 'k-', linewidth=3.0)
@@ -128,7 +119,12 @@ for f in filelist:
 		c = 2
 		ax3.set_xlabel(r"$n$")
 		ax3.set_ylabel(r"$\Delta_n$")
-		ax3.plot(x_delta, y_delta, marker="o", color="g", markersize=10.0, linewidth=2.0, label=r'$L='+str(int(L))+'$')
+		ax3.plot(x_delta, y_delta, marker="o", color="green", markersize=10.0, linewidth=2.0, label=r'$L='+str(int(L))+'$')
+		x_delta = np.array(range(1, n_ed_mat))
+		y_delta = np.zeros(n_ed_mat - 1)
+		for n in range(1, n_ed_mat):
+			y_delta[n-1] = estimator(n, 1./T, ed_data[j,11+n_ed_tau:])
+		ax3.plot(x_delta, y_delta, marker="o", color="red", markersize=10.0, linewidth=2.0, label=r'$L='+str(int(L))+'$')
 		
 	plt.tight_layout()
 plt.show()

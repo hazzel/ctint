@@ -5,7 +5,7 @@ import sys
 sys.path.append('/home/stephan/mc/ctqmc')
 sys.path.append("/net/home/lxtsfs1/tpc/hesselmann/mc/ctqmc")
 import numpy as np
-from decimal import *
+from cdecimal import *
 from scipy.optimize import curve_fit
 import matplotlib
 matplotlib.use('TkAgg')
