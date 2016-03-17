@@ -80,23 +80,21 @@ for f in filelist:
 		for n in range(1, n_matsubara):
 			y_delta[n-1] = estimator(n, 1./T, y_mat)
 
-		c = 0
 		ax1.set_xlabel(r"$\omega_n$")
 		ax1.set_ylabel(r"$M_2(\omega_n) \cdot \omega_n^2$")
-		ax1.plot(x_mat, y_mat * x_mat**2., marker=marker_cycle[c%len(marker_cycle)], color=color_cycle[c%len(color_cycle)], markersize=10.0, linewidth=2.0, label=r'$L='+str(int(L))+'$')
-		(_, caps, _) = ax1.errorbar(x_mat, y_mat * x_mat**2., yerr=err_mat * x_mat**2., marker='None', capsize=8, color=color_cycle[c%len(color_cycle)])
+		ax1.plot(x_mat, y_mat * x_mat**2., marker="o", color="green", markersize=10.0, linewidth=2.0, label=r'$L='+str(int(L))+'$')
+		(_, caps, _) = ax1.errorbar(x_mat, y_mat * x_mat**2., yerr=err_mat * x_mat**2., marker='None', capsize=8, color="green")
 		for cap in caps:
 			cap.set_markeredgewidth(1.4)
 		for j in range(len(ed_data)):
 			if h == ed_data[j,2] and T == ed_data[j,3] and L == int(ed_data[j,1]):
 				ax1.plot(np.array(range(0, n_ed_mat)) * 2. * np.pi * T, ed_data[j,11+n_ed_tau:] * ((np.array(range(0, n_ed_mat)) * 2.) * np.pi * T)**2., marker='o', color="r", markersize=10.0, linewidth=2.0, label=r'$L='+str(int(L))+'$')
 			
-		c = 1
 		ax2.set_xlabel(r"$\tau$")
 		ax2.set_ylabel(r"$M_2(\tau)$")
 		ax2.set_yscale("log")
-		ax2.plot(x_tau, y_tau, marker=marker_cycle[c%len(marker_cycle)], color=color_cycle[c%len(color_cycle)], markersize=10.0, linewidth=2.0, label=r'$L='+str(int(L))+'$')
-		(_, caps, _) = ax2.errorbar(x_tau, y_tau, yerr=err_tau, marker='None', capsize=8, color=color_cycle[c%len(color_cycle)])
+		ax2.plot(x_tau, y_tau, marker="o", color="green", markersize=10.0, linewidth=2.0, label=r'$L='+str(int(L))+'$')
+		(_, caps, _) = ax2.errorbar(x_tau, y_tau, yerr=err_tau, marker='None', capsize=8, color="green")
 		for cap in caps:
 			cap.set_markeredgewidth(1.4)
 		for j in range(len(ed_data)):
@@ -116,15 +114,18 @@ for f in filelist:
 		except:
 			print "runtime error"
 		
-		c = 2
 		ax3.set_xlabel(r"$n$")
 		ax3.set_ylabel(r"$\Delta_n$")
 		ax3.plot(x_delta, y_delta, marker="o", color="green", markersize=10.0, linewidth=2.0, label=r'$L='+str(int(L))+'$')
-		x_delta = np.array(range(1, n_ed_mat))
-		y_delta = np.zeros(n_ed_mat - 1)
-		for n in range(1, n_ed_mat):
-			y_delta[n-1] = estimator(n, 1./T, ed_data[j,11+n_ed_tau:])
-		ax3.plot(x_delta, y_delta, marker="o", color="red", markersize=10.0, linewidth=2.0, label=r'$L='+str(int(L))+'$')
+		for j in range(len(ed_data)):
+			if h == ed_data[j,2] and T == ed_data[j,3] and L == int(ed_data[j,1]):
+				x_delta = np.array(range(1, n_ed_mat))
+				y_delta = np.zeros(n_ed_mat - 1)
+				for n in range(1, n_ed_mat):
+					for j in range(len(ed_data)):
+						if h == ed_data[j,2] and T == ed_data[j,3] and L == int(ed_data[j,1]):
+							y_delta[n-1] = estimator(n, 1./T, ed_data[j,11+n_ed_tau:])
+				ax3.plot(x_delta, y_delta, marker="o", color="red", markersize=10.0, linewidth=2.0, label=r'$L='+str(int(L))+'$')
 		
 	plt.tight_layout()
 plt.show()

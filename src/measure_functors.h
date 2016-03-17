@@ -178,6 +178,7 @@ struct measure_estimator
 					arg_t{tau_0, j, 0}};
 				double m1 = config.l.parity(i) * config.l.parity(j)
 					* config.M.try_add<1>(vec, 0) / config.l.n_sites();
+				tau_0 = rng() * (config.param.beta/2. - tau);
 				vec = {arg_t{config.param.beta - (tau + tau_0), i, 0},
 					arg_t{config.param.beta - tau_0, j, 0}};
 				double m2 = config.l.parity(i) * config.l.parity(j)

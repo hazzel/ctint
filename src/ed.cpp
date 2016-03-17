@@ -174,7 +174,7 @@ int main(int ac, char** av)
 			m4 += boltzmann(i) * arma::trace(esT.row(i) * M4 * es.col(i));
 		}
 
-		int Ntau = 200;
+		int Ntau = 2;
 		out << k << "\t" << L << "\t" << V << "\t" << T << "\t"
 			<< E/Z << "\t" << m2/Z << "\t" << m4/Z << "\t" << m4/(m2*m2) << "\t"
 			<< Ntau << "\t";
@@ -213,7 +213,7 @@ int main(int ac, char** av)
 			std::cout.flush();
 		}
 		// Matsubara structure factor
-		int Nmat = 200;
+		int Nmat = 2;
 		out << Nmat << "\t";
 		std::cout << Nmat << "\t";
 		for (int n = 0; n < Nmat; ++n)
@@ -242,6 +242,39 @@ int main(int ac, char** av)
 		}
 		out << std::endl;
 		std::cout << std::endl;
+
+		for (int_t i = 0; i < lat.n_sites(); ++i)
+		{
+			sparse_storage<int_t> ni_st;
+			hspace.build_operator([&lat, &hspace, &ni_st, i]
+				(const std::pair<int_t, int_t>& n) { ni_st(n.second, n.second)
+					+= hspace.n_i({1, n.first}, i); });
+			n_i[i] = ni_st.build_matrix();
+		}
+		std::cout << "GS: " << std::endl;
+		for (int i = 0; i < H.n_rows; ++i)
+		{
+			if (std::abs(es.col(0)(i, 0)) > 0.0000001)
+			{
+				double n = 0.;
+				for (int j = 0; j < lat.n_sites(); ++j)
+					n += n_i[j](i, i);
+				std::cout << "state: " << i << " with n= " << n 
+				<< " and amplitude " << es.col(0)(i, 0) << std::endl;
+			}
+			else
+			{
+				double n = 0.;
+				for (int j = 0; j < lat.n_sites(); ++j)
+					n += n_i[j](i, i);
+				if (static_cast<int>(n) == 4)
+					std::cout << "no overlap with state " << i << std::endl;
+			}
+		}
+		double n = 0.;
+		for (int i = 0; i < lat.n_sites(); ++i)
+			n += arma::trace(esT.row(0) * n_i[i] * es.col(0));
+		std::cout << "<GS|n|GS> = " << n << std::endl;
 	}
 	out.close();
 }

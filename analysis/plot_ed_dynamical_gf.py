@@ -52,23 +52,40 @@ for data, label in datalist:
 		h = data[i,2]
 		T = data[i,3]
 		L = int(data[i,1])
+		n_ed_tau = int(data[i,8])
+		n_ed_mat = int(data[i,10+n_ed_tau])
 		figure.suptitle(r"$L = " + str(L) + ",\ V = " + str(h) + ",\ T = " + str(T) + "$")
 		
-		x_tau = np.linspace(0., 1./T, n_discrete_tau)
-		y_tau = data[i,9:]
+		x_mat = np.array(range(0, n_ed_mat)) * 2. * np.pi * T
+		y_mat = data[i,11+n_ed_tau:]
+		
+		x_tau = np.linspace(0., 1./T/2., n_ed_tau + 1)
+		y_tau = data[i,9:10+n_ed_tau]
+		
+		N_bootstrap = 100
+		x_delta = np.array(range(1, n_ed_mat))
+		y_delta = []
+		for j in range(N_bootstrap):
+			y_delta.append(np.zeros(n_ed_mat - 1))
+			y_boot = np.zeros(n_ed_mat)
+			for k in range(len(y_boot)):
+				y_boot[k] = y_mat[k] + np.random.normal(0., 0.0001 * abs(y_mat[k]))
+			for n in range(1, n_ed_mat):
+				y_delta[j][n-1] = estimator(n, 1./T, y_boot)
 
 		c = 0
 		ax1.set_xlabel(r"$\omega_n$")
 		ax1.set_ylabel(r"$M_2(\omega_n) \cdot \omega_n^2$")
+		ax1.plot(x_mat, y_mat * x_mat**2., marker='o', color="r", markersize=10.0, linewidth=2.0, label=r'$L='+str(int(L))+'$')
 				
 		c = 1
 		ax2.set_xlabel(r"$\tau$")
 		ax2.set_ylabel(r"$M_2(\tau)$")
 		ax2.set_yscale("log")
-		ax2.plot(x_tau, y_tau, marker=marker_cycle[c%len(marker_cycle)], color=color_cycle[c%len(color_cycle)], markersize=10.0, linewidth=2.0, label=r'$L='+str(int(L))+'$')
+		ax2.plot(x_tau, y_tau, marker='o', color="r", markersize=10.0, linewidth=2.0, label=r'$L='+str(int(L))+'$')
 		
 		try:
-			nmin = 10; nmax = len(x_tau)/2-18
+			nmin = len(x_tau)/4; nmax = 3.*len(x_tau)/4
 			parameter, perr = curve_fit(FitFunction, x_tau[nmin:nmax], y_tau[nmin:nmax])
 			px = np.linspace(x_tau[nmin], x_tau[nmax], 1000)
 			ax2.plot(px, FitFunction(px, *parameter), 'k-', linewidth=3.0)
@@ -82,6 +99,10 @@ for data, label in datalist:
 		c = 2
 		ax3.set_xlabel(r"$n$")
 		ax3.set_ylabel(r"$\Delta_n$")
+		ax3.plot(x_delta, np.mean(y_delta, axis=0), marker="o", color="red", markersize=10.0, linewidth=2.0, label=r'$L='+str(int(L))+'$')
+		(_, caps, _) = ax3.errorbar(x_delta, np.mean(y_delta, axis=0), yerr=np.std(y_delta, axis=0), marker="None", color="red", markersize=10.0, linewidth=2.0)
+		for cap in caps:
+			cap.set_markeredgewidth(1.4)
 			
 		plt.tight_layout()
 plt.show()
