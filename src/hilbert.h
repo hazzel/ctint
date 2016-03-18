@@ -42,7 +42,7 @@ class hilbert
 			if (!test_bit(psi.id, i))
 				return state{0, 0};
 			int_t sign = psi.sign;
-			for (int_t j=i+1; j < base_index.size(); ++j)
+			for (int_t j=i+1; j < lat.n_sites(); ++j)
 				if (test_bit(psi.id, j))
 					sign *= -1;
 			return state{sign, clear_bit(psi.id, i)};
@@ -53,7 +53,7 @@ class hilbert
 			if (test_bit(psi.id, i))
 				return state{0, 0};
 			int_t sign = psi.sign;
-			for (int_t j=i+1; j < base_index.size(); ++j)
+			for (int_t j=i+1; j < lat.n_sites(); ++j)
 				if (test_bit(psi.id, j))
 					sign *= -1;
 			return state{sign, set_bit(psi.id, i)};
@@ -62,16 +62,19 @@ class hilbert
 		int_t sub_dimension() { return base_index.size(); }
 		int_t dimension() { return dim; }
 		int_t index(int_t state_id) { return base_index[state_id]; }
+		int_t state_id(int_t index) { return state_index[index]; }
 
 		void build_basis(std::function<bool(int_t)> keep)
 		{
 			base_index.clear();
+			state_index.clear();
 			int_t cnt = 0;
 			for (int_t i = 0; i < dim; ++i)
 			{
 				if (keep(i))
 				{
 					base_index[i] = cnt;
+					state_index[cnt] = i;
 					++cnt;
 				}
 			}
@@ -101,5 +104,6 @@ class hilbert
 	private:
 		lattice& lat;
 		std::map<int_t, int_t> base_index;
+		std::map<int_t, int_t> state_index;
 		int_t dim;
 };

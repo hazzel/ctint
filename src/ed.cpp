@@ -2,6 +2,7 @@
 #include <vector>
 #include <map>
 #include <functional>
+#include <algorithm>
 #include <fstream>
 #include <cmath>
 #include <cstdlib>
@@ -143,8 +144,6 @@ int main(int ac, char** av)
 	{
 		arma::mat H_dense(H);
 		arma::eig_sym(ev, es, H_dense);
-		std::cout << H_dense << std::endl;
-		std::cout << ev << std::endl;
 	}
 	else
 	{
@@ -195,31 +194,28 @@ int main(int ac, char** av)
 			<< Ntau << "\t";
 
 		std::cout << std::endl << std::endl;
-		// Dynamic structure factor
+		// Imaginary time structure factor
 		for (int n = 0; n <= Ntau; ++n)
 		{
-			arma::sp_mat M2_tau(H.n_rows, H.n_cols);
-			arma::vec U_vec(ev.n_rows), Ut_vec(ev.n_rows);
-			double tau = static_cast<double>(n) /static_cast<double>(Ntau)
+			mp_float m2_tau = mp_float(0.);
+			mp_float tau = static_cast<double>(n) /static_cast<double>(Ntau)
 				* beta / 2.;
-			for (int i = 0; i < ev.n_rows; ++i)
-			{
-				U_vec(i) = std::exp(-tau * (ev(i) - (ev.max() + ev.min())/2.));
-				Ut_vec(i) = std::exp(tau * (ev(i) - (ev.max() + ev.min())/2.));
-			}
-			arma::mat U = es * arma::diagmat(U_vec) * es.t();
-			arma::mat Ut = es * arma::diagmat(Ut_vec) * es.t();
-			double m2_tau = 0.;
 			int i = 0;
-			for (int_t j = 0; j < lat.n_sites(); ++j)
-			{
-				M2_tau = lat.parity(i) * lat.parity(j) / lat.n_sites()
-					* Ut * n_i[i] * U * n_i[j];
-				for (int k = 0; k < ev.n_rows; ++k)
-					m2_tau += boltzmann(k) * arma::trace(esT.row(k) * M2_tau
-						* es.col(k));
-			}
-			m2_tau /= Z;
+			for (int j = 0; j < lat.n_sites(); ++j)
+				for (int a = 0; a < ev.n_rows; ++a)
+					for (int b = 0; b < ev.n_rows; ++b)
+					{
+						mp_float omega = ev(a) - ev(b);
+						if (omega < 0. || omega > 0.)
+						{
+							m2_tau += -lat.parity(i) * lat.parity(j) / lat.n_sites()
+								* (boltzmann(a) - boltzmann(b)) * mp::exp(-tau * omega)
+								/ (1. - mp::exp(-beta * omega))
+								* arma::trace(esT.row(a) * n_i[i] * es.col(b))
+								* arma::trace(esT.row(b) * n_i[j] * es.col(a));
+						}
+					}
+			m2_tau /= mp_float(Z);
 			out << m2_tau << "\t";
 			std::cout << m2_tau << "\t";
 			std::cout.flush();
@@ -266,33 +262,15 @@ int main(int ac, char** av)
 		std::cout << "GS: " << std::endl;
 		std::cout << "E(0) = " << ev(0) << std::endl;
 		std::cout << "E(1) = " << ev(1) << std::endl;
-		for (int i = 0; i < hspace.sub_dimension(); ++i)
+		std::cout << "Delta(0, 1) = " << ev(0) - ev(1) << std::endl;
+		for (int a = 0; a < std::min(5, static_cast<int>(hspace.sub_dimension()));
+			++a)
 		{
-			if (std::abs(es.col(1)(i, 0)) > 0.0000001)
-			{
-				double n = 0.;
-				for (int j = 0; j < lat.n_sites(); ++j)
-					n += n_i[j](i, i);
-				std::cout << "state: " << i << " with n=" << n 
-				<< " and amplitude " << es.col(1)(i, 0) << std::endl;
-			}
-			else
-			{
-				double n = 0.;
-				for (int j = 0; j < lat.n_sites(); ++j)
-					n += n_i[j](i, i);
-				std::cout << "no overlap with state " << i << " with n=" << n
-					<< std::endl;
-			}
+			double n = 0.;
+			for (int i = 0; i < lat.n_sites(); ++i)
+				n += arma::trace(esT.row(a) * n_i[i] * es.col(a));
+			std::cout << "<" << a << "|n|" << a << "> = " << n << std::endl;
 		}
-		double n = 0.;
-		for (int i = 0; i < lat.n_sites(); ++i)
-			n += arma::trace(esT.row(0) * n_i[i] * es.col(0));
-		std::cout << "<GS|n|GS> = " << n << std::endl;
-		n = 0.;
-		for (int i = 0; i < lat.n_sites(); ++i)
-			n += arma::trace(esT.row(1) * n_i[i] * es.col(1));
-		std::cout << "<1|n|1> = " << n << std::endl;
 	}
 	out.close();
 }

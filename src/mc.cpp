@@ -101,10 +101,10 @@ mc::mc(const std::string& dir)
 		config.measure.add_vectorobservable("corr", config.l.max_distance() + 1,
 			n_prebin);
 	}
-	config.measure.add_vectorobservable("dynamical_M2_mat", config.param.n_matsubara,
-		n_prebin);
-	config.measure.add_vectorobservable("dynamical_M2_tau", config.param.n_discrete_tau,
-		n_prebin);
+	config.measure.add_vectorobservable("dynamical_M2_mat",
+		config.param.n_matsubara, n_prebin);
+	config.measure.add_vectorobservable("dynamical_M2_tau",
+		config.param.n_discrete_tau, n_prebin);
 //	for (int r = 0; r < config.l.max_distance() + 1; ++r)
 //		config.measure.add_vectorobservable("G(omega)_" + std::to_string(r),
 //			config.param.n_matsubara, n_prebin);
