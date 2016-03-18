@@ -136,10 +136,21 @@ int main(int ac, char** av)
 		+ std::to_string(temperature[1]) + "_" + std::to_string(temperature[2])
 		+ "__" + ensemble;
 	std::ofstream out("../data/" + out_file);
+	std::cout.precision(8);
 	out.precision(12);
 	arma::vec ev; arma::mat es;
-	arma::eigs_sym(ev, es, H, std::min(hspace.sub_dimension()-2,
-		static_cast<int_t>(k)), "sa");
+	if (hspace.sub_dimension() < 1000)
+	{
+		arma::mat H_dense(H);
+		arma::eig_sym(ev, es, H_dense);
+		std::cout << H_dense << std::endl;
+		std::cout << ev << std::endl;
+	}
+	else
+	{
+		arma::eigs_sym(ev, es, H, std::min(hspace.sub_dimension()-2,
+			static_cast<int_t>(k)), "sa");
+	}
 	arma::mat esT = es.t();
 	
 	// Build dynamic observables
@@ -153,7 +164,8 @@ int main(int ac, char** av)
 		n_i[i] = ni_st.build_matrix();
 	}
 
-	for (int t = 0; t <= temperature[2]; ++t)
+	int tmax = (temperature[2] == 1) ? 0 : temperature[2];
+	for (int t = 0; t <= tmax; ++t)
 	{
 		double T = temperature[0] + (temperature[1] - temperature[0])
 			* static_cast<double>(t) / temperature[2];
@@ -174,7 +186,7 @@ int main(int ac, char** av)
 			m4 += boltzmann(i) * arma::trace(esT.row(i) * M4 * es.col(i));
 		}
 
-		int Ntau = 2;
+		int Ntau = 200;
 		out << k << "\t" << L << "\t" << V << "\t" << T << "\t"
 			<< E/Z << "\t" << m2/Z << "\t" << m4/Z << "\t" << m4/(m2*m2) << "\t"
 			<< Ntau << "\t";
@@ -213,7 +225,7 @@ int main(int ac, char** av)
 			std::cout.flush();
 		}
 		// Matsubara structure factor
-		int Nmat = 2;
+		int Nmat = 100;
 		out << Nmat << "\t";
 		std::cout << Nmat << "\t";
 		for (int n = 0; n < Nmat; ++n)
@@ -252,29 +264,35 @@ int main(int ac, char** av)
 			n_i[i] = ni_st.build_matrix();
 		}
 		std::cout << "GS: " << std::endl;
-		for (int i = 0; i < H.n_rows; ++i)
+		std::cout << "E(0) = " << ev(0) << std::endl;
+		std::cout << "E(1) = " << ev(1) << std::endl;
+		for (int i = 0; i < hspace.sub_dimension(); ++i)
 		{
-			if (std::abs(es.col(0)(i, 0)) > 0.0000001)
+			if (std::abs(es.col(1)(i, 0)) > 0.0000001)
 			{
 				double n = 0.;
 				for (int j = 0; j < lat.n_sites(); ++j)
 					n += n_i[j](i, i);
-				std::cout << "state: " << i << " with n= " << n 
-				<< " and amplitude " << es.col(0)(i, 0) << std::endl;
+				std::cout << "state: " << i << " with n=" << n 
+				<< " and amplitude " << es.col(1)(i, 0) << std::endl;
 			}
 			else
 			{
 				double n = 0.;
 				for (int j = 0; j < lat.n_sites(); ++j)
 					n += n_i[j](i, i);
-				if (static_cast<int>(n) == 4)
-					std::cout << "no overlap with state " << i << std::endl;
+				std::cout << "no overlap with state " << i << " with n=" << n
+					<< std::endl;
 			}
 		}
 		double n = 0.;
 		for (int i = 0; i < lat.n_sites(); ++i)
 			n += arma::trace(esT.row(0) * n_i[i] * es.col(0));
 		std::cout << "<GS|n|GS> = " << n << std::endl;
+		n = 0.;
+		for (int i = 0; i < lat.n_sites(); ++i)
+			n += arma::trace(esT.row(1) * n_i[i] * es.col(1));
+		std::cout << "<1|n|1> = " << n << std::endl;
 	}
 	out.close();
 }

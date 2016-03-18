@@ -62,14 +62,14 @@ for data, label in datalist:
 		x_tau = np.linspace(0., 1./T/2., n_ed_tau + 1)
 		y_tau = data[i,9:10+n_ed_tau]
 		
-		N_bootstrap = 100
+		N_bootstrap = 10
 		x_delta = np.array(range(1, n_ed_mat))
 		y_delta = []
 		for j in range(N_bootstrap):
 			y_delta.append(np.zeros(n_ed_mat - 1))
 			y_boot = np.zeros(n_ed_mat)
 			for k in range(len(y_boot)):
-				y_boot[k] = y_mat[k] + np.random.normal(0., 0.0001 * abs(y_mat[k]))
+				y_boot[k] = y_mat[k] + np.random.normal(0., 0.001 * abs(y_mat[k]))
 			for n in range(1, n_ed_mat):
 				y_delta[j][n-1] = estimator(n, 1./T, y_boot)
 
