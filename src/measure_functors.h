@@ -105,49 +105,8 @@ struct measure_estimator
 	parser& pars;
 	std::vector<double> dyn_M2;
 	std::vector<double> dyn_M2_tau;
-	std::vector<std::vector<double>> mgf_r;
 	std::vector<double> mgf_omega;
-	std::vector<std::vector<double>> mgf_tau;
 
-	void measure_imaginary_time_gf()
-	{
-		for (auto& g : mgf_r)
-			std::fill(g.begin(), g.end(), 0.);
-		int i = rng() * config.l.n_sites();
-		for (int j = 0; j < config.l.n_sites(); ++j)
-		{
-			for (int t = 0; t < config.param.n_discrete_tau; ++t)
-			{
-				double tau = config.param.beta * static_cast<double>(t)
-					/ static_cast<double>(config.param.n_discrete_tau);
-				std::vector<arg_t> vec = {arg_t{tau, i, 0}, arg_t{0., j, 0}};
-				mgf_tau[config.l.distance(i, j)][t] += config.l.parity(i)
-					* config.l.parity(j) * config.M.try_add<1>(vec, 0)
-					/ config.shellsize[config.l.distance(i, j)];
-			}
-		}
-		for (int r = 0; r < config.l.max_distance() + 1; ++r)
-			measure.add("G(tau)_" + std::to_string(r), mgf_tau[r]);
-	}
-	
-	void measure_matsubara_gf()
-	{
-		for (auto& g : mgf_r)
-			std::fill(g.begin(), g.end(), 0.);
-		int i = rng() * config.l.n_sites();
-		for (int j = 0; j < config.l.n_sites(); ++j)
-		{
-			std::vector<arg_t> vec = {arg_t{0., i, 0}, arg_t{0., j, 0}};
-			config.M.matsubara_gf<1>(config.param.beta, vec, mgf_omega);
-			for (int n = 0; n < config.param.n_matsubara; ++n)
-				mgf_r[config.l.distance(i, j)][n] += config.l.parity(i)
-					* config.l.parity(j) * mgf_omega[n]
-					/ config.shellsize[config.l.distance(i, j)];
-		}
-		for (int r = 0; r < config.l.max_distance() + 1; ++r)
-			measure.add("G(omega)_" + std::to_string(r), mgf_r[r]);
-	}
-	
 	void measure_dynamical_M2_mat()
 	{
 		std::fill(dyn_M2.begin(), dyn_M2.end(), 0.);
