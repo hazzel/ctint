@@ -237,7 +237,7 @@ int main(int ac, char** av)
 						{
 							double omega_n = 2. * 4. * std::atan(1.) * n * T;
 							m2_mat += lat.parity(i) * lat.parity(j) / lat.n_sites()
-								* (boltzmann(a) - boltzmann(b))
+								* (boltzmann(b) - boltzmann(a))
 								* omega / (omega*omega + omega_n*omega_n)
 								* arma::trace(esT.row(a) * n_i[i] * es.col(b))
 								* arma::trace(esT.row(b) * n_i[j] * es.col(a));

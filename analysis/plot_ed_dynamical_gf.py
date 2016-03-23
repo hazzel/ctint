@@ -57,12 +57,12 @@ for data, label in datalist:
 		figure.suptitle(r"$L = " + str(L) + ",\ V = " + str(h) + ",\ T = " + str(T) + "$")
 		
 		x_mat = np.array(range(0, n_ed_mat)) * 2. * np.pi * T
-		y_mat = data[i,11+n_ed_tau:]
+		y_mat = -data[i,11+n_ed_tau:]
 		
 		x_tau = np.linspace(0., 1./T/2., n_ed_tau + 1)
 		y_tau = data[i,9:10+n_ed_tau]
 		
-		N_bootstrap = 250
+		N_bootstrap = 5
 		x_delta = np.array(range(1, n_ed_mat))
 		y_delta = []
 		for j in range(N_bootstrap):

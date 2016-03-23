@@ -31,7 +31,8 @@ for data, label in datalist:
 		undegenerate_spectrum[x[i]] = [list(group)[0] - min(data[i,3:]) for key, group in groupby(data[i,3:])]
 		color_spectrum[x[i]] = [color_cycle[(len(list(group))-1)%len(color_cycle)] for key, group in groupby(data[i,3:])]
 
-		y = [p / undegenerate_spectrum[x[0]][1] for p in undegenerate_spectrum[x[i]]]
+		#y = [p / undegenerate_spectrum[x[0]][1] for p in undegenerate_spectrum[x[i]]]
+		y = undegenerate_spectrum[x[i]]
 		plt.scatter([x[i]]*len(y), y, marker='o', color=color_spectrum[x[i]], s=[50.]*len(y))
 
 plt.show()
