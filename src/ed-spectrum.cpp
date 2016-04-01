@@ -79,7 +79,7 @@ int main(int ac, char** av)
 	out.precision(12);
 	
 	//Build free Hamiltonian
-	sparse_storage<int_t> H0_st;
+	sparse_storage<int_t> H0_st(hspace.sub_dimension());
 	hspace.build_operator([&lat, &hspace, &H0_st](const std::pair<int_t,
 		int_t>& n)
 	{

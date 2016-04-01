@@ -6,6 +6,11 @@ template<typename int_t>
 struct sparse_storage
 {
 	std::map<std::pair<int_t, int_t>, double> data;
+	int dimension;
+	
+	sparse_storage(int dimension_)
+		: dimension(dimension_)
+	{}
 
 	double& operator()(int_t i, int_t j)
 	{
@@ -17,6 +22,8 @@ struct sparse_storage
 
 	arma::sp_mat build_matrix()
 	{
+		for (int i = 0; i < dimension; ++i)
+			operator()(i, i) += 0.;
 		arma::umat pos(2, data.size());
 		arma::vec values(data.size());
 		int_t cnt = 0;
