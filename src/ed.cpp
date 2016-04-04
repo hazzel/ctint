@@ -254,7 +254,7 @@ int main(int ac, char** av)
 			m4 += boltzmann(i) * arma::trace(esT.row(i) * M4 * es.col(i));
 		}
 
-		int Ntau = 20, Nmat = 20;
+		int Ntau = 200, Nmat = 20;
 		out << k << "\t" << L << "\t" << V << "\t" << T << "\t"
 			<< E/Z << "\t" << m2/Z << "\t" << m4/Z << "\t" << m4/(m2*m2) << "\t"
 			<< Ntau << "\t" << Nmat << "\t";
@@ -264,9 +264,15 @@ int main(int ac, char** av)
 
 		std::cout << std::endl << std::endl;
 
-		//write_imaginary_time_obs(out, ni_op, Ntau, beta, Z, ev, es, esT, boltzmann);
-		write_imaginary_time_obs(out, epsilon_op, Ntau, beta, Z, ev, es, esT, boltzmann);
-		write_matsubara_obs(out, epsilon_op, Ntau, beta, Z, ev, es, esT, boltzmann);
+		write_imaginary_time_obs(out, ni_op, Ntau, beta, Z, ev, es, esT,
+			boltzmann);
+		write_matsubara_obs(out, ni_op, Ntau, beta, Z, ev, es, esT, boltzmann);
+
+		write_imaginary_time_obs(out, epsilon_op, Ntau, beta, Z, ev, es, esT,
+			boltzmann);
+		write_matsubara_obs(out, epsilon_op, Ntau, beta, Z, ev, es, esT,
+			boltzmann);
+
 		out << std::endl;
 		std::cout << std::endl;
 
@@ -279,12 +285,11 @@ int main(int ac, char** av)
 			});
 		arma::sp_mat n_total = n_total_st.build_matrix();
 
-		for (int i = 0; i < 10; ++i)
-			std::cout << "E(" << i << ") = " << ev(i) << std::endl;
-		for (int a = 0; a < std::min(10, static_cast<int>(hspace.sub_dimension()));
+		for (int a = 0; a < std::min(10,static_cast<int>(hspace.sub_dimension()));
 			++a)
-			std::cout << "E(" << i << ") = " << ev(i) << ", <" << a << "|n|" << a << "> = "
-				<< arma::trace(esT.row(a) * n_total * es.col(a)) << std::endl;
+			std::cout << "E(" << a << ") = " << ev(a) << ", <" << a << "|n|"
+				<< a << "> = " << arma::trace(esT.row(a) * n_total * es.col(a))
+				<< std::endl;
 	}
 	out.close();
 }
