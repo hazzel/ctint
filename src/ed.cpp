@@ -26,10 +26,11 @@ void print_help(const T& desc)
 }
 
 // Imaginary time observables
-void write_imaginary_time_obs(std::ostream& out, arma::sp_mat& op,
-	int Ntau, double beta, double Z, arma::vec& ev, arma::mat& es,
+std::vector<double> get_imaginary_time_obs(arma::sp_mat& op, int Ntau,
+	double beta, double parity, double Z, arma::vec& ev, arma::mat& es,
 	arma::mat& esT, arma::vec& boltzmann)
 {
+	std::vector<double> obs_vec(Ntau);
 	for (int n = 0; n <= Ntau; ++n)
 	{
 		mp_float tau = static_cast<double>(n) /static_cast<double>(Ntau)
@@ -42,22 +43,23 @@ void write_imaginary_time_obs(std::ostream& out, arma::sp_mat& op,
 				if (omega < 0. || omega > 0.)
 				{
 					obs += (boltzmann(b) - boltzmann(a))
-						* mp::exp(-tau * omega) / (1. - mp::exp(-beta * omega))
+						* mp::exp(-tau * omega) / (1. - mp_float(parity)
+						* mp::exp(-beta * omega))
 						* arma::trace(esT.row(a) * op * es.col(b))
-						* arma::trace(esT.row(b) * op * es.col(a));
+						* arma::trace(esT.row(b) * op.t() * es.col(a));
 				}
 			}
 		obs /= mp_float(Z);
-		out << obs << "\t";
-		std::cout << obs << "\t";
-		std::cout.flush();
+		obs_vec[n] = static_cast<double>(obs);
 	}
+	return obs_vec;
 }
 // Matsubara frequency observables
-void write_matsubara_obs(std::ostream& out, arma::sp_mat& op,
-	int Nmat, double beta, double Z, arma::vec& ev, arma::mat& es,
-	arma::mat& esT, arma::vec& boltzmann)
+std::vector<double> get_matsubara_obs(arma::sp_mat& op, int Nmat, double beta,
+	double parity, double Z, arma::vec& ev, arma::mat& es, arma::mat& esT,
+	arma::vec& boltzmann)
 {
+	std::vector<double> obs_vec(Nmat);
 	for (int n = 0; n < Nmat; ++n)
 	{
 		double obs = 0.;
@@ -67,25 +69,24 @@ void write_matsubara_obs(std::ostream& out, arma::sp_mat& op,
 				double omega = ev(a) - ev(b);
 				if (omega < 0. || omega > 0.)
 				{
-					double omega_n = 2. * 4. * std::atan(1.) * n / beta;
-					obs += (boltzmann(b) - boltzmann(a))
+					double omega_n = (2.*n+(1.-parity)/2.) * 4.*std::atan(1.) / beta;
+					obs += (boltzmann(b) - parity * boltzmann(a))
 						* omega / (omega*omega + omega_n*omega_n)
 						* arma::trace(esT.row(a) * op * es.col(b))
 						* arma::trace(esT.row(b) * op * es.col(a));
 				}
 			}
 		obs /= Z;
-		out << obs << "\t";
-		std::cout << obs << "\t";
-		std::cout.flush();
+		obs_vec[n] = obs;
 	}
+	return obs_vec;
 }
 
 int main(int ac, char** av)
 {
 	int L;
 	double V;
-	std::vector<double> temperature;
+	double T;
 	int k;
 	std::string ensemble;
 
@@ -94,8 +95,7 @@ int main(int ac, char** av)
 		("help", "produce help message")
 		("L", po::value<int>(&L)->default_value(3), "linear lattice dimension")
 		("V", po::value<double>(&V)->default_value(1.355), "interaction strength")
-		("T", po::value<std::vector<double>>()->multitoken(),
-		 "temperature interval: T_start T_end steps")
+		("T", po::value<double>(&T)->default_value(0.1), "temperature")
 		("k", po::value<int>(&k)->default_value(100), "number of eigenstates")
 		("ensemble,e", po::value<std::string>(&ensemble)->default_value("gc"),
 			"ensemble: gc or c");
@@ -104,17 +104,9 @@ int main(int ac, char** av)
 	po::notify(vm);
 
 	if (vm.count("help")) print_help(desc);
-	if (vm.count("T"))
-		temperature = vm["T"].as<std::vector<double>>();
-	else
-		print_help(desc);
 	std::cout << "L = " << L << std::endl;
 	std::cout << "V = " << V << std::endl;
-	if (temperature.size() != 3)
-		print_help(desc);
-	else
-		std::cout << "T = " << temperature[0] << "..." << temperature[1]
-			<< " in " << temperature[2] << " steps." << std::endl;
+	std::cout << "T = " << T << std::endl;
 	std::cout << "ensemble: " << ensemble << std::endl;
 	//Generate lattice
 	honeycomb h(L);
@@ -189,9 +181,8 @@ int main(int ac, char** av)
 
 	std::string out_file = "../data/ed_L_" + std::to_string(L) + "__"
 		+ "V_" + std::to_string(V) + "__"
-		+ "T_" + std::to_string(temperature[0]) + "_"
-		+ std::to_string(temperature[1]) + "_" + std::to_string(temperature[2])
-		+ "__" + ensemble;
+		+ "T_" + std::to_string(T) + "__"
+		+ ensemble;
 	std::ofstream out("../data/" + out_file);
 	std::cout.precision(8);
 	out.precision(12);
@@ -232,64 +223,65 @@ int main(int ac, char** av)
 	arma::sp_mat ni_op = ni_st.build_matrix();
 	arma::sp_mat epsilon_op = epsilon_st.build_matrix();
 
-	int tmax = (temperature[2] == 1) ? 0 : temperature[2];
-	for (int t = 0; t <= tmax; ++t)
+	double beta = 1./T;
+	std::cout << "T = " << T << std::endl;
+	std::cout << "beta = " << beta << std::endl;
+	
+	arma::vec boltzmann(ev.n_rows);
+	for (int i = 0; i < ev.n_rows; ++i)
+		boltzmann(i) = std::exp(-beta * (ev(i) - ev.min()));
+	double Z = 0., E = 0., m2 = 0., m4 = 0.;
+	for (int i = 0; i < ev.n_rows; ++i)
 	{
-		double T = temperature[0] + (temperature[1] - temperature[0])
-			* static_cast<double>(t) / temperature[2];
-		double beta = 1./T;
-		std::cout << "T = " << T << std::endl;
-		std::cout << "beta = " << beta << std::endl;
-		
-		arma::vec boltzmann(ev.n_rows);
-		for (int i = 0; i < ev.n_rows; ++i)
-			boltzmann(i) = std::exp(-beta * (ev(i) - ev.min()));
-		double Z = 0., E = 0., m2 = 0., m4 = 0.;
-		for (int i = 0; i < ev.n_rows; ++i)
+		Z += boltzmann(i);
+		E += boltzmann(i) * ev(i);
+		// Trace over 1x1 matrices
+		m2 += boltzmann(i) * arma::trace(esT.row(i) * M2 * es.col(i));
+		m4 += boltzmann(i) * arma::trace(esT.row(i) * M4 * es.col(i));
+	}
+
+	int Ntau = 20, Nmat = 20;
+	out << k << "\t" << L << "\t" << V << "\t" << T << "\t"
+		<< E/Z << "\t" << m2/Z << "\t" << m4/Z << "\t" << m4/(m2*m2) << "\t"
+		<< Ntau << "\t" << Nmat << std::endl;
+	std::cout << k << "\t" << L << "\t" << V << "\t" << T << "\t"
+		<< E/Z << "\t" << m2/Z << "\t" << m4/Z << "\t" << m4/(m2*m2) << "\t"
+		<< Ntau << "\t" << Nmat << std::endl;
+
+	std::vector<std::vector<double>> obs_data;
+	obs_data.emplace_back(get_imaginary_time_obs(ni_op, Ntau, beta, 1., Z, ev,
+		es, esT, boltzmann));
+	obs_data.emplace_back(get_matsubara_obs(ni_op, Nmat, beta, 1., Z, ev, es,
+		esT, boltzmann));
+	obs_data.emplace_back(get_imaginary_time_obs(epsilon_op, Ntau, beta, 1., Z,
+		ev, es, esT, boltzmann));
+	obs_data.emplace_back(get_matsubara_obs(epsilon_op, Nmat, beta, 1., Z, ev,
+		es, esT, boltzmann));
+
+	for (int i = 0; i < obs_data.size(); ++i)
+	{
+		for (int j = 0; j < obs_data[i].size(); ++j)
 		{
-			Z += boltzmann(i);
-			E += boltzmann(i) * ev(i);
-			// Trace over 1x1 matrices
-			m2 += boltzmann(i) * arma::trace(esT.row(i) * M2 * es.col(i));
-			m4 += boltzmann(i) * arma::trace(esT.row(i) * M4 * es.col(i));
+			out << obs_data[i][j] << "\t";
+			std::cout << obs_data[i][j] << "\t";
 		}
-
-		int Ntau = 200, Nmat = 20;
-		out << k << "\t" << L << "\t" << V << "\t" << T << "\t"
-			<< E/Z << "\t" << m2/Z << "\t" << m4/Z << "\t" << m4/(m2*m2) << "\t"
-			<< Ntau << "\t" << Nmat << "\t";
-		std::cout << k << "\t" << L << "\t" << V << "\t" << T << "\t"
-			<< E/Z << "\t" << m2/Z << "\t" << m4/Z << "\t" << m4/(m2*m2) << "\t"
-			<< Ntau << "\t" << Nmat << "\t";
-
-		std::cout << std::endl << std::endl;
-
-		write_imaginary_time_obs(out, ni_op, Ntau, beta, Z, ev, es, esT,
-			boltzmann);
-		write_matsubara_obs(out, ni_op, Ntau, beta, Z, ev, es, esT, boltzmann);
-
-		write_imaginary_time_obs(out, epsilon_op, Ntau, beta, Z, ev, es, esT,
-			boltzmann);
-		write_matsubara_obs(out, epsilon_op, Ntau, beta, Z, ev, es, esT,
-			boltzmann);
-
 		out << std::endl;
 		std::cout << std::endl;
-
-		sparse_storage<int_t> n_total_st(hspace.sub_dimension());
-		hspace.build_operator([&lat, &hspace, &n_total_st]
-			(const std::pair<int_t, int_t>& n)
-			{
-				for (int_t i = 0; i < lat.n_sites(); ++i)
-					n_total_st(n.second, n.second) += hspace.n_i({1, n.first}, i);
-			});
-		arma::sp_mat n_total = n_total_st.build_matrix();
-
-		for (int a = 0; a < std::min(10,static_cast<int>(hspace.sub_dimension()));
-			++a)
-			std::cout << "E(" << a << ") = " << ev(a) << ", <" << a << "|n|"
-				<< a << "> = " << arma::trace(esT.row(a) * n_total * es.col(a))
-				<< std::endl;
 	}
+
+	sparse_storage<int_t> n_total_st(hspace.sub_dimension());
+	hspace.build_operator([&lat, &hspace, &n_total_st]
+		(const std::pair<int_t, int_t>& n)
+		{
+			for (int_t i = 0; i < lat.n_sites(); ++i)
+				n_total_st(n.second, n.second) += hspace.n_i({1, n.first}, i);
+		});
+	arma::sp_mat n_total = n_total_st.build_matrix();
+
+	for (int a = 0; a < std::min(10, static_cast<int>(hspace.sub_dimension()));
+		++a)
+		std::cout << "E(" << a << ") = " << ev(a) << ", <" << a << "|n|"
+			<< a << "> = " << arma::trace(esT.row(a) * n_total * es.col(a))
+			<< std::endl;
 	out.close();
 }
