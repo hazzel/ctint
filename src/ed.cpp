@@ -26,58 +26,76 @@ void print_help(const T& desc)
 }
 
 // Imaginary time observables
-std::vector<double> get_imaginary_time_obs(arma::sp_mat& op, int Ntau,
+template<typename T>
+std::vector<T> get_imaginary_time_obs(arma::SpMat<T>& op, int Ntau,
 	double beta, double parity, double Z, arma::vec& ev, arma::mat& es,
 	arma::mat& esT, arma::vec& boltzmann)
 {
-	std::vector<double> obs_vec(Ntau);
+	arma::Mat<T> es_cx = arma::conv_to<arma::Mat<T>>::from(es);
+	arma::Mat<T> esT_cx = arma::conv_to<arma::Mat<T>>::from(esT);
+	std::vector<T> obs_vec(Ntau + 1);
 	for (int n = 0; n <= Ntau; ++n)
 	{
-		mp_float tau = static_cast<double>(n) /static_cast<double>(Ntau)
+		double tau = static_cast<double>(n) /static_cast<double>(Ntau)
 			* beta / 2.;
-		mp_float obs = mp_float(0.);
+		obs_vec[n] = T(0.);
 		for (int a = 0; a < ev.n_rows; ++a)
 			for (int b = 0; b < ev.n_rows; ++b)
-			{
-				mp_float omega = ev(a) - ev(b);
-				if (omega < 0. || omega > 0.)
-				{
-					obs += (boltzmann(b) - boltzmann(a))
-						* mp::exp(-tau * omega) / (1. - mp_float(parity)
-						* mp::exp(-beta * omega))
-						* arma::trace(esT.row(a) * op * es.col(b))
-						* arma::trace(esT.row(b) * op.t() * es.col(a));
-				}
-			}
-		obs /= mp_float(Z);
-		obs_vec[n] = static_cast<double>(obs);
+				obs_vec[n] += boltzmann(b) * std::exp(-tau * (ev(a) - ev(b)))
+					* arma::trace(esT_cx.row(a) * op * es_cx.col(b))
+					* arma::trace(esT_cx.row(b) * op.t() * es_cx.col(a));
+		obs_vec[n] /= Z;
 	}
 	return obs_vec;
 }
+
 // Matsubara frequency observables
-std::vector<double> get_matsubara_obs(arma::sp_mat& op, int Nmat, double beta,
+template<typename T>
+std::vector<T> get_matsubara_obs(arma::SpMat<T>& op, int Nmat, double beta,
 	double parity, double Z, arma::vec& ev, arma::mat& es, arma::mat& esT,
 	arma::vec& boltzmann)
 {
-	std::vector<double> obs_vec(Nmat);
+	arma::Mat<T> es_cx = arma::conv_to<arma::Mat<T>>::from(es);
+	arma::Mat<T> esT_cx = arma::conv_to<arma::Mat<T>>::from(esT);
+	std::vector<T> obs_vec(Nmat);
 	for (int n = 0; n < Nmat; ++n)
 	{
-		double obs = 0.;
+		obs_vec[n] = T(0.);
 		for (int a = 0; a < ev.n_rows; ++a)
 			for (int b = 0; b < ev.n_rows; ++b)
 			{
 				double omega = ev(a) - ev(b);
-				if (omega < 0. || omega > 0.)
+				if (n > 0 || parity == -1)
 				{
 					double omega_n = (2.*n+(1.-parity)/2.) * 4.*std::atan(1.) / beta;
-					obs += (boltzmann(b) - parity * boltzmann(a))
+					obs_vec[n] += -(boltzmann(a) - parity * boltzmann(b))
 						* omega / (omega*omega + omega_n*omega_n)
-						* arma::trace(esT.row(a) * op * es.col(b))
-						* arma::trace(esT.row(b) * op * es.col(a));
+						* arma::trace(esT_cx.row(a) * op * es_cx.col(b))
+						* arma::trace(esT_cx.row(b) * op.t() * es_cx.col(a));
 				}
 			}
-		obs /= Z;
-		obs_vec[n] = obs;
+		obs_vec[n] /= Z;
+	}
+	if (parity == 1)
+	{
+		// Treat n=0 separately
+		obs_vec[0] = T(0.);
+		for (int a = 0; a < ev.n_rows; ++a)
+			for (int b = 0; b < ev.n_rows; ++b)
+			{
+				if (ev(a) < ev(b) || ev(a) > ev(b))
+					obs_vec[0] += (boltzmann(b) - boltzmann(a))
+						/ (ev(a) - ev(b))
+						* arma::trace(esT_cx.row(a) * op * es_cx.col(b))
+						* arma::trace(esT_cx.row(b) * op.t() * es_cx.col(a));
+				else
+				{
+					obs_vec[0] += boltzmann(a) * beta
+						* arma::trace(esT_cx.row(a) * op * es_cx.col(b))
+						* arma::trace(esT_cx.row(b) * op.t() * es_cx.col(a));
+				}
+			}
+		obs_vec[0] /= Z;
 	}
 	return obs_vec;
 }
@@ -128,7 +146,7 @@ int main(int ac, char** av)
 		<< std::endl;
 
 	//Build Hamiltonian
-	sparse_storage<int_t> H_st(hspace.sub_dimension());
+	sparse_storage<double, int_t> H_st(hspace.sub_dimension());
 	hspace.build_operator([&lat, &hspace, &H_st, V](const std::pair<int_t,
 		int_t>& n)
 	{
@@ -154,7 +172,7 @@ int main(int ac, char** av)
 	arma::sp_mat H = H_st.build_matrix();
 	
 	//Build static observables
-	sparse_storage<int_t> M2_st(hspace.sub_dimension()), M4_st(hspace.sub_dimension());
+	sparse_storage<double, int_t> M2_st(hspace.sub_dimension()), M4_st(hspace.sub_dimension());
 	hspace.build_operator([&lat, &hspace, &M2_st, &M4_st, V]
 		(const std::pair<int_t, int_t>& n)
 	{
@@ -200,9 +218,10 @@ int main(int ac, char** av)
 	arma::mat esT = es.t();
 	
 	// Build dynamic observables
-	sparse_storage<int_t> ni_st(hspace.sub_dimension());
-	sparse_storage<int_t> epsilon_st(hspace.sub_dimension());
-	hspace.build_operator([&lat, &hspace, &ni_st, &epsilon_st]
+	sparse_storage<double, int_t> ni_st(hspace.sub_dimension());
+	sparse_storage<double, int_t> epsilon_st(hspace.sub_dimension());
+	sparse_storage<std::complex<double>, int_t> sp_st(hspace.sub_dimension());
+	hspace.build_operator([&lat, &hspace, &ni_st, &epsilon_st, &sp_st]
 		(const std::pair<int_t, int_t>& n)
 		{
 			for (int i = 0; i < lat.n_sites(); ++i)
@@ -210,6 +229,7 @@ int main(int ac, char** av)
 				ni_st(n.second, n.second)
 					+= lat.parity(i) / lat.n_sites()
 						* (hspace.n_i({1, n.first}, i) - 0.5);
+
 				for (int j : lat.neighbors(i, "nearest neighbors"))
 				{
 					state p = hspace.c_i({-1, n.first}, j);
@@ -218,10 +238,21 @@ int main(int ac, char** av)
 						epsilon_st(hspace.index(p.id), n.second) += p.sign
 							/ static_cast<double>(lat.n_bonds());
 				}
+				
+				double pi = 4.*std::atan(1.);
+				Eigen::Vector2d K(2.*pi/9., 2.*pi/9.*(2.-1./std::sqrt(3.)));
+				std::complex<double> phase = std::exp(std::complex<double>(0.,
+					K.dot(lat.real_space_coord(i))));
+				state p = hspace.c_i({-1, n.first}, i);
+				if (p.sign != 0)
+					sp_st(hspace.index(p.id), n.second) += phase
+						* std::complex<double>(p.sign)
+						/ static_cast<double>(lat.n_bonds());
 			}
 		});
 	arma::sp_mat ni_op = ni_st.build_matrix();
 	arma::sp_mat epsilon_op = epsilon_st.build_matrix();
+	arma::sp_cx_mat sp_op = sp_st.build_matrix();
 
 	double beta = 1./T;
 	std::cout << "T = " << T << std::endl;
@@ -253,9 +284,16 @@ int main(int ac, char** av)
 		es, esT, boltzmann));
 	obs_data.emplace_back(get_matsubara_obs(ni_op, Nmat, beta, 1., Z, ev, es,
 		esT, boltzmann));
+
 	obs_data.emplace_back(get_imaginary_time_obs(epsilon_op, Ntau, beta, 1., Z,
 		ev, es, esT, boltzmann));
 	obs_data.emplace_back(get_matsubara_obs(epsilon_op, Nmat, beta, 1., Z, ev,
+		es, esT, boltzmann));
+
+	std::vector<std::vector<std::complex<double>>> obs_data_cx;
+	obs_data_cx.emplace_back(get_imaginary_time_obs(sp_op, Ntau, beta, 1., Z,
+		ev, es, esT, boltzmann));
+	obs_data_cx.emplace_back(get_matsubara_obs(sp_op, Nmat, beta, 1., Z, ev,
 		es, esT, boltzmann));
 
 	for (int i = 0; i < obs_data.size(); ++i)
@@ -268,8 +306,18 @@ int main(int ac, char** av)
 		out << std::endl;
 		std::cout << std::endl;
 	}
+	for (int i = 0; i < obs_data_cx.size(); ++i)
+	{
+		for (int j = 0; j < obs_data_cx[i].size(); ++j)
+		{
+			out << std::real(obs_data_cx[i][j]) << "\t";
+			std::cout << std::real(obs_data_cx[i][j]) << "\t";
+		}
+		out << std::endl;
+		std::cout << std::endl;
+	}
 
-	sparse_storage<int_t> n_total_st(hspace.sub_dimension());
+	sparse_storage<double, int_t> n_total_st(hspace.sub_dimension());
 	hspace.build_operator([&lat, &hspace, &n_total_st]
 		(const std::pair<int_t, int_t>& n)
 		{

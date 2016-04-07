@@ -2,17 +2,17 @@
 #include <map>
 #include <armadillo>
 
-template<typename int_t>
+template<typename T, typename int_t>
 struct sparse_storage
 {
-	std::map<std::pair<int_t, int_t>, double> data;
+	std::map<std::pair<int_t, int_t>, T> data;
 	int dimension;
 	
 	sparse_storage(int dimension_)
 		: dimension(dimension_)
 	{}
 
-	double& operator()(int_t i, int_t j)
+	T& operator()(int_t i, int_t j)
 	{
 		auto pos = std::make_pair(i, j);
 		if (data.count(pos) == 0)
@@ -20,12 +20,12 @@ struct sparse_storage
 		return data[pos];
 	}
 
-	arma::sp_mat build_matrix()
+	arma::SpMat<T> build_matrix()
 	{
 		for (int i = 0; i < dimension; ++i)
 			operator()(i, i) += 0.;
 		arma::umat pos(2, data.size());
-		arma::vec values(data.size());
+		arma::Col<T> values(data.size());
 		int_t cnt = 0;
 		for (auto& x : data)
 		{
@@ -34,6 +34,6 @@ struct sparse_storage
 			values(cnt) = x.second;
 			++cnt;
 		}
-		return arma::sp_mat(pos, values);
+		return arma::SpMat<T>(pos, values);
 	}
 };
