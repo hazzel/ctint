@@ -220,39 +220,64 @@ int main(int ac, char** av)
 	// Build dynamic observables
 	sparse_storage<double, int_t> ni_st(hspace.sub_dimension());
 	sparse_storage<double, int_t> epsilon_st(hspace.sub_dimension());
+	sparse_storage<double, int_t> epsilon_nn_st(hspace.sub_dimension());
 	sparse_storage<std::complex<double>, int_t> sp_st(hspace.sub_dimension());
-	hspace.build_operator([&lat, &hspace, &ni_st, &epsilon_st, &sp_st]
+	sparse_storage<std::complex<double>, int_t> tp_st(hspace.sub_dimension());
+	hspace.build_operator([&]
 		(const std::pair<int_t, int_t>& n)
 		{
 			for (int i = 0; i < lat.n_sites(); ++i)
 			{
+				//CDW
 				ni_st(n.second, n.second)
 					+= lat.parity(i) / lat.n_sites()
 						* (hspace.n_i({1, n.first}, i) - 0.5);
 
+				//epsilon
 				for (int j : lat.neighbors(i, "nearest neighbors"))
 				{
-					state p = hspace.c_i({-1, n.first}, j);
+					state p = hspace.c_i({1, n.first}, j);
 					p = hspace.c_dag_i(p, i);
 					if (p.sign != 0)
 						epsilon_st(hspace.index(p.id), n.second) += p.sign
 							/ static_cast<double>(lat.n_bonds());
+							
+					epsilon_nn_st(n.second, n.second)
+						+= (hspace.n_i({1, n.first}, i) - 0.5)
+						* (hspace.n_i({1, n.first}, j) - 0.5)
+						/ static_cast<double>(lat.n_bonds());
 				}
 				
+				//sp
 				double pi = 4.*std::atan(1.);
 				Eigen::Vector2d K(2.*pi/9., 2.*pi/9.*(2.-1./std::sqrt(3.)));
 				std::complex<double> phase = std::exp(std::complex<double>(0.,
 					K.dot(lat.real_space_coord(i))));
-				state p = hspace.c_i({-1, n.first}, i);
+				state p = hspace.c_i({1, n.first}, i);
 				if (p.sign != 0)
 					sp_st(hspace.index(p.id), n.second) += phase
 						* std::complex<double>(p.sign)
 						/ static_cast<double>(lat.n_bonds());
+				
+				//tp
+				for (int j = 0; j < lat.n_sites(); ++j)
+				{
+					phase = std::exp(std::complex<double>(0.,
+						K.dot(lat.real_space_coord(i) - lat.real_space_coord(j))));
+					state p = hspace.c_i({1, n.first}, i);
+					p = hspace.c_i(p, j);
+					if (p.sign != 0)
+						tp_st(hspace.index(p.id), n.second) += phase
+							* std::complex<double>(p.sign)
+							/ std::pow(lat.n_bonds(), 2.);
+				}
 			}
 		});
 	arma::sp_mat ni_op = ni_st.build_matrix();
 	arma::sp_mat epsilon_op = epsilon_st.build_matrix();
+	arma::sp_mat epsilon_nn_op = epsilon_nn_st.build_matrix();
 	arma::sp_cx_mat sp_op = sp_st.build_matrix();
+	arma::sp_cx_mat tp_op = tp_st.build_matrix();
 
 	double beta = 1./T;
 	std::cout << "T = " << T << std::endl;
@@ -289,11 +314,21 @@ int main(int ac, char** av)
 		ev, es, esT, boltzmann));
 	obs_data.emplace_back(get_matsubara_obs(epsilon_op, Nmat, beta, 1., Z, ev,
 		es, esT, boltzmann));
+	
+	obs_data.emplace_back(get_imaginary_time_obs(epsilon_nn_op, Ntau, beta, 1.,
+		Z, ev, es, esT, boltzmann));
+	obs_data.emplace_back(get_matsubara_obs(epsilon_nn_op, Nmat, beta, 1., Z, ev,
+		es, esT, boltzmann));
 
 	std::vector<std::vector<std::complex<double>>> obs_data_cx;
 	obs_data_cx.emplace_back(get_imaginary_time_obs(sp_op, Ntau, beta, 1., Z,
 		ev, es, esT, boltzmann));
 	obs_data_cx.emplace_back(get_matsubara_obs(sp_op, Nmat, beta, 1., Z, ev,
+		es, esT, boltzmann));
+	
+	obs_data_cx.emplace_back(get_imaginary_time_obs(tp_op, Ntau, beta, 1., Z,
+		ev, es, esT, boltzmann));
+	obs_data_cx.emplace_back(get_matsubara_obs(tp_op, Nmat, beta, 1., Z, ev,
 		es, esT, boltzmann));
 
 	for (int i = 0; i < obs_data.size(); ++i)
@@ -326,7 +361,7 @@ int main(int ac, char** av)
 		});
 	arma::sp_mat n_total = n_total_st.build_matrix();
 
-	for (int a = 0; a < std::min(10, static_cast<int>(hspace.sub_dimension()));
+	for (int a = 0; a < std::min(100, static_cast<int>(hspace.sub_dimension()));
 		++a)
 		std::cout << "E(" << a << ") = " << ev(a) << ", <" << a << "|n|"
 			<< a << "> = " << arma::trace(esT.row(a) * n_total * es.col(a))
