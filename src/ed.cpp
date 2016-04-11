@@ -41,7 +41,7 @@ std::vector<T> get_imaginary_time_obs(arma::SpMat<T>& op, int Ntau,
 		obs_vec[n] = T(0.);
 		for (int a = 0; a < ev.n_rows; ++a)
 			for (int b = 0; b < ev.n_rows; ++b)
-				obs_vec[n] += boltzmann(b) * std::exp(-tau * (ev(a) - ev(b)))
+				obs_vec[n] += boltzmann(a) * std::exp(tau * (ev(a) - ev(b)))
 					* arma::trace(esT_cx.row(a) * op * es_cx.col(b))
 					* arma::trace(esT_cx.row(b) * op.t() * es_cx.col(a));
 		obs_vec[n] /= Z;
@@ -222,7 +222,9 @@ int main(int ac, char** av)
 	sparse_storage<double, int_t> epsilon_st(hspace.sub_dimension());
 	sparse_storage<double, int_t> epsilon_nn_st(hspace.sub_dimension());
 	sparse_storage<std::complex<double>, int_t> sp_st(hspace.sub_dimension());
+	sparse_storage<std::complex<double>, int_t> sp_2_st(hspace.sub_dimension());
 	sparse_storage<std::complex<double>, int_t> tp_st(hspace.sub_dimension());
+	sparse_storage<std::complex<double>, int_t> tp_2_st(hspace.sub_dimension());
 	hspace.build_operator([&]
 		(const std::pair<int_t, int_t>& n)
 		{
@@ -256,8 +258,11 @@ int main(int ac, char** av)
 				state p = hspace.c_i({1, n.first}, i);
 				if (p.sign != 0)
 					sp_st(hspace.index(p.id), n.second) += phase
-						* std::complex<double>(p.sign)
-						/ static_cast<double>(lat.n_bonds());
+						* std::complex<double>(p.sign);
+				p = hspace.c_dag_i({1, n.first}, i);
+				if (p.sign != 0)
+					sp_2_st(hspace.index(p.id), n.second) += phase
+						* std::complex<double>(p.sign);
 				
 				//tp
 				for (int j = 0; j < lat.n_sites(); ++j)
@@ -268,8 +273,12 @@ int main(int ac, char** av)
 					p = hspace.c_i(p, j);
 					if (p.sign != 0)
 						tp_st(hspace.index(p.id), n.second) += phase
-							* std::complex<double>(p.sign)
-							/ std::pow(lat.n_bonds(), 2.);
+							* std::complex<double>(p.sign);
+					p = hspace.c_dag_i({1, n.first}, i);
+					p = hspace.c_dag_i(p, j);
+					if (p.sign != 0)
+						tp_2_st(hspace.index(p.id), n.second) += phase
+							* std::complex<double>(p.sign);
 				}
 			}
 		});
@@ -277,7 +286,9 @@ int main(int ac, char** av)
 	arma::sp_mat epsilon_op = epsilon_st.build_matrix();
 	arma::sp_mat epsilon_nn_op = epsilon_nn_st.build_matrix();
 	arma::sp_cx_mat sp_op = sp_st.build_matrix();
+	arma::sp_cx_mat sp_2_op = sp_2_st.build_matrix();
 	arma::sp_cx_mat tp_op = tp_st.build_matrix();
+	arma::sp_cx_mat tp_2_op = tp_st.build_matrix();
 
 	double beta = 1./T;
 	std::cout << "T = " << T << std::endl;
@@ -296,7 +307,7 @@ int main(int ac, char** av)
 		m4 += boltzmann(i) * arma::trace(esT.row(i) * M4 * es.col(i));
 	}
 
-	int Ntau = 20, Nmat = 20;
+	int Ntau = 10, Nmat = 10;
 	out << k << "\t" << L << "\t" << V << "\t" << T << "\t"
 		<< E/Z << "\t" << m2/Z << "\t" << m4/Z << "\t" << m4/(m2*m2) << "\t"
 		<< Ntau << "\t" << Nmat << std::endl;
@@ -326,9 +337,19 @@ int main(int ac, char** av)
 	obs_data_cx.emplace_back(get_matsubara_obs(sp_op, Nmat, beta, 1., Z, ev,
 		es, esT, boltzmann));
 	
+	obs_data_cx.emplace_back(get_imaginary_time_obs(sp_2_op, Ntau, beta, 1., Z,
+		ev, es, esT, boltzmann));
+	obs_data_cx.emplace_back(get_matsubara_obs(sp_2_op, Nmat, beta, 1., Z, ev,
+		es, esT, boltzmann));
+	
 	obs_data_cx.emplace_back(get_imaginary_time_obs(tp_op, Ntau, beta, 1., Z,
 		ev, es, esT, boltzmann));
 	obs_data_cx.emplace_back(get_matsubara_obs(tp_op, Nmat, beta, 1., Z, ev,
+		es, esT, boltzmann));
+	
+	obs_data_cx.emplace_back(get_imaginary_time_obs(tp_2_op, Ntau, beta, 1., Z,
+		ev, es, esT, boltzmann));
+	obs_data_cx.emplace_back(get_matsubara_obs(tp_2_op, Nmat, beta, 1., Z, ev,
 		es, esT, boltzmann));
 
 	for (int i = 0; i < obs_data.size(); ++i)
