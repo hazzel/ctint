@@ -132,6 +132,49 @@ int main(int ac, char** av)
 	lat.generate_neighbor_map("nearest neighbors", [&lat]
 		(lattice::vertex_t i, lattice::vertex_t j) {
 		return lat.distance(i, j) == 1; });
+	lat.generate_bond_map("kekule", [&]
+		(lattice::pair_vector_t& list)
+		{
+			int N = lat.n_sites();
+			int L = std::sqrt(N / 2);
+			if (L == 2)
+			{
+				list = {{0, 1}, {1, 0}, {4, 7}, {7, 4}, {2, 5}, {5, 2}};
+				return;
+			}
+
+			for (int i = 0; i < L; ++i)
+				for (int j = 0; j < L; j+=3)
+				{
+					int x0 = 2 * i + 2 * L * i;
+					list.push_back({(x0 + 2*L*j) % N, (x0 + 2*L*j+1) % N});
+					list.push_back({(x0 + 2*L*j+1) % N, (x0 + 2*L*j) % N});
+	
+					int x1 = 2 * i + 2 * L * i + 4*L;
+					if (i == 0)
+					{
+						list.push_back({(x1 + 2*L*j) % N, (x1 + 2*L*j + 4*L-1) % N});
+						list.push_back({(x1 + 2*L*j + 4*L-1) % N, (x1 + 2*L*j) % N});
+					}
+					else
+					{
+						list.push_back({(x1 + 2*L*j) % N, (x1 + 2*L*j + 2*L-1) % N});
+						list.push_back({(x1 + 2*L*j + 2*L-1) % N, (x1 + 2*L*j) % N});
+					}
+
+					int x2 = 2 * i + 2 * L * i + 2*L;
+					if (i == 0)
+					{
+						list.push_back({(x2 + 2*L*j) % N, (x2 + 2*L*j + 2*L-1) % N});
+						list.push_back({(x2 + 2*L*j + 2*L-1) % N, (x2 + 2*L*j) % N});
+					}
+					else
+					{
+						list.push_back({(x2 + 2*L*j) % N, (x2 + 2*L*j - 1) % N});
+						list.push_back({(x2 + 2*L*j - 1) % N, (x2 + 2*L*j) % N});
+					}
+				}
+		});
 	//Generate hilbert space and build basis
 	hilbert hspace(lat);
 	hspace.build_basis([&hspace, &lat, &ensemble](int_t state_id) {
@@ -256,6 +299,7 @@ int main(int ac, char** av)
 	
 	// Build dynamic observables
 	sparse_storage<double, int_t> ni_st(hspace.sub_dimension());
+	sparse_storage<double, int_t> kekule_st(hspace.sub_dimension());
 	sparse_storage<double, int_t> epsilon_st(hspace.sub_dimension());
 	sparse_storage<double, int_t> epsilon_nn_st(hspace.sub_dimension());
 	sparse_storage<std::complex<double>, int_t> sp_st(hspace.sub_dimension());
@@ -264,6 +308,15 @@ int main(int ac, char** av)
 	hspace.build_operator([&]
 		(const std::pair<int_t, int_t>& n)
 		{
+			//kekule
+			for (auto& b : lat.bonds("kekule"))
+			{
+				state p = hspace.c_i({1, n.first}, b.second);
+				p = hspace.c_dag_i(p, b.first);
+				if (p.sign != 0)
+					kekule_st(hspace.index(p.id), n.second) += p.sign;
+			}
+
 			for (int i = 0; i < lat.n_sites(); ++i)
 			{
 				//CDW
@@ -314,6 +367,7 @@ int main(int ac, char** av)
 			}
 		});
 	arma::sp_mat ni_op = ni_st.build_matrix();
+	arma::sp_mat kekule_op = kekule_st.build_matrix();
 	arma::sp_mat epsilon_op = epsilon_st.build_matrix();
 	arma::sp_mat epsilon_nn_op = epsilon_nn_st.build_matrix();
 	arma::sp_cx_mat sp_op = sp_st.build_matrix();
@@ -324,6 +378,11 @@ int main(int ac, char** av)
 	obs_data.emplace_back(get_imaginary_time_obs(ni_op, Ntau, beta, 1., Z, ev,
 		es, esT, boltzmann));
 	obs_data.emplace_back(get_matsubara_obs(ni_op, Nmat, beta, 1., Z, ev, es,
+		esT, boltzmann));
+	
+	obs_data.emplace_back(get_imaginary_time_obs(kekule_op, Ntau, beta, 1., Z,
+		ev, es, esT, boltzmann));
+	obs_data.emplace_back(get_matsubara_obs(kekule_op, Nmat, beta, 1., Z, ev, es,
 		esT, boltzmann));
 
 	obs_data.emplace_back(get_imaginary_time_obs(epsilon_op, Ntau, beta, 1., Z,
