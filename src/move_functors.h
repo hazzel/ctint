@@ -41,7 +41,7 @@ struct move_insert
 			vec.push_back(arg_t{tau, s2, false});
 		}
 		int k = config.perturbation_order();
-		double det_ratio = config.M.try_add<N>(vec, nn_int);
+		double det_ratio = config.M.try_add<2*N>(vec, nn_int);
 		assert(det_ratio == det_ratio && "nan value in det ratio");
 		return config.param.rem[N-1] / config.param.add[N-1]
 			* std::pow(-config.param.beta * config.param.V *
@@ -50,7 +50,7 @@ struct move_insert
 
 	double accept()
 	{
-		config.M.finish_add<N>();
+		config.M.finish_add<2*N>();
 		config.measure.add("insertion n="+std::to_string(N), 1.0);
 		return 1.0;
 	}
@@ -82,7 +82,7 @@ struct move_remove
 			vec.push_back(p);
 		}
 		std::sort(vec.begin(), vec.end());
-		double det_ratio = config.M.try_remove<N>(vec, nn_int);
+		double det_ratio = config.M.try_remove<2*N>(vec, nn_int);
 		assert(det_ratio == det_ratio && "nan value in det ratio");
 		return config.param.add[N-1] / config.param.rem[N-1]
 			* std::pow(-config.param.beta * config.param.V *
@@ -91,7 +91,7 @@ struct move_remove
 
 	double accept()
 	{
-		config.M.finish_remove<N>();
+		config.M.finish_remove<2*N>();
 		config.measure.add("removal n="+std::to_string(N), 1.0);
 		return 1.0;
 	}
@@ -123,7 +123,7 @@ struct move_ZtoW2
 			config.l.neighbors(s1, "worm nhood");
 		int s2 = neighbors[neighbors.size() * rng()];
 		std::vector<arg_t> vec = {arg_t{tau, s1, true}, arg_t{tau, s2, true}};
-		double det_ratio = config.M.try_add<1>(vec, worm);
+		double det_ratio = config.M.try_add<2>(vec, worm);
 		assert(det_ratio == det_ratio && "nan value in det ratio");
 		save_acc = true; 
 		return config.param.W2toZ / config.param.ZtoW2
@@ -133,7 +133,7 @@ struct move_ZtoW2
 
 	double accept()
 	{
-		config.M.finish_add<1>();
+		config.M.finish_add<2>();
 		if (save_acc)
 			config.measure.add("Z -> W2", 1.0);
 		return 1.0;
@@ -173,7 +173,7 @@ struct move_W2toZ
 			return 0.0;
 		}
 		std::vector<int> vec = {p};
-		double det_ratio = config.M.try_remove<1>(vec, worm);
+		double det_ratio = config.M.try_remove<2>(vec, worm);
 		assert(det_ratio == det_ratio && "nan value in det ratio");
 		save_acc = true;
 		return config.param.ZtoW2 / config.param.W2toZ
@@ -183,7 +183,7 @@ struct move_W2toZ
 
 	double accept()
 	{
-		config.M.finish_remove<1>();
+		config.M.finish_remove<2>();
 		if (save_acc)
 			config.measure.add("W2 -> Z", 1.0);
 		return 1.0;
@@ -217,7 +217,7 @@ struct move_W2toW4
 			config.l.neighbors(s1, "worm nhood");
 		int s2 = neighbors[neighbors.size() * rng()];
 		std::vector<arg_t> vec = {arg_t{tau, s1, true}, arg_t{tau, s2, true}};
-		double det_ratio = config.M.try_add<1>(vec, worm);
+		double det_ratio = config.M.try_add<2>(vec, worm);
 		assert(det_ratio == det_ratio && "nan value in det ratio");
 		save_acc = true;
 		return config.param.W4toW2 / config.param.W2toW4
@@ -227,7 +227,7 @@ struct move_W2toW4
 
 	double accept()
 	{
-		config.M.finish_add<1>();
+		config.M.finish_add<2>();
 		if (save_acc)
 			config.measure.add("W2 -> W4", 1.0);
 		return 1.0;
@@ -267,7 +267,7 @@ struct move_W4toW2
 			return 0.0;
 		}
 		std::vector<int> vec = {p};
-		double det_ratio = config.M.try_remove<1>(vec, worm);
+		double det_ratio = config.M.try_remove<2>(vec, worm);
 		assert(det_ratio == det_ratio && "nan value in det ratio");
 		save_acc = true;
 		return config.param.W2toW4 / config.param.W4toW2
@@ -278,7 +278,7 @@ struct move_W4toW2
 
 	double accept()
 	{
-		config.M.finish_remove<1>();
+		config.M.finish_remove<2>();
 		if (save_acc)
 			config.measure.add("W4 -> W2", 1.0);
 		return 1.0;
@@ -315,7 +315,7 @@ struct move_ZtoW4
 		int s4 = neighbors[neighbors.size() * rng()];
 		std::vector<arg_t> vec = {arg_t{tau, s1, true}, arg_t{tau, s2, true},
 			arg_t{tau, s3, true}, arg_t{tau, s4, true}};
-		double det_ratio = config.M.try_add<2>(vec, worm);
+		double det_ratio = config.M.try_add<4>(vec, worm);
 		assert(det_ratio == det_ratio && "nan value in det ratio");
 		save_acc = true;
 		return config.param.W4toZ / config.param.ZtoW4 * config.l.parity(s1)
@@ -325,7 +325,7 @@ struct move_ZtoW4
 
 	double accept()
 	{
-		config.M.finish_add<2>();
+		config.M.finish_add<4>();
 		if (save_acc)
 			config.measure.add("Z -> W4", 1.0);
 		return 1.0;
@@ -368,7 +368,7 @@ struct move_W4toZ
 				return 0.0;
 			}
 		std::vector<int> vec = {p, p+1};
-		double det_ratio = config.M.try_remove<2>(vec, worm);
+		double det_ratio = config.M.try_remove<4>(vec, worm);
 		assert(det_ratio == det_ratio && "nan value in det ratio");
 		save_acc = true;
 		return config.param.ZtoW4 / config.param.W4toZ
@@ -381,7 +381,7 @@ struct move_W4toZ
 
 	double accept()
 	{
-		config.M.finish_remove<2>();
+		config.M.finish_remove<4>();
 		if (save_acc)
 			config.measure.add("W4 -> Z", 1.0);
 		return 1.0;
@@ -429,9 +429,9 @@ struct move_shift
 		std::random_shuffle(worm_vert.begin(), worm_vert.end());
 		double det_ratio;
 		if (config.worms() == 1)
-			det_ratio = config.M.try_shift<1>(worm_vert);
-		else if (config.worms() == 2)
 			det_ratio = config.M.try_shift<2>(worm_vert);
+		else if (config.worms() == 2)
+			det_ratio = config.M.try_shift<4>(worm_vert);
 		assert(det_ratio == det_ratio && "nan value in det ratio");
 		save_acc = true;
 		return config.l.parity(old_site) * config.l.parity(new_site)
@@ -441,9 +441,9 @@ struct move_shift
 	double accept()
 	{
 		if (config.worms() == 1)
-			config.M.finish_shift<1>();
-		else if (config.worms() == 2)
 			config.M.finish_shift<2>();
+		else if (config.worms() == 2)
+			config.M.finish_shift<4>();
 		if (save_acc)
 			config.measure.add("worm shift", 1.0);
 		return 1.0;

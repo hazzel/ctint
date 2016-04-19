@@ -136,7 +136,7 @@ class fast_update
 		{
 			typedef std::complex<double> C;
 			int k = M.rows();
-			const int n = 2*N;
+			const int n = N;
 			
 			arg_buffer = std::move(args);
 			helper<n, C>().u.resize(k, n);
@@ -151,12 +151,43 @@ class fast_update
 				mgf[omega_n] = std::real(helper<n, C>().S.determinant());
 			}
 		}
+		
+		template<int N>
+		double get_obs(std::vector<arg_t>& row_args, std::vector<arg_t>& col_args,
+			int flavor=0)
+		{
+			int k = M.rows();
+			const int n = N;
+			last_flavor = flavor;
+			
+			helper<n>().u.resize(k, n);
+			helper<n>().v.resize(n, k);
+			helper<n>().a.resize(n, n);
+
+			for (int i = 0; i < helper<n>().u.rows(); ++i)
+			{
+				for (int j = 0; j < n; ++j)
+				{
+					helper<n>().u(i, j) = entry_function(vertices[i], col_args[j]);
+					helper<n>().v(j, i) = entry_function(row_args[j], vertices[i]);
+				}
+			}
+			for (int i = 0; i < n; ++i)
+				for (int j = 0; j < n; ++j)
+					helper<n>().a(i, j) = entry_function(row_args[i], col_args[j]);
+
+			helper<n>().Mu.noalias() = M * helper<n>().u;
+			helper<n>().S = helper<n>().a;
+			helper<n>().S.noalias() -= helper<n>().v * helper<n>().Mu;
+
+			return helper<n>().S.determinant();
+		}
 
 		template<int N>
 		double try_add(std::vector<arg_t>& args, int flavor=0)
 		{
 			int k = M.rows();
-			const int n = 2*N;
+			const int n = N;
 			last_flavor = flavor;
 			
 			arg_buffer = std::move(args);
@@ -175,7 +206,7 @@ class fast_update
 		void finish_add()
 		{
 			int k = M.rows();
-			const int n = 2*N;
+			const int n = N;
 
 			helper<n>().S = helper<n>().S.inverse().eval();
 			dmatrix_t vM = M.transpose() * helper<n>().v.transpose();
@@ -200,7 +231,7 @@ class fast_update
 		template<int N>
 		double try_remove(std::vector<int>& pos, int flavor=0)
 		{
-			const int n = 2*N;
+			const int n = N;
 			if (flavor_cnt[flavor] < n)
 				return 0.0;
 			last_flavor = flavor;
@@ -219,7 +250,7 @@ class fast_update
 		{
 			permute_forward();
 			int k = M.rows();
-			const int n = 2*N;
+			const int n = N;
 			
 			helper<n>().S.transposeInPlace();
 			dmatrix_t t = M.block(k - n, 0, n, k - n).transpose()
@@ -240,7 +271,7 @@ class fast_update
 		double try_shift(std::vector<arg_t>& args)
 		{
 			int k = M.rows() - args.size();
-			const int n = 2*N;
+			const int n = N;
 			last_flavor = 1; //shift worm vertices
 			
 			arg_buffer = std::move(args);
@@ -264,7 +295,7 @@ class fast_update
 		void finish_shift()
 		{
 			int k = M.rows() - arg_buffer.size();
-			const int n = 2*N;
+			const int n = N;
 			
 			helper<n>().S = helper<n>().S.inverse().eval();
 			dmatrix_t vM = helper<n>().v * helper<n>().m;
@@ -286,6 +317,7 @@ class fast_update
 		{
 			return helper(type<N, T>());
 		}
+		helper_matrices<1, double>& helper(type<1, double>) { return helper_1; }
 		helper_matrices<2, double>& helper(type<2, double>) { return helper_2; }
 		helper_matrices<2, std::complex<double>>& helper(type<2,
 			std::complex<double>>) { return helper_2_c; }
@@ -294,7 +326,7 @@ class fast_update
 		template<int N>
 		void fill_helper_matrices()
 		{
-			const int n = 2*N;
+			const int n = N;
 			for (int i = 0; i < helper<n>().u.rows(); ++i)
 			{
 				for (int j = 0; j < n; ++j)
@@ -322,7 +354,7 @@ class fast_update
 		void fill_matsubara_matrices(int omega_n)
 		{
 			typedef std::complex<double> C;
-			const int n = 2*N;
+			const int n = N;
 			for (int i = 0; i < helper<n, C>().u.rows(); ++i)
 			{
 				for (int j = 0; j < n; ++j)
@@ -349,12 +381,12 @@ class fast_update
 		template<int N>
 		void fill_S_matrix()
 		{
-			helper<2*N>().S.resize(2*N, 2*N);
-			for (int i = 0; i < N; ++i)
+			helper<N>().S.resize(N, N);
+			for (int i = 0; i < N/2; ++i)
 			{
-				for (int j = 0; j < N; ++j)
+				for (int j = 0; j < N/2; ++j)
 				{
-					helper<2*N>().S.template block<2, 2>(2*i, 2*j) =
+					helper<N>().S.template block<2, 2>(2*i, 2*j) =
 						M.template block<2, 2>(pos_buffer[i], pos_buffer[j]);
 				}
 			}
@@ -427,6 +459,7 @@ class fast_update
 		std::vector<int> pos_buffer;
 		int last_flavor;
 		dmatrix_t M;
+		helper_matrices<1, double> helper_1;
 		helper_matrices<2, double> helper_2;
 		helper_matrices<4, double> helper_4;
 		helper_matrices<2, std::complex<double>> helper_2_c;

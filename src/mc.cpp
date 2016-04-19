@@ -101,9 +101,13 @@ mc::mc(const std::string& dir)
 		config.measure.add_vectorobservable("corr", config.l.max_distance() + 1,
 			n_prebin);
 	}
-	config.measure.add_vectorobservable("dynamical_M2_mat",
+	config.measure.add_vectorobservable("dyn_M2_mat",
 		config.param.n_matsubara, n_prebin);
-	config.measure.add_vectorobservable("dynamical_M2_tau",
+	config.measure.add_vectorobservable("dyn_M2_tau",
+		config.param.n_discrete_tau, n_prebin);
+	config.measure.add_vectorobservable("dyn_sp_tau",
+		config.param.n_discrete_tau, n_prebin);
+	config.measure.add_vectorobservable("dyn_tp_tau",
 		config.param.n_discrete_tau, n_prebin);
 	//Measure acceptance probabilities
 	if (config.param.add[0] > 0.)
