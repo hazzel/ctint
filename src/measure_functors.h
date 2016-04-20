@@ -125,23 +125,20 @@ struct measure_estimator
 	void measure_dynamical_M2_tau()
 	{
 		std::fill(dyn_M2_tau.begin(), dyn_M2_tau.end(), 0.);
-		int i = rng() * config.l.n_sites();
+		for (int i = 0; i < config.l.n_sites(); ++i)
 		for (int j = 0; j < config.l.n_sites(); ++j)
 			for (int t = 0; t <= config.param.n_discrete_tau; ++t)
 			{
-				double tau = config.param.beta/2. * static_cast<double>(t)
+				double tau = config.param.beta * static_cast<double>(t)
 					/ static_cast<double>(config.param.n_discrete_tau);
-				double tau_0 = rng() * (config.param.beta/2. - tau);
-				std::vector<arg_t> vec = {arg_t{tau + tau_0, i, 0},
-					arg_t{tau_0, j, 0}};
+				double tau_0 = rng() * config.param.beta;
+				double end = tau + tau_0;
+				if (end > config.param.beta)
+					end -= config.param.beta;
+				std::vector<arg_t> vec = {arg_t{end, i, 0}, arg_t{tau_0, j, 0}};
 				double m1 = config.l.parity(i) * config.l.parity(j)
-					* config.M.try_add<2>(vec, 0) / config.l.n_sites();
-				tau_0 = rng() * (config.param.beta/2. - tau);
-				vec = {arg_t{config.param.beta - (tau + tau_0), i, 0},
-					arg_t{config.param.beta - tau_0, j, 0}};
-				double m2 = config.l.parity(i) * config.l.parity(j)
-					* config.M.try_add<2>(vec, 0) / config.l.n_sites();
-				dyn_M2_tau[t] += (m1 + m2) / 2.;
+					* config.M.try_add<2>(vec, 0) / std::pow(config.l.n_sites(), 2.);
+				dyn_M2_tau[t] += m1;
 			}
 		measure.add("dyn_M2_tau", dyn_M2_tau);
 	}
@@ -151,7 +148,7 @@ struct measure_estimator
 		std::fill(dyn_M2_tau.begin(), dyn_M2_tau.end(), 0.);
 		double pi = 4.*std::atan(1.);
 		Eigen::Vector2d K(2.*pi/9., 2.*pi/9.*(2.-1./std::sqrt(3.)));
-		int i = rng() * config.l.n_sites();
+		for (int i = 0; i < config.l.n_sites(); ++i)
 		for (int j = 0; j < config.l.n_sites(); ++j)
 			for (int t = 0; t <= config.param.n_discrete_tau; ++t)
 			{
@@ -163,7 +160,7 @@ struct measure_estimator
 				std::vector<arg_t> rows = {arg_t{tau + tau_0, i, 0}};
 				std::vector<arg_t> cols = {arg_t{tau_0, j, 0}};
 				dyn_M2_tau[t] = std::cos(K.dot(r_j - r_i))
-					* config.M.get_obs<1>(rows, cols, 0) * config.l.n_sites();
+					* config.M.get_obs<1>(rows, cols, 0);
 			}
 		measure.add("dyn_sp_tau", dyn_M2_tau);
 	}
@@ -190,11 +187,19 @@ struct measure_estimator
 						std::vector<arg_t> rows_j = {arg_t{tau + tau_0, j, 0}};
 						std::vector<arg_t> cols_m = {arg_t{tau_0, m, 0}};
 						std::vector<arg_t> cols_n = {arg_t{tau_0, n, 0}};
-						dyn_M2_tau[t] = std::cos(K.dot(r_j - r_i)) * config.l.n_sites()
-							* (config.M.get_obs<1>(rows_i, cols_n, 0)
-							* config.M.get_obs<1>(rows_j, cols_m, 0)
-							- config.M.get_obs<1>(rows_i, cols_m, 0)
-							* config.M.get_obs<1>(rows_j, cols_n, 0));
+//						dyn_M2_tau[t] = std::cos(K.dot(r_j - r_i))*config.l.n_sites()
+//							* (config.M.get_obs<1>(rows_i, cols_n, 0)
+//							* config.M.get_obs<1>(rows_j, cols_m, 0)
+//							- config.M.get_obs<1>(rows_i, cols_m, 0)
+//							* config.M.get_obs<1>(rows_j, cols_n, 0));
+						
+						std::vector<arg_t> rows = {arg_t{tau + tau_0, i, 0},
+							arg_t{tau + tau_0, j, 0}};
+						std::vector<arg_t> cols = {arg_t{tau_0, n, 0},
+							arg_t{tau_0, m, 0}};
+						dyn_M2_tau[t] = std::cos(K.dot(r_j - r_i + r_m - r_n))
+							* config.l.n_sites()
+							* config.M.get_obs<2>(rows, cols, 0);
 					}
 		measure.add("dyn_tp_tau", dyn_M2_tau);
 	}
@@ -207,7 +212,7 @@ struct measure_estimator
 		measure_dynamical_M2_mat();
 		measure_dynamical_M2_tau();
 		measure_dynamical_sp_tau();
-		measure_dynamical_tp_tau();
+//		measure_dynamical_tp_tau();
 	}
 
 	void collect(std::ostream& os)

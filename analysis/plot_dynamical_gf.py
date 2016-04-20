@@ -95,7 +95,7 @@ for f in filelist:
 		h = float(plist[i]["V"])
 		T = float(plist[i]["T"])
 		L = float(plist[i]["L"])
-		ed_glob = glob.glob("data/ed*" + "L_" + str(int(L)) + "*V_" + format(h, '.6f') + "*T_" + format(T, '.6f') + "*")
+		ed_glob = glob.glob("../data/ed*" + "L_" + str(int(L)) + "*V_" + format(h, '.6f') + "*T_" + format(T, '.6f') + "*")
 		if len(ed_glob) > 0:
 			ed_file = open(ed_glob[0])
 			ed_data = parse_ed_file(ed_file)
@@ -108,9 +108,9 @@ for f in filelist:
 		y_mat = np.array(ArrangePlot(elist[i], "dyn_"+obs+"_mat")[0])
 		err_mat = np.array(ArrangePlot(elist[i], "dyn_"+obs+"_mat")[1])
 		x_tau = np.array(range(0, n_discrete_tau + 1)) / float(n_discrete_tau) / T
-		obs = "sp"
+		obs = "M2"
 		y_tau = np.abs(np.array(ArrangePlot(elist[i], "dyn_"+obs+"_tau")[0]))
-		err_tau = np.array(ArrangePlot(elist[i], "dyn_"+obs+"_tau")[1])
+		err_tau = np.abs(np.array(ArrangePlot(elist[i], "dyn_"+obs+"_tau")[1]))
 
 		N_bootstrap = 25
 		x_delta = np.array(range(1, n_matsubara))
@@ -154,10 +154,10 @@ for f in filelist:
 			cap.set_markeredgewidth(1.4)
 		if len(ed_glob) > 0:
 			ax2.plot(np.linspace(0., 1./T, n_ed_tau + 1), ed_data[ed_n], marker='o', color="r", markersize=10.0, linewidth=2.0, label=r'$L='+str(int(L))+'$')
-			ax2.plot(np.linspace(0., 1./T, n_ed_tau + 1), np.flipud(ed_data[ed_n]), marker='o', color="orange", markersize=10.0, linewidth=2.0, label=r'$L='+str(int(L))+'$')
+			#ax2.plot(np.linspace(0., 1./T/2, n_ed_tau + 1), np.flipud(ed_data[ed_n]), marker='o', color="orange", markersize=10.0, linewidth=2.0, label=r'$L='+str(int(L))+'$')
 		
 		try:
-			nmin = len(x_tau)*1/32; nmax = len(x_tau)*8/32
+			nmin = len(x_tau)*0/32; nmax = len(x_tau)*12/32
 			#nmin = len(x_tau)*10/16; nmax = len(x_tau)*14/16
 			#nmin = len(x_tau)*17/32; nmax = len(x_tau)*31/32
 			#nmin = 0; nmax = len(x_tau)*2/16
