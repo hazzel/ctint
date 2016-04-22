@@ -108,9 +108,9 @@ for f in filelist:
 		y_mat = np.array(ArrangePlot(elist[i], "dyn_"+obs+"_mat")[0])
 		err_mat = np.array(ArrangePlot(elist[i], "dyn_"+obs+"_mat")[1])
 		x_tau = np.array(range(0, n_discrete_tau + 1)) / float(n_discrete_tau) / T
-		obs = "M2"
-		y_tau = np.abs(np.array(ArrangePlot(elist[i], "dyn_"+obs+"_tau")[0]))
-		err_tau = np.abs(np.array(ArrangePlot(elist[i], "dyn_"+obs+"_tau")[1]))
+		obs = "sp"
+		y_tau = np.abs(np.array(ArrangePlot(elist[i], "dyn_"+obs+"_tau")[0])) / 42.7
+		err_tau = np.abs(np.array(ArrangePlot(elist[i], "dyn_"+obs+"_tau")[1])) / 42.7
 
 		N_bootstrap = 25
 		x_delta = np.array(range(1, n_matsubara))
@@ -153,8 +153,8 @@ for f in filelist:
 		for cap in caps:
 			cap.set_markeredgewidth(1.4)
 		if len(ed_glob) > 0:
-			ax2.plot(np.linspace(0., 1./T, n_ed_tau + 1), ed_data[ed_n], marker='o', color="r", markersize=10.0, linewidth=2.0, label=r'$L='+str(int(L))+'$')
-			#ax2.plot(np.linspace(0., 1./T/2, n_ed_tau + 1), np.flipud(ed_data[ed_n]), marker='o', color="orange", markersize=10.0, linewidth=2.0, label=r'$L='+str(int(L))+'$')
+			ax2.plot(ed_tau, ed_data[ed_n], marker='o', color="r", markersize=10.0, linewidth=2.0, label=r'$L='+str(int(L))+'$')
+			#ax2.plot(ed_tau, np.flipud(ed_data[ed_n]), marker='o', color="orange", markersize=10.0, linewidth=2.0, label=r'$L='+str(int(L))+'$')
 		
 		try:
 			nmin = len(x_tau)*0/32; nmax = len(x_tau)*12/32
@@ -162,7 +162,7 @@ for f in filelist:
 			#nmin = len(x_tau)*17/32; nmax = len(x_tau)*31/32
 			#nmin = 0; nmax = len(x_tau)*2/16
 			parameter, perr = fit_function( [0.1, 0.1, 1.], x_tau[nmin:nmax], y_tau[nmin:nmax], FitFunction, datayerrors=err_tau[nmin:nmax])
-			#parameter, perr = curve_fit(FitFunction, x_tau[nmin:nmax], y_tau[nmin:nmax], p0=[0.01, 0.01, 1.])
+			#parameter, perr = curve_fit(FitFunction, ed_tau[0:10], ed_data[ed_n][0:10], p0=[0.01, 0.01, 1.])
 			px = np.linspace(x_tau[nmin], x_tau[nmax], 1000)
 			ax2.plot(px, FitFunction(px, *parameter), 'k-', linewidth=3.0)
 			d = -int(np.log10(abs(perr[2])))+2

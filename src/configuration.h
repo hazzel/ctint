@@ -57,12 +57,12 @@ struct configuration
 	lattice l;
 	greens_function g0;
 	parameters param;
+	measurements& measure;
 	fast_update<full_g_entry, arg_t> M;
-	measurements measure;
 	std::vector<int> shellsize;
 
-	configuration()
-		: l{}, g0{}, param{}, M{full_g_entry{g0}, l, param, 2}
+	configuration(measurements& measure_)
+		: l(), g0(), param(), measure(measure_), M{full_g_entry{g0}, l, param, 2}
 	{}
 	
 	void initialize()

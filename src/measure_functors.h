@@ -125,21 +125,28 @@ struct measure_estimator
 	void measure_dynamical_M2_tau()
 	{
 		std::fill(dyn_M2_tau.begin(), dyn_M2_tau.end(), 0.);
-		for (int i = 0; i < config.l.n_sites(); ++i)
-		for (int j = 0; j < config.l.n_sites(); ++j)
-			for (int t = 0; t <= config.param.n_discrete_tau; ++t)
+		//for (int i = 0; i < config.l.n_sites(); ++i)
+		for (int t = 0; t <= config.param.n_discrete_tau; ++t)
+		{
+			double tau = config.param.beta * static_cast<double>(t)
+				/ static_cast<double>(config.param.n_discrete_tau);
+			int i = rng() * config.l.n_sites();
+			for (int j = 0; j < config.l.n_sites(); ++j)
 			{
-				double tau = config.param.beta * static_cast<double>(t)
-					/ static_cast<double>(config.param.n_discrete_tau);
-				double tau_0 = rng() * config.param.beta;
-				double end = tau + tau_0;
-				if (end > config.param.beta)
-					end -= config.param.beta;
-				std::vector<arg_t> vec = {arg_t{end, i, 0}, arg_t{tau_0, j, 0}};
-				double m1 = config.l.parity(i) * config.l.parity(j)
-					* config.M.try_add<2>(vec, 0) / std::pow(config.l.n_sites(), 2.);
-				dyn_M2_tau[t] += m1;
+				for (int k = 0; k < config.perturbation_order(); ++k)
+				{
+					double tau_0 = rng() * config.param.beta;
+					double end = tau + tau_0;
+					if (end > config.param.beta)
+						end -= config.param.beta;
+					std::vector<arg_t> vec = {arg_t{end, i, 0}, arg_t{tau_0, j, 0}};
+					dyn_M2_tau[t] += config.l.parity(i) * config.l.parity(j)
+						* config.M.try_add<2>(vec, 0)
+						/ std::pow(config.l.n_sites(), 1.)
+						/ config.perturbation_order();
+				}
 			}
+		}
 		measure.add("dyn_M2_tau", dyn_M2_tau);
 	}
 	
@@ -148,20 +155,26 @@ struct measure_estimator
 		std::fill(dyn_M2_tau.begin(), dyn_M2_tau.end(), 0.);
 		double pi = 4.*std::atan(1.);
 		Eigen::Vector2d K(2.*pi/9., 2.*pi/9.*(2.-1./std::sqrt(3.)));
-		for (int i = 0; i < config.l.n_sites(); ++i)
-		for (int j = 0; j < config.l.n_sites(); ++j)
-			for (int t = 0; t <= config.param.n_discrete_tau; ++t)
-			{
-				auto& r_i = config.l.real_space_coord(i);
-				auto& r_j = config.l.real_space_coord(j);
-				double tau = config.param.beta * static_cast<double>(t)
-					/ static_cast<double>(config.param.n_discrete_tau);
-				double tau_0 = rng() * (config.param.beta - tau);
-				std::vector<arg_t> rows = {arg_t{tau + tau_0, i, 0}};
-				std::vector<arg_t> cols = {arg_t{tau_0, j, 0}};
-				dyn_M2_tau[t] = std::cos(K.dot(r_j - r_i))
-					* config.M.get_obs<1>(rows, cols, 0);
-			}
+		for (int t = 0; t <= config.param.n_discrete_tau; ++t)
+		{
+			int i = rng() * config.l.n_sites();
+			//for (int i = 0; i < config.l.n_sites(); ++i)
+			for (int j = 0; j < config.l.n_sites(); ++j)
+				for (int k = 0; k < config.perturbation_order(); ++k)
+				{
+					auto& r_i = config.l.real_space_coord(i);
+					auto& r_j = config.l.real_space_coord(j);
+					double tau = config.param.beta * static_cast<double>(t)
+						/ static_cast<double>(config.param.n_discrete_tau);
+					double tau_0 = rng() * (config.param.beta - tau);
+					std::vector<arg_t> rows = {arg_t{tau + tau_0, i, 0}};
+					std::vector<arg_t> cols = {arg_t{tau_0, j, 0}};
+					dyn_M2_tau[t] += std::cos(K.dot(r_j - r_i))
+						* config.M.get_obs<1>(rows, cols, 0)
+						* config.l.n_sites()
+						/ config.perturbation_order();
+				}
+		}
 		measure.add("dyn_sp_tau", dyn_M2_tau);
 	}
 	
@@ -197,7 +210,7 @@ struct measure_estimator
 							arg_t{tau + tau_0, j, 0}};
 						std::vector<arg_t> cols = {arg_t{tau_0, n, 0},
 							arg_t{tau_0, m, 0}};
-						dyn_M2_tau[t] = std::cos(K.dot(r_j - r_i + r_m - r_n))
+						dyn_M2_tau[t] += std::cos(K.dot(r_j - r_i + r_m - r_n))
 							* config.l.n_sites()
 							* config.M.get_obs<2>(rows, cols, 0);
 					}

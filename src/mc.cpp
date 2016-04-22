@@ -6,7 +6,7 @@
 #include "event_functors.h"
 
 mc::mc(const std::string& dir)
-	: rng(Random()), qmc(rng), config{}
+	: rng(Random()), qmc(rng), config(measure)
 {
 	//Read parameters
 	pars.read_file(dir);
