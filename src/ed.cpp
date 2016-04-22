@@ -129,52 +129,8 @@ int main(int ac, char** av)
 	honeycomb h(L);
 	lattice lat;
 	lat.generate_graph(h);
-	lat.generate_neighbor_map("nearest neighbors", [&lat]
-		(lattice::vertex_t i, lattice::vertex_t j) {
-		return lat.distance(i, j) == 1; });
-	lat.generate_bond_map("kekule", [&]
-		(lattice::pair_vector_t& list)
-		{
-			int N = lat.n_sites();
-			int L = std::sqrt(N / 2);
-			if (L == 2)
-			{
-				list = {{0, 1}, {1, 0}, {4, 7}, {7, 4}, {2, 5}, {5, 2}};
-				return;
-			}
+	hc.generate_maps(config.l);
 
-			for (int i = 0; i < L; ++i)
-				for (int j = 0; j < L; j+=3)
-				{
-					int x0 = 2 * i + 2 * L * i;
-					list.push_back({(x0 + 2*L*j) % N, (x0 + 2*L*j+1) % N});
-					list.push_back({(x0 + 2*L*j+1) % N, (x0 + 2*L*j) % N});
-	
-					int x1 = 2 * i + 2 * L * i + 4*L;
-					if (i == 0)
-					{
-						list.push_back({(x1 + 2*L*j) % N, (x1 + 2*L*j + 4*L-1) % N});
-						list.push_back({(x1 + 2*L*j + 4*L-1) % N, (x1 + 2*L*j) % N});
-					}
-					else
-					{
-						list.push_back({(x1 + 2*L*j) % N, (x1 + 2*L*j + 2*L-1) % N});
-						list.push_back({(x1 + 2*L*j + 2*L-1) % N, (x1 + 2*L*j) % N});
-					}
-
-					int x2 = 2 * i + 2 * L * i + 2*L;
-					if (i == 0)
-					{
-						list.push_back({(x2 + 2*L*j) % N, (x2 + 2*L*j + 2*L-1) % N});
-						list.push_back({(x2 + 2*L*j + 2*L-1) % N, (x2 + 2*L*j) % N});
-					}
-					else
-					{
-						list.push_back({(x2 + 2*L*j) % N, (x2 + 2*L*j - 1) % N});
-						list.push_back({(x2 + 2*L*j - 1) % N, (x2 + 2*L*j) % N});
-					}
-				}
-		});
 	//Generate hilbert space and build basis
 	hilbert hspace(lat);
 	hspace.build_basis([&hspace, &lat, &ensemble](int_t state_id) {
