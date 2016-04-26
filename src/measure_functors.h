@@ -125,25 +125,26 @@ struct measure_estimator
 	void measure_dynamical_M2_tau()
 	{
 		std::fill(dyn_M2_tau.begin(), dyn_M2_tau.end(), 0.);
-		//for (int i = 0; i < config.l.n_sites(); ++i)
 		for (int t = 0; t <= config.param.n_discrete_tau; ++t)
 		{
 			double tau = config.param.beta * static_cast<double>(t)
 				/ static_cast<double>(config.param.n_discrete_tau);
-			int i = rng() * config.l.n_sites();
-			for (int j = 0; j < config.l.n_sites(); ++j)
+			int kmax = 1;
+			for (int k = 0; k < kmax; ++k)
 			{
-				for (int k = 0; k < config.perturbation_order(); ++k)
+				double tau_0 = rng() * config.param.beta;
+				double end = tau + tau_0;
+				if (end > config.param.beta)
+					end -= config.param.beta;
+				int i = rng() * config.l.n_sites();
+				for (int j = 0; j < config.l.n_sites(); ++j)
+				for (int i = 0; i < config.l.n_sites(); ++i)
 				{
-					double tau_0 = rng() * config.param.beta;
-					double end = tau + tau_0;
-					if (end > config.param.beta)
-						end -= config.param.beta;
 					std::vector<arg_t> vec = {arg_t{end, i, 0}, arg_t{tau_0, j, 0}};
 					dyn_M2_tau[t] += config.l.parity(i) * config.l.parity(j)
 						* config.M.try_add<2>(vec, 0)
-						/ std::pow(config.l.n_sites(), 1.)
-						/ config.perturbation_order();
+						/ std::pow(config.l.n_sites(), 2.)
+						/ kmax;
 				}
 			}
 		}
@@ -157,10 +158,10 @@ struct measure_estimator
 		Eigen::Vector2d K(2.*pi/9., 2.*pi/9.*(2.-1./std::sqrt(3.)));
 		for (int t = 0; t <= config.param.n_discrete_tau; ++t)
 		{
-			int i = rng() * config.l.n_sites();
-			//for (int i = 0; i < config.l.n_sites(); ++i)
+//			int i = rng() * config.l.n_sites();
+			for (int i = 0; i < config.l.n_sites(); ++i)
 			for (int j = 0; j < config.l.n_sites(); ++j)
-				for (int k = 0; k < config.perturbation_order(); ++k)
+				for (int k = 0; k < 25; ++k)
 				{
 					auto& r_i = config.l.real_space_coord(i);
 					auto& r_j = config.l.real_space_coord(j);
@@ -171,8 +172,7 @@ struct measure_estimator
 					std::vector<arg_t> cols = {arg_t{tau_0, j, 0}};
 					dyn_M2_tau[t] += std::cos(K.dot(r_j - r_i))
 						* config.M.get_obs<1>(rows, cols, 0)
-						* config.l.n_sites()
-						/ config.perturbation_order();
+						/ 25.;
 				}
 		}
 		measure.add("dyn_sp_tau", dyn_M2_tau);
@@ -220,11 +220,9 @@ struct measure_estimator
 	void perform()
 	{
 		measure.add("<k>_Z", config.perturbation_order());
-//		measure_matsubara_gf();
-//		measure_imaginary_time_gf();
-		measure_dynamical_M2_mat();
+//		measure_dynamical_M2_mat();
 		measure_dynamical_M2_tau();
-		measure_dynamical_sp_tau();
+//		measure_dynamical_sp_tau();
 //		measure_dynamical_tp_tau();
 	}
 

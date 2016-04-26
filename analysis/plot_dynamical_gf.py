@@ -104,34 +104,12 @@ for f in filelist:
 
 		figure.suptitle(r"$L = " + str(L) + ",\ V = " + str(h) + ",\ T = " + str(T) + "$")
 		
-		x_mat = (np.array(range(0, n_matsubara)) * 2. + (1.-parity)/2.) * np.pi * T
-		y_mat = np.array(ArrangePlot(elist[i], "dyn_"+obs+"_mat")[0])
-		err_mat = np.array(ArrangePlot(elist[i], "dyn_"+obs+"_mat")[1])
 		x_tau = np.array(range(0, n_discrete_tau + 1)) / float(n_discrete_tau) / T
-		obs = "sp"
-		y_tau = np.abs(np.array(ArrangePlot(elist[i], "dyn_"+obs+"_tau")[0])) / 42.7
-		err_tau = np.abs(np.array(ArrangePlot(elist[i], "dyn_"+obs+"_tau")[1])) / 42.7
-
-		N_bootstrap = 25
-		x_delta = np.array(range(1, n_matsubara))
-		y_delta = []
-		for j in range(N_bootstrap):
-			y_delta.append(np.zeros(n_matsubara - 1))
-			y_boot = np.zeros(n_matsubara)
-			for k in range(len(y_boot)):
-				y_boot[k] = y_mat[k] + np.random.normal(0., 0.01 * abs(y_mat[k]))
-			for n in range(1, n_matsubara):
-				y_delta[j][n-1] = estimator(n, 1./T, y_boot, parity)
+		y_tau = np.abs(np.array(ArrangePlot(elist[i], "dyn_"+obs+"_tau")[0]))
+		err_tau = np.abs(np.array(ArrangePlot(elist[i], "dyn_"+obs+"_tau")[1]))
 
 		ax1.set_xlabel(r"$\omega_n$")
 		ax1.set_ylabel(r"$M_2(\omega_n) \cdot \omega_n^2$")
-		xscale = np.copy(x_mat)
-		xscale[0] = 1.
-		xscale = xscale**2.
-		ax1.plot(x_mat, y_mat * xscale, marker="o", color="green", markersize=10.0, linestyle="None", linewidth=0.0)
-		(_, caps, _) = ax1.errorbar(x_mat, y_mat * xscale, yerr=err_mat * xscale, marker='None', capsize=8, color="green")
-		for cap in caps:
-			cap.set_markeredgewidth(1.4)
 		if len(ed_glob) > 0:
 			x_mat = (np.array(range(0, n_ed_mat)) * 2. + (1.-parity)/2.) * np.pi * T
 			xscale = np.copy(x_mat)
@@ -157,7 +135,7 @@ for f in filelist:
 			#ax2.plot(ed_tau, np.flipud(ed_data[ed_n]), marker='o', color="orange", markersize=10.0, linewidth=2.0, label=r'$L='+str(int(L))+'$')
 		
 		try:
-			nmin = len(x_tau)*0/32; nmax = len(x_tau)*12/32
+			nmin = len(x_tau)*0/32; nmax = len(x_tau)*16/32
 			#nmin = len(x_tau)*10/16; nmax = len(x_tau)*14/16
 			#nmin = len(x_tau)*17/32; nmax = len(x_tau)*31/32
 			#nmin = 0; nmax = len(x_tau)*2/16
@@ -175,11 +153,6 @@ for f in filelist:
 		
 		ax3.set_xlabel(r"$n$")
 		ax3.set_ylabel(r"$\Delta_n$")
-		ax3.plot(x_delta, np.mean(y_delta, axis=0), marker="o", color="green", markersize=10.0, linewidth=2.0)
-		(_, caps, _) = ax3.errorbar(x_delta, np.mean(y_delta, axis=0), yerr=np.std(y_delta, axis=0), marker="None", color="green", markersize=10.0, linewidth=2.0)
-		for cap in caps:
-			cap.set_markeredgewidth(1.4)
-
 		if len(ed_glob) > 0:
 			x_delta = np.array(range(1, n_ed_mat))
 			y_delta = np.zeros(n_ed_mat - 1)

@@ -129,7 +129,7 @@ int main(int ac, char** av)
 	honeycomb h(L);
 	lattice lat;
 	lat.generate_graph(h);
-	hc.generate_maps(config.l);
+	h.generate_maps(lat);
 
 	//Generate hilbert space and build basis
 	hilbert hspace(lat);
@@ -245,7 +245,7 @@ int main(int ac, char** av)
 		cij += boltzmann(i) * arma::trace(esT.row(i) * Cij * es.col(i));
 	}
 
-	int Ntau = 20, Nmat = 20;
+	int Ntau = 100, Nmat = 20;
 	out << k << "\t" << L << "\t" << V << "\t" << T << "\t"
 		<< E/Z << "\t" << m2/Z << "\t" << m4/Z << "\t" << m4/(m2*m2) << "\t"
 		<< Ntau << "\t" << Nmat << std::endl;
@@ -296,8 +296,7 @@ int main(int ac, char** av)
 				}
 				
 				//sp
-				double pi = 4.*std::atan(1.);
-				Eigen::Vector2d K(2.*pi/9., 2.*pi/9.*(2.-1./std::sqrt(3.)));
+				auto& K = lat.symmetry_point("K");
 				std::complex<double> phase = std::exp(std::complex<double>(0.,
 					K.dot(lat.real_space_coord(i))));
 				state p = hspace.c_i({1, n.first}, i);

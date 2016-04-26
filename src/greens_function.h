@@ -32,10 +32,16 @@ class greens_function
 			vector_t ev = solver.eigenvalues();
 			matrix_t V = solver.eigenvectors();
 		
-			generate_time_index_map(ev, V);
-			generate_matsubara_index_map(ev, V);
-			fill_time_mesh(ev, V);
-			fill_matsubara_mesh(ev, V);
+			if (n_time_slices > 0)
+			{
+				generate_time_index_map(ev, V);
+				fill_time_mesh(ev, V);
+			}
+			if (n_matsubara > 0)
+			{
+				generate_matsubara_index_map(ev, V);
+				fill_matsubara_mesh(ev, V);
+			}
 		}
 		
 		double imaginary_time(double tau, int i, int j) const
