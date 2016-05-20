@@ -317,10 +317,11 @@ int main(int ac, char** av)
 					p = hspace.c_i(p, j);
 					if (p.sign != 0)
 						tp_st(hspace.index(p.id), n.second) += phase
+							* lat.parity(i) * lat.parity(j)
 							* std::complex<double>(p.sign);
 				}
 			}
-			epsilon_st(n.second, n.second) -= cij;
+			epsilon_st(n.second, n.second) -= cij / Z;
 		});
 	arma::sp_mat ni_op = ni_st.build_matrix();
 	arma::sp_mat kekule_op = kekule_st.build_matrix();
@@ -401,6 +402,8 @@ int main(int ac, char** av)
 		++a)
 		std::cout << "E(" << a << ") = " << ev(a) << ", <" << a << "|n|"
 			<< a << "> = " << arma::trace(esT.row(a) * n_total * es.col(a))
+			<< ", <" << a << "|epsilon|"
+			<< a << "> = " << arma::trace(esT.row(a) * epsilon_op * es.col(a))
 			<< std::endl;
 	out.close();
 }
