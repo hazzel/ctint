@@ -317,7 +317,6 @@ int main(int ac, char** av)
 					p = hspace.c_i(p, j);
 					if (p.sign != 0)
 						tp_st(hspace.index(p.id), n.second) += phase
-							* lat.parity(i) * lat.parity(j)
 							* std::complex<double>(p.sign);
 				}
 			}
