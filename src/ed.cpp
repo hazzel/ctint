@@ -252,6 +252,7 @@ int main(int ac, char** av)
 	std::cout << k << "\t" << L << "\t" << V << "\t" << T << "\t"
 		<< E/Z << "\t" << m2/Z << "\t" << m4/Z << "\t" << m4/(m2*m2) << "\t"
 		<< Ntau << "\t" << Nmat << std::endl;
+	std::cout << "<epsilon> = " << cij/Z << std::endl;
 	
 	// Build dynamic observables
 	sparse_storage<double, int_t> ni_st(hspace.sub_dimension());
