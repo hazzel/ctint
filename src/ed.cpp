@@ -287,8 +287,7 @@ int main(int ac, char** av)
 					state p = hspace.c_i({1, n.first}, j);
 					p = hspace.c_dag_i(p, i);
 					if (p.sign != 0)
-						epsilon_st(hspace.index(p.id), n.second) += p.sign
-							/ static_cast<double>(lat.n_bonds());
+						epsilon_st(hspace.index(p.id), n.second) += p.sign;
 							
 					epsilon_nn_st(n.second, n.second)
 						+= (hspace.n_i({1, n.first}, i) - 0.5)
@@ -321,7 +320,7 @@ int main(int ac, char** av)
 							* std::complex<double>(p.sign);
 				}
 			}
-			epsilon_st(n.second, n.second) -= cij / Z;
+			//epsilon_st(n.second, n.second) -= cij / Z;
 		});
 	arma::sp_mat ni_op = ni_st.build_matrix();
 	arma::sp_mat kekule_op = kekule_st.build_matrix();
