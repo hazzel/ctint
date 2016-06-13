@@ -257,6 +257,7 @@ int main(int ac, char** av)
 	// Build dynamic observables
 	sparse_storage<double, int_t> ni_st(hspace.sub_dimension());
 	sparse_storage<double, int_t> kekule_st(hspace.sub_dimension());
+	sparse_storage<double, int_t> chern_st(hspace.sub_dimension());
 	sparse_storage<double, int_t> epsilon_st(hspace.sub_dimension());
 	sparse_storage<double, int_t> epsilon_nn_st(hspace.sub_dimension());
 	sparse_storage<std::complex<double>, int_t> sp_st(hspace.sub_dimension());
@@ -271,7 +272,21 @@ int main(int ac, char** av)
 				state p = hspace.c_i({1, n.first}, b.second);
 				p = hspace.c_dag_i(p, b.first);
 				if (p.sign != 0)
-					kekule_st(hspace.index(p.id), n.second) += p.sign;
+					kekule_st(hspace.index(p.id), n.second) += p.sign
+						/ static_cast<double>(lat.n_bonds());
+			}
+			
+			//chern
+			for (auto& b : lat.bonds("chern"))
+			{
+				state p = hspace.c_i({1, n.first}, b.second);
+				p = hspace.c_dag_i(p, b.first);
+				if (p.sign != 0)
+					chern_st(hspace.index(p.id), n.second) += -p.sign;
+				p = hspace.c_i({1, n.first}, b.first);
+				p = hspace.c_dag_i(p, b.second);
+				if (p.sign != 0)
+					chern_st(hspace.index(p.id), n.second) += p.sign;
 			}
 
 			for (int i = 0; i < lat.n_sites(); ++i)
@@ -287,7 +302,8 @@ int main(int ac, char** av)
 					state p = hspace.c_i({1, n.first}, j);
 					p = hspace.c_dag_i(p, i);
 					if (p.sign != 0)
-						epsilon_st(hspace.index(p.id), n.second) += p.sign;
+						epsilon_st(hspace.index(p.id), n.second) += p.sign
+							/ static_cast<double>(lat.n_bonds());
 							
 					epsilon_nn_st(n.second, n.second)
 						+= (hspace.n_i({1, n.first}, i) - 0.5)
@@ -324,6 +340,7 @@ int main(int ac, char** av)
 		});
 	arma::sp_mat ni_op = ni_st.build_matrix();
 	arma::sp_mat kekule_op = kekule_st.build_matrix();
+	arma::sp_mat chern_op = chern_st.build_matrix();
 	arma::sp_mat epsilon_op = epsilon_st.build_matrix();
 	arma::sp_mat epsilon_nn_op = epsilon_nn_st.build_matrix();
 	arma::sp_cx_mat sp_op = sp_st.build_matrix();
@@ -339,6 +356,11 @@ int main(int ac, char** av)
 	obs_data.emplace_back(get_imaginary_time_obs(kekule_op, Ntau, beta, 1., Z,
 		ev, es, esT, boltzmann));
 	obs_data.emplace_back(get_matsubara_obs(kekule_op, Nmat, beta, 1., Z, ev, es,
+		esT, boltzmann));
+	
+	obs_data.emplace_back(get_imaginary_time_obs(chern_op, Ntau, beta, 1., Z,
+		ev, es, esT, boltzmann));
+	obs_data.emplace_back(get_matsubara_obs(chern_op, Nmat, beta, 1., Z, ev, es,
 		esT, boltzmann));
 
 	obs_data.emplace_back(get_imaginary_time_obs(epsilon_op, Ntau, beta, 1., Z,
