@@ -336,7 +336,7 @@ int main(int ac, char** av)
 							* std::complex<double>(p.sign);
 				}
 			}
-			//epsilon_st(n.second, n.second) -= cij / Z;
+			epsilon_st(n.second, n.second) -= cij / Z;
 		});
 	arma::sp_mat ni_op = ni_st.build_matrix();
 	arma::sp_mat kekule_op = kekule_st.build_matrix();
@@ -419,12 +419,19 @@ int main(int ac, char** av)
 		});
 	arma::sp_mat n_total = n_total_st.build_matrix();
 
-	for (int a = 0; a < std::min(100, static_cast<int>(hspace.sub_dimension()));
-		++a)
-		std::cout << "E(" << a << ") = " << ev(a) << ", <" << a << "|n|"
-			<< a << "> = " << arma::trace(esT.row(a) * n_total * es.col(a))
-			<< ", <" << a << "|epsilon|"
-			<< a << "> = " << arma::trace(esT.row(a) * epsilon_op * es.col(a))
-			<< std::endl;
+	//for (int a = 0; a < std::min(100, static_cast<int>(hspace.sub_dimension()));
+	//	++a)
+	for (int a = 0; a < static_cast<int>(hspace.sub_dimension()); ++a)
+	{
+		double e = arma::trace(esT.row(a) * epsilon_op * es.col(0));
+		if (std::abs(e) > std::pow(10, -10))
+		{
+			std::cout << "E(" << a << ") = " << ev(a) << ", <" << a << "|n|"
+				<< a << "> = " << arma::trace(esT.row(a) * n_total * es.col(a))
+				<< ", <" << a << "|epsilon|"
+				<< 0 << "> = " << e
+				<< std::endl;
+		}
+	}
 	out.close();
 }
