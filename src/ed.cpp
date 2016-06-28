@@ -424,11 +424,35 @@ int main(int ac, char** av)
 	for (int a = 0; a < static_cast<int>(hspace.sub_dimension()); ++a)
 	{
 		double e = arma::trace(esT.row(a) * epsilon_op * es.col(0));
-		if (std::abs(e) > std::pow(10, -10))
+		if (a == 0 || std::abs(e) > std::pow(10, -12))
 		{
 			std::cout << "E(" << a << ") = " << ev(a) << ", <" << a << "|n|"
 				<< a << "> = " << arma::trace(esT.row(a) * n_total * es.col(a))
 				<< ", <" << a << "|epsilon|"
+				<< 0 << "> = " << e
+				<< std::endl;
+		}
+	}
+	for (int a = 0; a < static_cast<int>(hspace.sub_dimension()); ++a)
+	{
+		double e = arma::trace(esT.row(a) * n_total * es.col(0));
+		if (a == 0 || std::abs(e) > std::pow(10, -12))
+		{
+			std::cout << "E(" << a << ") = " << ev(a) << ", <" << a << "|n|"
+				<< a << "> = " << arma::trace(esT.row(a) * n_total * es.col(a))
+				<< ", <" << a << "|n|"
+				<< 0 << "> = " << e
+				<< std::endl;
+		}
+	}
+	for (int a = 0; a < static_cast<int>(hspace.sub_dimension()); ++a)
+	{
+		double e = arma::trace(esT.row(a) * kekule_op * es.col(0));
+		if (a == 0 || std::abs(e) > std::pow(10, -12))
+		{
+			std::cout << "E(" << a << ") = " << ev(a) << ", <" << a << "|n|"
+				<< a << "> = " << arma::trace(esT.row(a) * n_total * es.col(a))
+				<< ", <" << a << "|kekule|"
 				<< 0 << "> = " << e
 				<< std::endl;
 		}
