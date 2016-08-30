@@ -17,9 +17,9 @@ mc::mc(const std::string& dir)
 	n_rebuild = pars.value_or_default<int>("rebuild", 1000);
 	n_tau_slices = pars.value_or_default<int>("tau_slices", 500);
 	config.param.n_matsubara = pars.value_or_default<int>("matsubara_freqs",
-		10);
+		0);
 	config.param.n_discrete_tau = pars.value_or_default<int>("discrete_tau",
-		100);
+		0);
 	hc.L = pars.value_or_default<int>("L", 9);
 	config.param.beta = 1./pars.value_or_default<double>("T", 0.2);
 	config.param.V = pars.value_or_default<double>("V", 1.355);
@@ -101,14 +101,18 @@ mc::mc(const std::string& dir)
 		config.measure.add_vectorobservable("corr", config.l.max_distance() + 1,
 			n_prebin);
 	}
-	config.measure.add_vectorobservable("dyn_M2_mat",
-		config.param.n_matsubara, n_prebin);
-	config.measure.add_vectorobservable("dyn_M2_tau",
-		config.param.n_discrete_tau, n_prebin);
-	config.measure.add_vectorobservable("dyn_sp_tau",
-		config.param.n_discrete_tau, n_prebin);
-	config.measure.add_vectorobservable("dyn_tp_tau",
-		config.param.n_discrete_tau, n_prebin);
+	if (config.param.n_matsubara > 0)
+		config.measure.add_vectorobservable("dyn_M2_mat",
+			config.param.n_matsubara, n_prebin);
+	if (config.param.n_discrete_tau > 0)
+	{
+		config.measure.add_vectorobservable("dyn_M2_tau",
+			config.param.n_discrete_tau, n_prebin);
+		config.measure.add_vectorobservable("dyn_sp_tau",
+			config.param.n_discrete_tau, n_prebin);
+		config.measure.add_vectorobservable("dyn_tp_tau",
+			config.param.n_discrete_tau, n_prebin);
+	}
 	//Measure acceptance probabilities
 	if (config.param.add[0] > 0.)
 		config.measure.add_observable("insertion n=1", n_prebin * n_cycles);
@@ -134,14 +138,14 @@ mc::mc(const std::string& dir)
 		config.measure.add_observable("worm shift", n_prebin * n_cycles);
 	config.measure.add_observable("sign", n_prebin * n_cycles);
 	
-	//qmc.add_measure(measure_worm{config, config.measure, pars,
-	//	std::vector<double>(config.l.max_distance() + 1, 0.0)}, "measurement");
-	//config.measure.add_vectorobservable("Correlations", config.l.max_distance(),
-	//	n_prebin);
-	qmc.add_measure(measure_estimator{config, rng, config.measure, pars,
-		std::vector<double>(config.param.n_matsubara, 0.0),
-		std::vector<double>(config.param.n_discrete_tau + 1, 0.0),
-		std::vector<double>(config.param.n_matsubara, 0.0)}, "measurement");
+	qmc.add_measure(measure_worm{config, config.measure, pars,
+		std::vector<double>(config.l.max_distance() + 1, 0.0)}, "measurement");
+	config.measure.add_vectorobservable("Correlations", config.l.max_distance(),
+		n_prebin);
+	//qmc.add_measure(measure_estimator{config, rng, config.measure, pars,
+	//	std::vector<double>(config.param.n_matsubara, 0.0),
+	//	std::vector<double>(config.param.n_discrete_tau + 1, 0.0),
+	//	std::vector<double>(config.param.n_matsubara, 0.0)}, "measurement");
 	
 	//Set up events
 	qmc.add_event(event_rebuild{config, config.measure}, "rebuild");
