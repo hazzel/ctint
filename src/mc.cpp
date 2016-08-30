@@ -91,16 +91,14 @@ mc::mc(const std::string& dir)
 
 	//Set up measurements
 	config.measure.add_observable("<k>_Z", n_prebin);
-	if (config.param.ZtoW2 + config.param.ZtoW4 > 0.)
-	{
-		config.measure.add_observable("<k>_W2", n_prebin);
-		config.measure.add_observable("<k>_W4", n_prebin);
-		config.measure.add_observable("deltaZ", n_prebin);
-		config.measure.add_observable("deltaW2", n_prebin);
-		config.measure.add_observable("deltaW4", n_prebin);
-		config.measure.add_vectorobservable("corr", config.l.max_distance() + 1,
-			n_prebin);
-	}
+	config.measure.add_observable("<k>_W2", n_prebin);
+	config.measure.add_observable("<k>_W4", n_prebin);
+	config.measure.add_observable("deltaZ", n_prebin);
+	config.measure.add_observable("deltaW2", n_prebin);
+	config.measure.add_observable("deltaW4", n_prebin);
+	config.measure.add_vectorobservable("corr", config.l.max_distance() + 1,
+		n_prebin);
+
 	if (config.param.n_matsubara > 0)
 		config.measure.add_vectorobservable("dyn_M2_mat",
 			config.param.n_matsubara, n_prebin);
@@ -140,8 +138,6 @@ mc::mc(const std::string& dir)
 	
 	qmc.add_measure(measure_worm{config, config.measure, pars,
 		std::vector<double>(config.l.max_distance() + 1, 0.0)}, "measurement");
-	config.measure.add_vectorobservable("Correlations", config.l.max_distance(),
-		n_prebin);
 	//qmc.add_measure(measure_estimator{config, rng, config.measure, pars,
 	//	std::vector<double>(config.param.n_matsubara, 0.0),
 	//	std::vector<double>(config.param.n_discrete_tau + 1, 0.0),
