@@ -310,6 +310,22 @@ class fast_update
 			for (int i = 0; i < arg_buffer.size(); ++i)
 				vertices[vertices.size() - arg_buffer.size() + i] = arg_buffer[i];
 		}
+		
+		void print_M_matrix(std::ostream& out)
+		{
+			dmatrix_t& m = M;
+			for (int i = 0; i < m.rows(); ++i)
+			{
+				for (int j = 0; j < m.cols(); ++j)
+				{
+					out << m(i, j);
+					if (j < m.cols() - 1)
+						out << ",";
+				}
+				out << std::endl;
+			}
+			out << std::endl;
+		}
 	private:
 		template<int N, typename T> struct type {};
 		template<int N, typename T=double>

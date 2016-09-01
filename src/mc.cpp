@@ -145,6 +145,7 @@ mc::mc(const std::string& dir)
 	
 	//Set up events
 	qmc.add_event(event_rebuild{config, config.measure}, "rebuild");
+	qmc.add_event(event_print_M{config, config.measure}, "print_M");
 	qmc.add_event(event_build{config, rng}, "initial build");
 	//Initialize vertex list to reduce warm up time
 	qmc.trigger_event("initial build");
@@ -242,6 +243,8 @@ void mc::do_update()
 	++sweep;
 	if (sweep % n_rebuild == 0)
 		qmc.trigger_event("rebuild");
+	if (is_thermalized() && sweep % 1000 == 0)
+		qmc.trigger_event("print_M");
 	status();
 }
 

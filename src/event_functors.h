@@ -1,4 +1,5 @@
 #pragma once
+#include <fstream>
 #include "measurements.h"
 #include "configuration.h"
 
@@ -10,6 +11,27 @@ struct event_rebuild
 	void trigger()
 	{
 		config.M.rebuild();
+	}
+};
+
+struct event_print_M
+{
+	configuration& config;
+	measurements& measure;
+	
+	event_print_M(configuration& config_,
+		measurements& measure_)
+		: config(config_), measure(measure_)
+	{
+		std::ofstream file("M.txt", std::fstream::out);
+		file.close();
+	}
+
+	void trigger()
+	{
+		std::ofstream file("M.txt", std::fstream::app);
+		config.M.print_M_matrix(file);
+		file.close();
 	}
 };
 
