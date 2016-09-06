@@ -6,14 +6,14 @@
 #include "event_functors.h"
 
 mc::mc(const std::string& dir)
-	: rng(Random()), qmc(rng), config(measure)
+	: rng(Random()), config(measure), qmc(rng, config)
 {
 	//Read parameters
 	pars.read_file(dir);
 	sweep = 0;
-	n_cycles = pars.value_or_default<int>("cycles", 300);
+	config.param.n_static_cycles = pars.value_or_default<int>("cycles", 300);
 	n_warmup = pars.value_or_default<int>("warmup", 100000);
-	n_prebin = pars.value_or_default<int>("prebin", 500);
+	config.param.n_prebin = pars.value_or_default<int>("prebin", 500);
 	n_rebuild = pars.value_or_default<int>("rebuild", 1000);
 	n_tau_slices = pars.value_or_default<int>("tau_slices", 500);
 	config.param.n_matsubara = pars.value_or_default<int>("matsubara_freqs",
@@ -23,6 +23,7 @@ mc::mc(const std::string& dir)
 	hc.L = pars.value_or_default<int>("L", 9);
 	config.param.beta = 1./pars.value_or_default<double>("T", 0.2);
 	config.param.V = pars.value_or_default<double>("V", 1.355);
+	config.param.mu = pars.value_or_default<double>("mu", 0.);
 	config.param.zeta2 = pars.value_or_default<double>("zeta2", 10.0);
 	config.param.zeta4 = pars.value_or_default<double>("zeta4", 30.0);
 	config.param.worm_nhood_dist = pars.value_or_default<int>("nhood_dist", 4);
@@ -59,8 +60,8 @@ mc::mc(const std::string& dir)
 		"worm nhood").size()) / static_cast<double>(config.l.n_sites()), 3.0);
 
 	//Set up bare greens function look up
-	config.g0.generate_mesh(&config.l, config.param.beta, n_tau_slices,
-		config.param.n_matsubara);
+	config.g0.generate_mesh(&config.l, config.param.beta, config.param.mu,
+		n_tau_slices, config.param.n_matsubara);
 	
 	//Initialize configuration class
 	config.initialize();
@@ -88,60 +89,9 @@ mc::mc(const std::string& dir)
 		config.param.W4toW2);
 	qmc.add_move(move_shift{config, rng, false}, "worm shift",
 		config.param.worm_shift);
-
-	//Set up measurements
-	config.measure.add_observable("<k>_Z", n_prebin);
-	config.measure.add_observable("<k>_W2", n_prebin);
-	config.measure.add_observable("<k>_W4", n_prebin);
-	config.measure.add_observable("deltaZ", n_prebin);
-	config.measure.add_observable("deltaW2", n_prebin);
-	config.measure.add_observable("deltaW4", n_prebin);
-	config.measure.add_vectorobservable("corr", config.l.max_distance() + 1,
-		n_prebin);
-
-	if (config.param.n_matsubara > 0)
-		config.measure.add_vectorobservable("dyn_M2_mat",
-			config.param.n_matsubara, n_prebin);
-	if (config.param.n_discrete_tau > 0)
-	{
-		config.measure.add_vectorobservable("dyn_M2_tau",
-			config.param.n_discrete_tau, n_prebin);
-		config.measure.add_vectorobservable("dyn_sp_tau",
-			config.param.n_discrete_tau, n_prebin);
-		config.measure.add_vectorobservable("dyn_tp_tau",
-			config.param.n_discrete_tau, n_prebin);
-	}
-	//Measure acceptance probabilities
-	if (config.param.add[0] > 0.)
-		config.measure.add_observable("insertion n=1", n_prebin * n_cycles);
-	if (config.param.rem[0] > 0.)
-		config.measure.add_observable("removal n=1", n_prebin * n_cycles);
-	if (config.param.add[1] > 0.)
-		config.measure.add_observable("insertion n=2", n_prebin * n_cycles);
-	if (config.param.rem[1] > 0.)
-		config.measure.add_observable("removal n=2", n_prebin * n_cycles);
-	if (config.param.ZtoW2 > 0.)
-		config.measure.add_observable("Z -> W2", n_prebin * n_cycles);
-	if (config.param.W2toZ > 0.)
-		config.measure.add_observable("W2 -> Z", n_prebin * n_cycles);
-	if (config.param.W2toW4 > 0.)
-		config.measure.add_observable("W2 -> W4", n_prebin * n_cycles);
-	if (config.param.W4toW2 > 0.)
-		config.measure.add_observable("W4 -> W2", n_prebin * n_cycles);
-	if (config.param.ZtoW4 > 0.)
-		config.measure.add_observable("Z -> W4", n_prebin * n_cycles);
-	if (config.param.W4toZ > 0.)
-		config.measure.add_observable("W4 -> Z", n_prebin * n_cycles);
-	if (config.param.worm_shift > 0.)
-		config.measure.add_observable("worm shift", n_prebin * n_cycles);
-	config.measure.add_observable("sign", n_prebin * n_cycles);
 	
-	qmc.add_measure(measure_worm{config, config.measure, pars,
-		std::vector<double>(config.l.max_distance() + 1, 0.0)}, "measurement");
-	//qmc.add_measure(measure_estimator{config, rng, config.measure, pars,
-	//	std::vector<double>(config.param.n_matsubara, 0.0),
-	//	std::vector<double>(config.param.n_discrete_tau + 1, 0.0),
-	//	std::vector<double>(config.param.n_matsubara, 0.0)}, "measurement");
+	qmc.add_measure(measure_worm{config, rng, pars}, "measurement");
+	//qmc.add_measure(measure_estimator{config, rng, pars}, "measurement");
 	
 	//Set up events
 	qmc.add_event(event_rebuild{config, config.measure}, "rebuild");
@@ -185,7 +135,7 @@ void mc::write(const std::string& dir)
 	{
 		f << "Thermalization: Done." << std::endl;
 		f << "Sweeps: " << (sweep - n_warmup) << std::endl;
-		f << "Bins: " << static_cast<int>((sweep - n_warmup) / n_prebin)
+		f << "Bins: " << static_cast<int>((sweep - n_warmup) / config.param.n_prebin)
 			<< std::endl;
 	}
 	else
@@ -236,10 +186,10 @@ bool mc::is_thermalized()
 void mc::do_update()
 {
 	if (!is_thermalized())
-		qmc.do_update(config.measure);
+		qmc.do_update();
 	else
-		for (int i = 0; i < n_cycles; ++i)
-			qmc.do_update(config.measure);
+		for (int i = 0; i < config.param.n_static_cycles; ++i)
+			qmc.do_update();
 	++sweep;
 	if (sweep % n_rebuild == 0)
 		qmc.trigger_event("rebuild");

@@ -43,26 +43,72 @@ void eval_corr(std::valarray<double>& out,
 struct measure_worm
 {
 	configuration& config;
-	measurements& measure;
+	Random& rng;
 	parser& pars;
 	std::vector<double> correlations;
+	
+	measure_worm(configuration& config_, Random& rng_, parser& pars_)
+		: config(config_), rng(rng_), pars(pars_)
+	{	
+		correlations.resize(config.l.max_distance() + 1, 0);
+		
+		//Set up measurements
+		config.measure.add_observable("sign", config.param.n_prebin);
+		config.measure.add_observable("N", config.param.n_prebin);
+		config.measure.add_observable("<k>_Z", config.param.n_prebin);
+		config.measure.add_observable("<k>_W2", config.param.n_prebin);
+		config.measure.add_observable("<k>_W4", config.param.n_prebin);
+		config.measure.add_observable("deltaZ", config.param.n_prebin);
+		config.measure.add_observable("deltaW2", config.param.n_prebin);
+		config.measure.add_observable("deltaW4", config.param.n_prebin);
+		config.measure.add_vectorobservable("corr", config.l.max_distance() + 1,
+			config.param.n_prebin);
+		
+		//Measure acceptance probabilities
+		if (config.param.add[0] > 0.)
+			config.measure.add_observable("insertion n=1", config.param.n_prebin * config.param.n_static_cycles);
+		if (config.param.rem[0] > 0.)
+			config.measure.add_observable("removal n=1", config.param.n_prebin * config.param.n_static_cycles);
+		if (config.param.add[1] > 0.)
+			config.measure.add_observable("insertion n=2", config.param.n_prebin * config.param.n_static_cycles);
+		if (config.param.rem[1] > 0.)
+			config.measure.add_observable("removal n=2", config.param.n_prebin * config.param.n_static_cycles);
+		if (config.param.ZtoW2 > 0.)
+			config.measure.add_observable("Z -> W2", config.param.n_prebin * config.param.n_static_cycles);
+		if (config.param.W2toZ > 0.)
+			config.measure.add_observable("W2 -> Z", config.param.n_prebin * config.param.n_static_cycles);
+		if (config.param.W2toW4 > 0.)
+			config.measure.add_observable("W2 -> W4", config.param.n_prebin * config.param.n_static_cycles);
+		if (config.param.W4toW2 > 0.)
+			config.measure.add_observable("W4 -> W2", config.param.n_prebin * config.param.n_static_cycles);
+		if (config.param.ZtoW4 > 0.)
+			config.measure.add_observable("Z -> W4", config.param.n_prebin * config.param.n_static_cycles);
+		if (config.param.W4toZ > 0.)
+			config.measure.add_observable("W4 -> Z", config.param.n_prebin * config.param.n_static_cycles);
+		if (config.param.worm_shift > 0.)
+			config.measure.add_observable("worm shift", config.param.n_prebin * config.param.n_static_cycles);
+	}
 
 	void perform()
 	{
+		config.measure.add("sign", config.sign);
 		std::fill(correlations.begin(), correlations.end(), 0.0);
 		if (config.worms() == 0) //measure Z
 		{
-			measure.add("<k>_Z", config.perturbation_order());
-			measure.add("deltaZ", 1.0);
-			measure.add("deltaW2", 0.0);
-			measure.add("deltaW4", 0.0);
+			config.measure.add("<k>_Z", config.perturbation_order());
+			config.measure.add("deltaZ", 1.0);
+			config.measure.add("deltaW2", 0.0);
+			config.measure.add("deltaW4", 0.0);
+			
+			double N = measure_N();
+			config.measure.add("N", N);
 		}
 		else if (config.worms() == 1) //measure W2
 		{
-			measure.add("<k>_W2", config.perturbation_order());
-			measure.add("deltaZ", 0.0);
-			measure.add("deltaW2", 1.0);
-			measure.add("deltaW4", 0.0);
+			config.measure.add("<k>_W2", config.perturbation_order());
+			config.measure.add("deltaZ", 0.0);
+			config.measure.add("deltaW2", 1.0);
+			config.measure.add("deltaW4", 0.0);
 			int sites[] = {config.M.vertex(0, worm).site,
 				config.M.vertex(1, worm).site};
 			int R = config.l.distance(sites[0], sites[1]);
@@ -72,28 +118,46 @@ struct measure_worm
 		}
 		else if (config.worms() == 2) //measure W4
 		{
-			measure.add("<k>_W4", config.perturbation_order());
-			measure.add("deltaZ", 0.0);
-			measure.add("deltaW2", 0.0);
-			measure.add("deltaW4", 1.0);
+			config.measure.add("<k>_W4", config.perturbation_order());
+			config.measure.add("deltaZ", 0.0);
+			config.measure.add("deltaW2", 0.0);
+			config.measure.add("deltaW4", 1.0);
 		}
-		measure.add("corr", correlations);
+		config.measure.add("corr", correlations);
+	}
+	
+	double measure_N()
+	{
+		int kmax = 1;
+		double N = 0;
+		for (int k = 0; k < kmax; ++k)
+		{
+			double tau_0 = rng() * config.param.beta;
+			for (int i = 0; i < config.l.n_sites(); ++i)
+			{
+				std::vector<arg_t> rows = {arg_t{tau_0, i, 0}};
+				std::vector<arg_t> cols = {arg_t{tau_0, i, 0}};
+				N += config.sign * config.M.get_obs<1>(rows, cols, 0)
+					/ config.l.n_sites() / kmax;
+			}
+		}
+		return N;
 	}
 
 	void collect(std::ostream& os)
 	{
 		double eval_param[] = {config.param.zeta2, config.param.zeta4,
 			static_cast<double>(config.l.n_sites()), config.param.zeta2};
-		measure.add_evalable("M2", "deltaZ", "deltaW2", eval_M2, eval_param);
-		measure.add_evalable("M4", "deltaZ", "deltaW4", eval_M4, eval_param);
-		measure.add_evalable("BinderRatio", "deltaZ", "deltaW2", "deltaW4",
+		config.measure.add_evalable("M2", "deltaZ", "deltaW2", eval_M2, eval_param);
+		config.measure.add_evalable("M4", "deltaZ", "deltaW4", eval_M4, eval_param);
+		config.measure.add_evalable("BinderRatio", "deltaZ", "deltaW2", "deltaW4",
 			eval_B, eval_param);
-		measure.add_vectorevalable("Correlations", "corr", "deltaZ", eval_corr,
+		config.measure.add_vectorevalable("Correlations", "corr", "deltaZ", eval_corr,
 			eval_param);
 		
 		os << "PARAMETERS" << std::endl;
 		pars.get_all(os);
-		measure.get_statistics(os);
+		config.measure.get_statistics(os);
 	}
 };
 
@@ -101,12 +165,44 @@ struct measure_estimator
 {
 	configuration& config;
 	Random& rng;
-	measurements& measure;
 	parser& pars;
 	std::vector<double> dyn_M2;
 	std::vector<double> dyn_M2_tau;
 	std::vector<double> mgf_omega;
 
+	measure_estimator(configuration& config_, Random& rng_, parser& pars_)
+		: config(config_), rng(rng_), pars(pars_)
+	{
+		dyn_M2.resize(config.param.n_matsubara, 0.0);
+		dyn_M2_tau.resize(config.param.n_discrete_tau + 1, 0.0);
+		mgf_omega.resize(config.param.n_matsubara, 0.0);
+		
+		//Set up measurements
+		config.measure.add_observable("sign", config.param.n_prebin);
+		config.measure.add_observable("<k>_Z", config.param.n_prebin);
+		if (config.param.n_matsubara > 0)
+			config.measure.add_vectorobservable("dyn_M2_mat",
+				config.param.n_matsubara, config.param.n_prebin);
+		if (config.param.n_discrete_tau > 0)
+		{
+			config.measure.add_vectorobservable("dyn_M2_tau",
+				config.param.n_discrete_tau, config.param.n_prebin);
+			config.measure.add_vectorobservable("dyn_sp_tau",
+				config.param.n_discrete_tau, config.param.n_prebin);
+			config.measure.add_vectorobservable("dyn_tp_tau",
+				config.param.n_discrete_tau, config.param.n_prebin);
+		}
+		//Measure acceptance probabilities
+		if (config.param.add[0] > 0.)
+			config.measure.add_observable("insertion n=1", config.param.n_prebin * config.param.n_static_cycles);
+		if (config.param.rem[0] > 0.)
+			config.measure.add_observable("removal n=1", config.param.n_prebin * config.param.n_static_cycles);
+		if (config.param.add[1] > 0.)
+			config.measure.add_observable("insertion n=2", config.param.n_prebin * config.param.n_static_cycles);
+		if (config.param.rem[1] > 0.)
+			config.measure.add_observable("removal n=2", config.param.n_prebin * config.param.n_static_cycles);
+	}
+	
 	void measure_dynamical_M2_mat()
 	{
 		std::fill(dyn_M2.begin(), dyn_M2.end(), 0.);
@@ -119,7 +215,7 @@ struct measure_estimator
 				dyn_M2[n] += config.l.parity(i) * config.l.parity(j) * mgf_omega[n]
 					/ config.l.n_sites();
 		}
-		measure.add("dyn_M2_mat", dyn_M2);
+		config.measure.add("dyn_M2_mat", dyn_M2);
 	}
 	
 	void measure_dynamical_M2_tau()
@@ -148,7 +244,7 @@ struct measure_estimator
 				}
 			}
 		}
-		measure.add("dyn_M2_tau", dyn_M2_tau);
+		config.measure.add("dyn_M2_tau", dyn_M2_tau);
 	}
 	
 	void measure_dynamical_sp_tau()
@@ -175,7 +271,7 @@ struct measure_estimator
 						/ 25.;
 				}
 		}
-		measure.add("dyn_sp_tau", dyn_M2_tau);
+		config.measure.add("dyn_sp_tau", dyn_M2_tau);
 	}
 	
 	void measure_dynamical_tp_tau()
@@ -214,12 +310,13 @@ struct measure_estimator
 							* config.l.n_sites()
 							* config.M.get_obs<2>(rows, cols, 0);
 					}
-		measure.add("dyn_tp_tau", dyn_M2_tau);
+		config.measure.add("dyn_tp_tau", dyn_M2_tau);
 	}
 
 	void perform()
 	{
-		measure.add("<k>_Z", config.perturbation_order());
+		config.measure.add("sign", config.sign);
+		config.measure.add("<k>_Z", config.perturbation_order());
 //		measure_dynamical_M2_mat();
 		measure_dynamical_M2_tau();
 //		measure_dynamical_sp_tau();
@@ -230,6 +327,6 @@ struct measure_estimator
 	{
 		os << "PARAMETERS" << std::endl;
 		pars.get_all(os);
-		measure.get_statistics(os);
+		config.measure.get_statistics(os);
 	}
 };

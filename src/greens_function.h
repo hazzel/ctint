@@ -17,8 +17,8 @@ class greens_function
 		typedef std::complex<double> complex_t;
 		greens_function() {}
 
-		void generate_mesh(lattice* l_, double beta_, int n_time_slices_,
-			int n_matsubara_)
+		void generate_mesh(lattice* l_, double beta_, double mu,
+			int n_time_slices_, int n_matsubara_)
 		{
 			l = l_; beta = beta_; n_time_slices = n_time_slices_;
 			n_matsubara = n_matsubara_;
@@ -26,8 +26,11 @@ class greens_function
 			
 			matrix_t K(l->n_sites(), l->n_sites());
 			for (int i = 0; i < l->n_sites(); ++i)
+			{
 				for (int j = 0; j < l->n_sites(); ++j)
 					K(i, j) = (l->distance(i, j) == 1) ? -1.0 : 0.0;
+				K(i, i) += mu;
+			}
 			Eigen::SelfAdjointEigenSolver<matrix_t> solver(K);
 			vector_t ev = solver.eigenvalues();
 			matrix_t V = solver.eigenvectors();
@@ -83,8 +86,13 @@ class greens_function
 	private:
 		matrix_t bare_time_gf(double tau, const vector_t& ev, const matrix_t& V)
 		{
-			matrix_t D = ev.unaryExpr([&](double e) { return std::exp(-tau * e)
-				/ (1.0 + std::exp(-beta * e)); }).asDiagonal();
+			matrix_t D = ev.unaryExpr([&](double e)
+			{
+				if (e > 0.)
+					return std::exp(-tau * e) / (1.0 + std::exp(-beta * e));
+				else
+					return std::exp((beta-tau) * e) / (1.0 + std::exp(beta * e));
+			}).asDiagonal();
 			return V * D * V.adjoint();
 		}
 		

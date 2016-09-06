@@ -58,8 +58,10 @@ class mc
 		void status();
 	private:
 		Random rng;
+		configuration config;
 		mctools qmc;
 		parser pars;
+		honeycomb hc;
 		int sweep;
 		int n_cycles;
 		int n_warmup;
@@ -67,7 +69,4 @@ class mc
 		int n_rebuild;
 		int n_tau_slices;
 		int n_matsubara;
-
-		honeycomb hc;
-		configuration config;
 };

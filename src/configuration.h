@@ -60,6 +60,7 @@ struct configuration
 	measurements& measure;
 	fast_update<full_g_entry, arg_t> M;
 	std::vector<int> shellsize;
+	double sign=1.;
 
 	configuration(measurements& measure_)
 		: l(), g0(), param(), measure(measure_), M{full_g_entry{g0}, l, param, 2}

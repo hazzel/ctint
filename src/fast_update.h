@@ -86,7 +86,7 @@ class fast_update
 			if (M.rows() == 0) return;
 			for (int i = 0; i < M.rows(); ++i)
 			{
-				M(i, i) = 0.0;
+				M(i, i) = param.mu;
 				for (int j = i+1; j < M.cols(); ++j)
 				{
 					M(i, j) = entry_function(vertices[i], vertices[j]);
@@ -355,7 +355,7 @@ class fast_update
 			}
 			for (int i = 0; i < n; ++i)
 			{
-				helper<n>().a(i, i) = 0.0;
+				helper<n>().a(i, i) = param.mu;
 				for (int j = i+1; j < n; ++j)
 				{
 					helper<n>().a(i, j) = entry_function(arg_buffer[i],
@@ -383,7 +383,7 @@ class fast_update
 			}
 			for (int i = 0; i < n; ++i)
 			{
-				helper<n, C>().a(i, i) = 0.0;
+				helper<n, C>().a(i, i) = param.mu;
 				for (int j = i+1; j < n; ++j)
 				{
 					helper<n, C>().a(i, j) = entry_function.matsubara_frequency(

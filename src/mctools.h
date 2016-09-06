@@ -9,6 +9,7 @@
 #include <iostream>
 #include <initializer_list>
 #include "Random.h"
+#include "configuration.h"
 #include "measurements.h"
 #include "move_base.h"
 #include "event_base.h"
@@ -17,9 +18,10 @@
 class mctools
 {
 	public:
-		mctools(Random& rng_) : rng(rng_) {}
-		~mctools()
-		{}
+		mctools(Random& rng_, configuration& config_)
+			: rng(rng_), config(config_)
+			{}
+		~mctools(){}
 
 		template<typename T>
 		void add_move(T&& functor, const std::string& name, double prop_rate=1.0)
@@ -42,7 +44,7 @@ class mctools
 			measures.push_back(measure_base(std::forward<T>(functor), name));
 		}
 
-		void do_update(measurements& measure_sign)
+		void do_update()
 		{
 			double r = rng();
 			for (int i = 0; i < moves.size(); ++i)
@@ -50,13 +52,11 @@ class mctools
 				if (r < proposal[i])
 				{
 					double q = moves[i].attempt();
-					if (q < -std::pow(10., -16.) && verbose)
-						std::cout << "Negative sign at " << moves[i].name()
-							<< " with value " << q << "." << std::endl;
-					if (q != 0.0)
-						measure_sign.add("sign", (q >= 0.0) - (q < 0.0));
 					if (rng() < std::abs(q))
+					{
+						config.sign *= (q >= 0.0) - (q < 0.0);
 						moves[i].accept();
+					}
 					else
 						moves[i].reject();
 					break;
@@ -123,6 +123,7 @@ class mctools
 		}
 	private:
 		Random& rng;
+		configuration& config;
 		std::vector<move_base> moves;
 		std::map<std::string, event_base> events;
 		std::vector<measure_base> measures;

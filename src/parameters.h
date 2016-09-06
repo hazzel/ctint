@@ -2,8 +2,8 @@
 
 struct parameters
 {	
-	double beta, V, zeta2, zeta4;
-	int worm_nhood_dist, n_matsubara, n_discrete_tau;
+	double beta, V, mu, zeta2, zeta4;
+	int worm_nhood_dist, n_matsubara, n_discrete_tau, n_prebin, n_static_cycles;
 	double ratio_w2, ratio_w4;
 	//Proposal probabilities
 	std::vector<double> add;
