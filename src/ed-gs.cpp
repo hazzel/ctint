@@ -155,11 +155,11 @@ int main(int ac, char** av)
 		}
 		for (auto& b : lat.bonds("kekule"))
 		{
-				state p = hspace.c_i({1, n.first}, b.second);
-				p = hspace.c_dag_i(p, b.first);
-				if (p.sign != 0)
-					kij_st(hspace.index(p.id), n.second) += p.sign
-						/ static_cast<double>(lat.n_bonds());
+			state p = hspace.c_i({1, n.first}, b.second);
+			p = hspace.c_dag_i(p, b.first);
+			if (p.sign != 0)
+				kij_st(hspace.index(p.id), n.second) += p.sign
+					/ static_cast<double>(lat.n_bonds());
 		}
 	});
 	arma::sp_mat M2 = M2_st.build_matrix();
@@ -214,6 +214,7 @@ int main(int ac, char** av)
 		<< E << "\t" << m2 << "\t" << m4 << "\t" << m4/(m2*m2) << "\t"
 		<< Ntau << "\t" << Nmat << std::endl;
 	std::cout << "<epsilon> = " << cij << std::endl;
+	std::cout << "<kekule> = " << kij << std::endl;
 	
 	// Build dynamic observables
 	sparse_storage<std::complex<double>, int_t> ni_st(hspace.sub_dimension());

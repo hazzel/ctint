@@ -35,6 +35,27 @@ struct event_print_M
 	}
 };
 
+struct event_print_vertices
+{
+	configuration& config;
+	measurements& measure;
+	
+	event_print_vertices(configuration& config_,
+		measurements& measure_)
+		: config(config_), measure(measure_)
+	{
+		std::ofstream file("V.txt", std::fstream::out);
+		file.close();
+	}
+
+	void trigger()
+	{
+		std::ofstream file("V.txt", std::fstream::app);
+		config.M.print_vertex_matrix(file);
+		file.close();
+	}
+};
+
 struct event_build
 {
 	configuration& config;

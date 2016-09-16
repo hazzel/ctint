@@ -45,9 +45,7 @@ mc::mc(const std::string& dir)
 	config.l.generate_graph(hc);
 	if (config.param.worm_nhood_dist == -1)
 		config.param.worm_nhood_dist = config.l.max_distance();
-	config.l.generate_neighbor_map("nearest neighbors", [this]
-		(lattice::vertex_t i, lattice::vertex_t j) {
-		return config.l.distance(i, j) == 1; });
+	hc.generate_maps(config.l);
 	config.l.generate_neighbor_map("worm nhood", [this]
 		(lattice::vertex_t i, lattice::vertex_t j) {
 		return config.l.distance(i, j) <= config.param.worm_nhood_dist; });
@@ -95,10 +93,33 @@ mc::mc(const std::string& dir)
 	
 	//Set up events
 	qmc.add_event(event_rebuild{config, config.measure}, "rebuild");
-	qmc.add_event(event_print_M{config, config.measure}, "print_M");
+	//qmc.add_event(event_print_M{config, config.measure}, "print_M");
+	qmc.add_event(event_print_vertices{config, config.measure}, "print_vertices");
 	qmc.add_event(event_build{config, rng}, "initial build");
 	//Initialize vertex list to reduce warm up time
 	qmc.trigger_event("initial build");
+	
+	std::ofstream f_epsilon("ep_lattice.txt");
+	std::ofstream f_kek("kek_lattice.txt");
+	std::ofstream f_chern("chern_lattice.txt");
+	for (auto& b : config.l.bonds("nearest neighbors"))
+		f_epsilon << b.first << "," << config.l.real_space_coord(b.first)[0] << ","
+			<< config.l.real_space_coord(b.first)[1] << "," << b.second << ","
+			<< config.l.real_space_coord(b.second)[0] << ","
+			<< config.l.real_space_coord(b.second)[1] << std::endl;
+	for (auto& b : config.l.bonds("kekule"))
+		f_kek << b.first << "," << config.l.real_space_coord(b.first)[0] << ","
+			<< config.l.real_space_coord(b.first)[1] << "," << b.second << ","
+			<< config.l.real_space_coord(b.second)[0] << ","
+			<< config.l.real_space_coord(b.second)[1] << std::endl;
+	for (auto& b : config.l.bonds("chern"))
+		f_chern << b.first << "," << config.l.real_space_coord(b.first)[0] << ","
+			<< config.l.real_space_coord(b.first)[1] << "," << b.second << ","
+			<< config.l.real_space_coord(b.second)[0] << ","
+			<< config.l.real_space_coord(b.second)[1] << std::endl;
+	f_epsilon.close();
+	f_kek.close();
+	f_chern.close();
 }
 
 mc::~mc()
@@ -193,8 +214,8 @@ void mc::do_update()
 	++sweep;
 	if (sweep % n_rebuild == 0)
 		qmc.trigger_event("rebuild");
-	if (is_thermalized() && sweep % 1000 == 0)
-		qmc.trigger_event("print_M");
+	//if (is_thermalized() && sweep % 1000 == 0)
+	//	qmc.trigger_event("print_vertices");
 	status();
 }
 

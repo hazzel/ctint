@@ -326,6 +326,27 @@ class fast_update
 			}
 			out << std::endl;
 		}
+		
+		void print_vertex_matrix(std::ostream& out)
+		{
+			std::vector<int> site_cnt(l.n_sites(), 0);
+			int offset = 0;
+			for (int f = 0; f < flavor_cnt.size(); f++)
+			{
+				for (int i = 0; i < flavor_cnt[f]/2; ++i)
+				{
+					site_cnt[vertices[offset+2*i].site] += 1;
+					site_cnt[vertices[offset+2*i+1].site] += 1;
+				}
+				offset += flavor_cnt[f];
+			}
+			for (int i = 0; i < l.n_sites(); ++i)
+			{
+				auto& pos = l.real_space_coord(i);
+				out << i << "," << pos[0] << "," << pos[1] << "," << site_cnt[i] << std::endl;
+			}
+			out << std::endl;
+		}
 	private:
 		template<int N, typename T> struct type {};
 		template<int N, typename T=double>
