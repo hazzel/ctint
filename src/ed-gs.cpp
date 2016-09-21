@@ -124,7 +124,7 @@ int main(int ac, char** av)
 	//Build static observables
 	sparse_storage<double, int_t> M2_st(hspace.sub_dimension()),
 		M4_st(hspace.sub_dimension()), cij_st(hspace.sub_dimension()),
-		kij_st(hspace.sub_dimension()), chern_ij_st(hspace.sub_dimension());
+		kij_st(hspace.sub_dimension());
 	hspace.build_operator([&] (const std::pair<int_t, int_t>& n)
 	{
 		for (int_t i = 0; i < lat.n_sites(); ++i)
@@ -169,26 +169,11 @@ int main(int ac, char** av)
 				kij_st(hspace.index(p.id), n.second) += -p.sign
 					/ static_cast<double>(lat.n_bonds());
 		}
-		for (auto& b : lat.bonds("chern"))
-		{
-			state p = hspace.c_i({1, n.first}, b.second);
-			p = hspace.c_dag_i(p, b.first);
-			if (p.sign != 0)
-				chern_ij_st(hspace.index(p.id), n.second) += -p.sign
-					/ static_cast<double>(lat.n_bonds());
-					
-			p = hspace.c_i({1, n.first}, b.first);
-			p = hspace.c_dag_i(p, b.second);
-			if (p.sign != 0)
-				chern_ij_st(hspace.index(p.id), n.second) += p.sign
-					/ static_cast<double>(lat.n_bonds());
-		}
 	});
 	arma::sp_mat M2 = M2_st.build_matrix();
 	arma::sp_mat M4 = M4_st.build_matrix();
 	arma::sp_mat Cij = cij_st.build_matrix();
 	arma::sp_mat Kij = kij_st.build_matrix();
-	arma::sp_mat Chernij = chern_ij_st.build_matrix();
 	std::cout << "Operator construction done." << std::endl;
 
 	std::string out_file = "../data/ed_L_" + std::to_string(L) + "__"
@@ -217,7 +202,7 @@ int main(int ac, char** av)
 		++degeneracy;
 	std::cout << "GS degeneracy: " << degeneracy << std::endl;
 	
-	double E = 0., m2 = 0., m4 = 0., cij = 0., kij = 0., chernij;
+	double E = 0., m2 = 0., m4 = 0., cij = 0., kij = 0.;
 	for (int i = 0; i < degeneracy; ++i)
 	{
 		E += ev(i) / degeneracy;
@@ -226,7 +211,6 @@ int main(int ac, char** av)
 		m4 += arma::trace(esT.row(i) * M4 * es.col(i));
 		cij += arma::trace(esT.row(i) * Cij * es.col(i));
 		kij += arma::trace(esT.row(i) * Kij * es.col(i));
-		chernij += arma::trace(esT.row(i) * Chernij * es.col(i));
 	}
 	
 	int Ntau = 120, Nmat = 20;
@@ -239,7 +223,6 @@ int main(int ac, char** av)
 		<< Ntau << "\t" << Nmat << std::endl;
 	std::cout << "<epsilon> = " << cij << std::endl;
 	std::cout << "<kekule> = " << kij << std::endl;
-	std::cout << "<chern> = " << chernij << std::endl;
 	
 	// Build dynamic observables
 	sparse_storage<std::complex<double>, int_t> ni_st(hspace.sub_dimension());
@@ -278,11 +261,16 @@ int main(int ac, char** av)
 				state p = hspace.c_i({1, n.first}, b.second);
 				p = hspace.c_dag_i(p, b.first);
 				if (p.sign != 0)
-					chern_st(hspace.index(p.id), n.second) += -p.sign;
-				p = hspace.c_i({1, n.first}, b.first);
-				p = hspace.c_dag_i(p, b.second);
+					chern_st(hspace.index(p.id), n.second) += std::complex<double>{0., p.sign
+						/ static_cast<double>(lat.n_bonds())};
+			}
+ 			for (auto& b : lat.bonds("chern_2"))
+			{
+				state p = hspace.c_i({1, n.first}, b.second);
+				p = hspace.c_dag_i(p, b.first);
 				if (p.sign != 0)
-					chern_st(hspace.index(p.id), n.second) += p.sign;
+					chern_st(hspace.index(p.id), n.second) += std::complex<double>{0., -p.sign
+						/ static_cast<double>(lat.n_bonds())};
 			}
 
 			for (int i = 0; i < lat.n_sites(); ++i)
@@ -338,7 +326,6 @@ int main(int ac, char** av)
 				}
 			}
 			epsilon_st(n.second, n.second) -= cij;
-			kekule_st(n.second, n.second) -= kij;
 		});
 	arma::sp_cx_mat ni_op = ni_st.build_matrix();
 	arma::sp_cx_mat kekule_op = kekule_st.build_matrix();
