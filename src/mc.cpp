@@ -98,6 +98,35 @@ mc::mc(const std::string& dir)
 	qmc.add_event(event_build{config, rng}, "initial build");
 	//Initialize vertex list to reduce warm up time
 	qmc.trigger_event("initial build");
+	
+	std::ofstream f_epsilon("ep_lattice.txt");
+	std::ofstream f_kek("kek_lattice.txt");
+	std::ofstream f_chern("chern_lattice.txt");
+	std::ofstream f_chern_2("chern_2_lattice.txt");
+	for (auto& b : config.l.bonds("nearest neighbors"))
+		f_epsilon << b.first << "," << config.l.real_space_coord(b.first)[0] << ","
+			<< config.l.real_space_coord(b.first)[1] << "," << b.second << ","
+			<< config.l.real_space_coord(b.second)[0] << ","
+			<< config.l.real_space_coord(b.second)[1] << std::endl;
+	for (auto& b : config.l.bonds("kekule"))
+		f_kek << b.first << "," << config.l.real_space_coord(b.first)[0] << ","
+			<< config.l.real_space_coord(b.first)[1] << "," << b.second << ","
+			<< config.l.real_space_coord(b.second)[0] << ","
+			<< config.l.real_space_coord(b.second)[1] << std::endl;
+	for (auto& b : config.l.bonds("chern"))
+		f_chern << b.first << "," << config.l.real_space_coord(b.first)[0] << ","
+			<< config.l.real_space_coord(b.first)[1] << "," << b.second << ","
+			<< config.l.real_space_coord(b.second)[0] << ","
+			<< config.l.real_space_coord(b.second)[1] << std::endl;
+	for (auto& b : config.l.bonds("chern_2"))
+		f_chern_2 << b.first << "," << config.l.real_space_coord(b.first)[0] << ","
+			<< config.l.real_space_coord(b.first)[1] << "," << b.second << ","
+			<< config.l.real_space_coord(b.second)[0] << ","
+			<< config.l.real_space_coord(b.second)[1] << std::endl;
+	f_epsilon.close();
+	f_kek.close();
+	f_chern.close();
+	f_chern_2.close();
 }
 
 mc::~mc()

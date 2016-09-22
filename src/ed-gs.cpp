@@ -40,10 +40,10 @@ std::vector<std::complex<double>> get_imaginary_time_obs(arma::SpMat<T>& op, int
 		double tau = n * t_step;
 		arma::Mat<std::complex<double>> D; D.zeros(es.n_rows, es.n_cols);
 		for (int i = 0; i < D.n_rows; ++i)
-			D(i, i) = std::exp(-ev[i] * tau);
+			D(i, i) = std::exp(-(ev[i]-ev.max()) * tau);
 		arma::Mat<std::complex<double>> U = es_cx * D * esT_cx;
 		for (int i = 0; i < D.n_rows; ++i)
-			D(i, i) = std::exp(ev[i] * tau);
+			D(i, i) = std::exp((ev[i]-ev.max()) * tau);
 		arma::Mat<std::complex<double>> UT = es_cx * D * esT_cx;
 		obs_vec[n] = 0.;
 		for (int a = 0; a < degeneracy; ++a)
@@ -213,8 +213,8 @@ int main(int ac, char** av)
 		kij += arma::trace(esT.row(i) * Kij * es.col(i));
 	}
 	
-	int Ntau = 120, Nmat = 20;
-	double t_step = 0.025;
+	int Ntau = 200, Nmat = 20;
+	double t_step = 0.02;
 	out << k << "\t" << L << "\t" << V << "\t" << T << "\t"
 		<< E << "\t" << m2 << "\t" << m4 << "\t" << m4/(m2*m2) << "\t"
 		<< Ntau << "\t" << Nmat << std::endl;
@@ -336,6 +336,13 @@ int main(int ac, char** av)
 	arma::sp_cx_mat sp_2_op = sp_2_st.build_matrix();
 	arma::sp_cx_mat tp_op = tp_st.build_matrix();
 	arma::sp_cx_mat tp_2_op = tp_2_st.build_matrix();
+	
+	std::complex<double> chern = 0;
+	arma::Mat<std::complex<double>> es_cx = arma::conv_to<arma::Mat<std::complex<double>>>::from(es);
+	arma::Mat<std::complex<double>> esT_cx = arma::conv_to<arma::Mat<std::complex<double>>>::from(esT);
+	for (int i = 0; i < degeneracy; ++i)
+		chern += arma::trace(esT_cx.row(i) * chern_op * es_cx.col(i));
+	std::cout << "<chern> = " << chern << std::endl; 
 
 	std::vector<std::vector<std::complex<double>>> obs_data_cx;
 	obs_data_cx.emplace_back(get_imaginary_time_obs(ni_op, Ntau, t_step, degeneracy, ev,
