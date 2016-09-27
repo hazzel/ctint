@@ -36,7 +36,7 @@ std::vector<T> get_imaginary_time_obs(arma::SpMat<T>& op, int Ntau,
 	std::vector<T> obs_vec(Ntau + 1);
 	for (int n = 0; n <= Ntau; ++n)
 	{
-		double tau = static_cast<double>(n) /static_cast<double>(Ntau) * beta;
+		double tau = static_cast<double>(n) / static_cast<double>(Ntau) * beta;
 		obs_vec[n] = T(0.);
 		for (int a = 0; a < ev.n_rows; ++a)
 			for (int b = 0; b < ev.n_rows; ++b)

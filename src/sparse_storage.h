@@ -36,4 +36,9 @@ struct sparse_storage
 		}
 		return arma::SpMat<T>(pos, values);
 	}
+	
+	void clear()
+	{
+		data.clear();
+	}
 };
