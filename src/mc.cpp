@@ -96,8 +96,7 @@ mc::mc(const std::string& dir)
 	//qmc.add_event(event_print_M{config, config.measure}, "print_M");
 	qmc.add_event(event_print_vertices{config, config.measure}, "print_vertices");
 	qmc.add_event(event_build{config, rng}, "initial build");
-	//Initialize vertex list to reduce warm up time
-	qmc.trigger_event("initial build");
+
 	
 	std::ofstream f_epsilon("ep_lattice.txt");
 	std::ofstream f_kek("kek_lattice.txt");
@@ -148,7 +147,11 @@ void mc::random_read(idump& d)
 	rng.NewRng();
 	rng.RngHandle()->read(d);
 }
-void mc::init() {}
+void mc::init()
+{
+	//Initialize vertex list to reduce warm up time
+	qmc.trigger_event("initial build");
+}
 
 void mc::write(const std::string& dir)
 {

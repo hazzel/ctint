@@ -47,6 +47,18 @@ std::vector<T> get_imaginary_time_obs(arma::SpMat<T>& op, int Ntau,
 	return obs_vec;
 }
 
+template<typename T>
+void print_data(std::ostream& out, const T& data)
+{
+	for (int j = 0; j < data.size(); ++j)
+	{
+		out << std::abs(data[j]) << "\t";
+		std::cout << std::abs(data[j]) << "\t";
+	}
+	out << std::endl;
+	std::cout << std::endl;
+}
+	
 int main(int ac, char** av)
 {
 	int L;
@@ -186,8 +198,8 @@ int main(int ac, char** av)
 	M2.clear();
 	M4.clear();
 	
-	int Ntau = 1000, Nmat = 20;
-	double t_step = 0.02;
+	int Ntau = 100, Nmat = 0;
+	double t_step = 0.2;
 	out << k << "\t" << L << "\t" << V << "\t" << T << "\t"
 		<< E << "\t" << m2 << "\t" << m4 << "\t" << m4/(m2*m2) << "\t"
 		<< Ntau << "\t" << Nmat << std::endl;
@@ -220,6 +232,7 @@ int main(int ac, char** av)
 	obs_data_cx.emplace_back(get_imaginary_time_obs(ni_op, Ntau, t_step, degeneracy, ev,
 		es, esT));
 	ni_op.clear();
+	print_data(out, obs_data_cx[0]);
 	
 	sparse_storage<std::complex<double>, int_t> kekule_st(hspace.sub_dimension());
 	hspace.build_operator([&]
@@ -250,6 +263,7 @@ int main(int ac, char** av)
 	for (int i = 0; i < degeneracy; ++i)
 		kek += arma::trace(esT_cx.row(i) * kekule_op * es_cx.col(i));
 	kekule_op.clear();
+	print_data(out, obs_data_cx[1]);
 	
 	sparse_storage<std::complex<double>, int_t> chern_st(hspace.sub_dimension());
 	hspace.build_operator([&]
@@ -280,6 +294,7 @@ int main(int ac, char** av)
 	for (int i = 0; i < degeneracy; ++i)
 		chern += arma::trace(esT_cx.row(i) * chern_op * es_cx.col(i));
 	chern_op.clear();
+	print_data(out, obs_data_cx[2]);
 	
 	sparse_storage<std::complex<double>, int_t> epsilon_st(hspace.sub_dimension());
 	hspace.build_operator([&]
@@ -323,6 +338,7 @@ int main(int ac, char** av)
 	obs_data_cx.emplace_back(get_imaginary_time_obs(sp_op, Ntau, t_step, degeneracy,
 		ev, es, esT));
 	sp_op.clear();
+	print_data(out, obs_data_cx[3]);
 	
 	sparse_storage<std::complex<double>, int_t> tp_st(hspace.sub_dimension());
 	hspace.build_operator([&]
@@ -349,6 +365,7 @@ int main(int ac, char** av)
 	obs_data_cx.emplace_back(get_imaginary_time_obs(tp_op, Ntau, t_step, degeneracy,
 		ev, es, esT));
 	tp_op.clear();
+	print_data(out, obs_data_cx[4]);
 	
 	//Subtract finite expectation value
 	hspace.build_operator([&]
@@ -361,22 +378,12 @@ int main(int ac, char** av)
 	obs_data_cx.emplace_back(get_imaginary_time_obs(epsilon_op, Ntau, t_step, degeneracy,
 		ev, es, esT));
 	epsilon_op.clear();
+	print_data(out, obs_data_cx[5]);
 	
 	std::cout << "Done" << std::endl;
 	std::cout << "<epsilon> = " << ep << std::endl;
 	std::cout << "<kekule> = " << kek << std::endl;
 	std::cout << "<chern> = " << chern << std::endl;
-
-	for (int i = 0; i < obs_data_cx.size(); ++i)
-	{
-		for (int j = 0; j < obs_data_cx[i].size(); ++j)
-		{
-			out << std::abs(obs_data_cx[i][j]) << "\t";
-			std::cout << std::abs(obs_data_cx[i][j]) << "\t";
-		}
-		out << std::endl;
-		std::cout << std::endl;
-	}
 		
 	out.close();
 }
