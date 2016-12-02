@@ -18,7 +18,7 @@ from texify import *
 import scipy.integrate
 
 def FitFunction(x, a, b, c):
-	return a + b*np.exp(-c*x)
+	return a+b*np.exp(-c*x)
 
 def combinatorial_factor(n, k):
 	prod = Decimal(1)
@@ -64,7 +64,6 @@ filelist.sort()
 
 filelist = [item for sublist in filelist for item in sublist]
 for f in filelist:
-	figure, (ax1, ax2, ax3) = plt.subplots(1, 3)
 	plist = ParseParameters(f)
 	elist = ParseEvalables(f)
 
@@ -102,12 +101,14 @@ for f in filelist:
 			n_ed_tau = int(ed_data[0][8])
 			n_ed_mat = int(ed_data[0][9])
 
+		figure, ax2 = plt.subplots(1, 1)
 		figure.suptitle(r"$L = " + str(L) + ",\ V = " + str(h) + ",\ T = " + str(T) + "$")
 		
 		x_tau = np.array(range(0, n_discrete_tau + 1)) / float(n_discrete_tau) / T
 		y_tau = np.abs(np.array(ArrangePlot(elist[i], "dyn_"+obs+"_tau")[0]))
 		err_tau = np.abs(np.array(ArrangePlot(elist[i], "dyn_"+obs+"_tau")[1]))
 
+		'''
 		ax1.set_xlabel(r"$\omega_n$")
 		ax1.set_ylabel(r"$M_2(\omega_n) \cdot \omega_n^2$")
 		if len(ed_glob) > 0:
@@ -122,6 +123,7 @@ for f in filelist:
 			for n in range(n_ed_mat):
 				y_num_int[n] = scipy.integrate.simps(ed_data[ed_n] * np.cos(ed_tau * x_mat[n]), ed_tau)
 			ax1.plot(x_mat, y_num_int * xscale, marker='o', color="b", markersize=10.0, linewidth=2.0)
+		'''
 
 		ax2.set_xlabel(r"$\tau$")
 		ax2.set_ylabel(r"$M_2(\tau)$")
@@ -134,23 +136,21 @@ for f in filelist:
 			ax2.plot(ed_tau, ed_data[ed_n], marker='o', color="r", markersize=10.0, linewidth=2.0, label=r'$L='+str(int(L))+'$')
 			#ax2.plot(ed_tau, np.flipud(ed_data[ed_n]), marker='o', color="orange", markersize=10.0, linewidth=2.0, label=r'$L='+str(int(L))+'$')
 		
-		try:
-			nmin = len(x_tau)*0/32; nmax = len(x_tau)*16/32
-			#nmin = len(x_tau)*10/16; nmax = len(x_tau)*14/16
-			#nmin = len(x_tau)*17/32; nmax = len(x_tau)*31/32
-			#nmin = 0; nmax = len(x_tau)*2/16
-			parameter, perr = fit_function( [0.1, 0.1, 1.], x_tau[nmin:nmax], y_tau[nmin:nmax], FitFunction, datayerrors=err_tau[nmin:nmax])
-			#parameter, perr = curve_fit(FitFunction, ed_tau[0:10], ed_data[ed_n][0:10], p0=[0.01, 0.01, 1.])
-			px = np.linspace(x_tau[nmin], x_tau[nmax], 1000)
-			ax2.plot(px, FitFunction(px, *parameter), 'k-', linewidth=3.0)
-			d = -int(np.log10(abs(perr[2])))+2
-			ax2.text(0.10, 0.98, r"$\Delta_{FIT} = " + ("{:."+str(d)+"f}").format(parameter[2]) + "(" + str(round(perr[2], d)*10.**d).partition('.')[0] + ")$", transform=ax2.transAxes, fontsize=20, va='top')
-			#ax2.text(0.05, 0.92, r"$\Delta_{ED} = 0.9264$", transform=ax2.transAxes, fontsize=20, va='top')
-			print parameter
-			print perr
-		except:
-			print "runtime error"
+		nmin = len(x_tau)*2/32; nmax = len(x_tau)*10/32
+		#nmin = len(x_tau)*10/16; nmax = len(x_tau)*14/16
+		#nmin = len(x_tau)*17/32; nmax = len(x_tau)*31/32
+		#nmin = 0; nmax = len(x_tau)*2/16
+		#parameter, perr = fit_function( [0.1, 0.1, 1.], x_tau[nmin:nmax], y_tau[nmin:nmax], FitFunction, datayerrors=err_tau[nmin:nmax])
+		parameter, perr = scipy.optimize.curve_fit( FitFunction, x_tau[nmin:nmax], y_tau[nmin:nmax], p0=[0.1, 1., 1.])
+		px = np.linspace(x_tau[nmin], x_tau[nmax], 1000)
+		ax2.plot(px, FitFunction(px, *parameter), 'k-', linewidth=3.0)
+		d = 3
+		ax2.text(0.10, 0.98, r"$\Delta_{FIT} = " + ("{:."+str(d)+"f}").format(parameter[2]) + "(" + str(round(perr[2][2], d)*10.**d).partition('.')[0] + ")$", transform=ax2.transAxes, fontsize=20, va='top')
+		#ax2.text(0.05, 0.92, r"$\Delta_{ED} = 0.9264$", transform=ax2.transAxes, fontsize=20, va='top')
+		print parameter
+		print perr
 		
+		'''
 		ax3.set_xlabel(r"$n$")
 		ax3.set_ylabel(r"$\Delta_n$")
 		if len(ed_glob) > 0:
@@ -159,6 +159,7 @@ for f in filelist:
 			for n in range(1, n_ed_mat):
 				y_delta[n-1] = estimator(n, 1./T, ed_data[ed_n+1], parity)
 			ax3.plot(x_delta, y_delta, marker="o", color="red", markersize=10.0, linewidth=2.0, label=r'$L='+str(int(L))+'$')
+		'''
 		
 	plt.tight_layout()
 plt.show()

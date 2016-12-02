@@ -27,12 +27,13 @@ void print_help(const T& desc)
 
 // Imaginary time observables
 template<typename T>
-std::vector<T> get_imaginary_time_obs(arma::SpMat<T>& op, int Ntau,
-	double t_step, int degeneracy, arma::vec& ev, arma::mat& es,
-	arma::mat& esT)
+std::vector<T> get_imaginary_time_obs(arma::SpMat<T>& op, 
+	int Ntau, double t_step, int degeneracy,
+	arma::vec& ev, arma::mat& es, arma::mat& esT)
 {
 	arma::Mat<T> es_cx = arma::conv_to<arma::Mat<T>>::from(es);
 	arma::Mat<T> esT_cx = arma::conv_to<arma::Mat<T>>::from(esT);
+	arma::SpMat<T> opT = op.t();
 	std::vector<T> obs_vec(Ntau + 1);
 	for (int n = 0; n <= Ntau; ++n)
 	{
@@ -42,7 +43,7 @@ std::vector<T> get_imaginary_time_obs(arma::SpMat<T>& op, int Ntau,
 			for (int b = 0; b < ev.n_rows; ++b)
 				obs_vec[n] += std::exp(tau * (ev(a) - ev(b)))
 					* arma::trace(esT_cx.row(a) * op * es_cx.col(b))
-					* arma::trace(esT_cx.row(b) * op.t() * es_cx.col(a));
+					* arma::trace(esT_cx.row(b) * opT * es_cx.col(a));
 	}
 	return obs_vec;
 }
@@ -52,8 +53,8 @@ void print_data(std::ostream& out, const T& data)
 {
 	for (int j = 0; j < data.size(); ++j)
 	{
-		out << std::abs(data[j]) << "\t";
-		std::cout << std::abs(data[j]) << "\t";
+		out << std::real(data[j]) << "\t";
+		std::cout << std::real(data[j]) << "\t";
 	}
 	out << std::endl;
 	std::cout << std::endl;
@@ -206,7 +207,7 @@ int main(int ac, char** av)
 	M2.clear();
 	M4.clear();
 	
-	int Ntau = 100, Nmat = 0;
+	int Ntau = 10, Nmat = 0;
 	double t_step = 0.2;
 	out << k << "\t" << L << "\t" << V << "\t" << T << "\t"
 		<< E << "\t" << m2 << "\t" << m4 << "\t" << m4/(m2*m2) << "\t"
@@ -285,24 +286,25 @@ int main(int ac, char** av)
 				if (p.sign != 0)
 					chern_st(hspace.index(p.id), n.second) += std::complex<double>{0., p.sign
 						/ static_cast<double>(lat.n_bonds())};
-				p = hspace.c_i({1, n.first}, b.first);
-				p = hspace.c_dag_i(p, b.second);
-				if (p.sign != 0)
-					chern_st(hspace.index(p.id), n.second) += std::complex<double>{0., -p.sign
-						/ static_cast<double>(lat.n_bonds())};
+				//p = hspace.c_i({1, n.first}, b.first);
+				//p = hspace.c_dag_i(p, b.second);
+				//if (p.sign != 0)
+				//	chern_st(hspace.index(p.id), n.second) += std::complex<double>{0., -p.sign
+				//		/ static_cast<double>(lat.n_bonds())};
 			}
+			//chern
 			for (auto& b : lat.bonds("chern_2"))
 			{
 				state p = hspace.c_i({1, n.first}, b.second);
 				p = hspace.c_dag_i(p, b.first);
 				if (p.sign != 0)
-					chern_st(hspace.index(p.id), n.second) += std::complex<double>{0., p.sign
-						/ static_cast<double>(lat.n_bonds())};
-				p = hspace.c_i({1, n.first}, b.first);
-				p = hspace.c_dag_i(p, b.second);
-				if (p.sign != 0)
 					chern_st(hspace.index(p.id), n.second) += std::complex<double>{0., -p.sign
 						/ static_cast<double>(lat.n_bonds())};
+				//p = hspace.c_i({1, n.first}, b.first);
+				//p = hspace.c_dag_i(p, b.second);
+				//if (p.sign != 0)
+				//	chern_st(hspace.index(p.id), n.second) += std::complex<double>{0., -p.sign
+				//		/ static_cast<double>(lat.n_bonds())};
 			}
 		});
 	arma::sp_cx_mat chern_op = chern_st.build_matrix();
@@ -384,8 +386,8 @@ int main(int ac, char** av)
 						auto& K = lat.symmetry_point("K");
 						std::complex<double> phase = std::exp(std::complex<double>(0.,
 							K.dot(lat.real_space_coord(i) - lat.real_space_coord(j))));
-						state p = hspace.c_dag_i({1, n.first}, j);
-						p = hspace.c_dag_i(p, i);
+						state p = hspace.c_i({1, n.first}, j);
+						p = hspace.c_i(p, i);
 						if (p.sign != 0)
 							tp_st(hspace.index(p.id), n.second) += phase
 								* std::complex<double>(p.sign);
