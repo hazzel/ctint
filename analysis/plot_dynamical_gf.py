@@ -67,7 +67,7 @@ for f in filelist:
 	plist = ParseParameters(f)
 	elist = ParseEvalables(f)
 
-	obs = "M2"
+	obs = "sp"
 	if obs == "M2":
 		ed_n = 1
 		parity = 1.
@@ -136,6 +136,7 @@ for f in filelist:
 			ax2.plot(ed_tau, ed_data[ed_n], marker='o', color="r", markersize=10.0, linewidth=2.0, label=r'$L='+str(int(L))+'$')
 			#ax2.plot(ed_tau, np.flipud(ed_data[ed_n]), marker='o', color="orange", markersize=10.0, linewidth=2.0, label=r'$L='+str(int(L))+'$')
 		
+		'''
 		nmin = len(x_tau)*2/32; nmax = len(x_tau)*10/32
 		#nmin = len(x_tau)*10/16; nmax = len(x_tau)*14/16
 		#nmin = len(x_tau)*17/32; nmax = len(x_tau)*31/32
@@ -149,7 +150,7 @@ for f in filelist:
 		#ax2.text(0.05, 0.92, r"$\Delta_{ED} = 0.9264$", transform=ax2.transAxes, fontsize=20, va='top')
 		print parameter
 		print perr
-		
+		'''
 		'''
 		ax3.set_xlabel(r"$n$")
 		ax3.set_ylabel(r"$\Delta_n$")

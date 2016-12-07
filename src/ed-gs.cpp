@@ -207,7 +207,7 @@ int main(int ac, char** av)
 	M2.clear();
 	M4.clear();
 	
-	int Ntau = 10, Nmat = 0;
+	int Ntau = 20, Nmat = 0;
 	double t_step = 0.2;
 	out << k << "\t" << L << "\t" << V << "\t" << T << "\t"
 		<< E << "\t" << m2 << "\t" << m4 << "\t" << m4/(m2*m2) << "\t"
@@ -250,12 +250,20 @@ int main(int ac, char** av)
 			//kekule
 			for (auto& b : lat.bonds("kekule"))
 			{
+				auto& K = lat.symmetry_point("K");
+				auto& r_i = lat.real_space_coord(b.first);
+				auto& r_j = lat.real_space_coord(b.second);
+				std::complex<double> phase = std::exp(std::complex<double>(0.,
+					K.dot(r_i - r_j)));
+					
 				state p = hspace.c_i({1, n.first}, b.second);
 				p = hspace.c_dag_i(p, b.first);
 				if (p.sign != 0)
-					kekule_st(hspace.index(p.id), n.second) += p.sign
+					kekule_st(hspace.index(p.id), n.second) += phase
+						* std::complex<double>(p.sign)
 						/ static_cast<double>(lat.n_bonds());
 			}
+			/*
 			for (auto& b : lat.bonds("kekule_2"))
 			{
 				state p = hspace.c_i({1, n.first}, b.second);
@@ -264,6 +272,7 @@ int main(int ac, char** av)
 					kekule_st(hspace.index(p.id), n.second) += -p.sign
 						/ static_cast<double>(lat.n_bonds());
 			}
+			*/
 		});
 	arma::sp_cx_mat kekule_op = kekule_st.build_matrix();
 	kekule_st.clear();
@@ -286,12 +295,13 @@ int main(int ac, char** av)
 				if (p.sign != 0)
 					chern_st(hspace.index(p.id), n.second) += std::complex<double>{0., p.sign
 						/ static_cast<double>(lat.n_bonds())};
-				//p = hspace.c_i({1, n.first}, b.first);
-				//p = hspace.c_dag_i(p, b.second);
-				//if (p.sign != 0)
-				//	chern_st(hspace.index(p.id), n.second) += std::complex<double>{0., -p.sign
-				//		/ static_cast<double>(lat.n_bonds())};
+				p = hspace.c_i({1, n.first}, b.first);
+				p = hspace.c_dag_i(p, b.second);
+				if (p.sign != 0)
+					chern_st(hspace.index(p.id), n.second) += std::complex<double>{0., -p.sign
+						/ static_cast<double>(lat.n_bonds())};
 			}
+			/*
 			//chern
 			for (auto& b : lat.bonds("chern_2"))
 			{
@@ -306,6 +316,7 @@ int main(int ac, char** av)
 				//	chern_st(hspace.index(p.id), n.second) += std::complex<double>{0., -p.sign
 				//		/ static_cast<double>(lat.n_bonds())};
 			}
+			*/
 		});
 	arma::sp_cx_mat chern_op = chern_st.build_matrix();
 	chern_st.clear();
