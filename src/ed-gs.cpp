@@ -10,6 +10,7 @@
 #include <boost/program_options.hpp>
 #include <boost/multiprecision/mpfr.hpp>
 #include "lattice.h"
+#include "hex_honeycomb.h"
 #include "honeycomb.h"
 #include "hilbert.h"
 #include "sparse_storage.h"
@@ -67,7 +68,7 @@ int main(int ac, char** av)
 	double mu;
 	double T;
 	int k;
-	std::string ensemble;
+	std::string ensemble, geometry;
 
 	po::options_description desc("Allowed options");
 	desc.add_options()
@@ -77,21 +78,37 @@ int main(int ac, char** av)
 		("mu", po::value<double>(&mu)->default_value(0.), "chemical potential")
 		("k", po::value<int>(&k)->default_value(100), "number of eigenstates")
 		("ensemble,e", po::value<std::string>(&ensemble)->default_value("gc"),
-			"ensemble: gc or c");
+			"ensemble: gc or c")
+		("geometry,g", po::value<std::string>(&geometry)->default_value("rhom"),
+			"geometry: rhombic or hexagonal");
 	po::variables_map vm;
 	po::store(po::parse_command_line(ac, av, desc), vm);
 	po::notify(vm);
 
 	if (vm.count("help")) print_help(desc);
+	if (geometry == "hex")
+		L = 1;
+	else
+		geometry = "rhom";
+	std::cout << "geometry: " << geometry << std::endl;
 	std::cout << "L = " << L << std::endl;
 	std::cout << "V = " << V << std::endl;
 	std::cout << "mu = " << mu << std::endl;
 	std::cout << "ensemble: " << ensemble << std::endl;
 	//Generate lattice
-	honeycomb h(L);
 	lattice lat;
-	lat.generate_graph(h);
-	h.generate_maps(lat);
+	if (geometry == "hex")
+	{
+		hex_honeycomb h(L);
+		lat.generate_graph(h);
+		h.generate_maps(lat);
+	}
+	else if (geometry == "rhom")
+	{
+		honeycomb h(L);
+		lat.generate_graph(h);
+		h.generate_maps(lat);
+	}
 
 	//Generate hilbert space and build basis
 	hilbert hspace(lat);
@@ -207,7 +224,7 @@ int main(int ac, char** av)
 	M2.clear();
 	M4.clear();
 	
-	int Ntau = 20, Nmat = 0;
+	int Ntau = 10, Nmat = 0;
 	double t_step = 0.2;
 	out << k << "\t" << L << "\t" << V << "\t" << T << "\t"
 		<< E << "\t" << m2 << "\t" << m4 << "\t" << m4/(m2*m2) << "\t"
@@ -247,32 +264,28 @@ int main(int ac, char** av)
 	hspace.build_operator([&]
 		(const std::pair<int_t, int_t>& n)
 		{
+			auto& K = lat.symmetry_point("K");
 			//kekule
 			for (auto& b : lat.bonds("kekule"))
 			{
-				auto& K = lat.symmetry_point("K");
-				auto& r_i = lat.real_space_coord(b.first);
-				auto& r_j = lat.real_space_coord(b.second);
-				std::complex<double> phase = std::exp(std::complex<double>(0.,
-					K.dot(r_i - r_j)));
-					
 				state p = hspace.c_i({1, n.first}, b.second);
 				p = hspace.c_dag_i(p, b.first);
 				if (p.sign != 0)
-					kekule_st(hspace.index(p.id), n.second) += phase
-						* std::complex<double>(p.sign)
+					kekule_st(hspace.index(p.id), n.second) +=
+						std::complex<double>(p.sign)
 						/ static_cast<double>(lat.n_bonds());
 			}
-			/*
+			
 			for (auto& b : lat.bonds("kekule_2"))
 			{
 				state p = hspace.c_i({1, n.first}, b.second);
 				p = hspace.c_dag_i(p, b.first);
 				if (p.sign != 0)
-					kekule_st(hspace.index(p.id), n.second) += -p.sign
+					kekule_st(hspace.index(p.id), n.second) +=
+						-std::complex<double>(p.sign)
 						/ static_cast<double>(lat.n_bonds());
 			}
-			*/
+			
 		});
 	arma::sp_cx_mat kekule_op = kekule_st.build_matrix();
 	kekule_st.clear();
@@ -324,6 +337,16 @@ int main(int ac, char** av)
 		ev, es, esT));
 	for (int i = 0; i < degeneracy; ++i)
 		chern += arma::trace(esT_cx.row(i) * chern_op * es_cx.col(i));
+	std::cout << std::endl;
+	std::cout << "----------" << std::endl;
+	for (int i = 0; i < esT_cx.n_rows; ++i)
+	{
+		std::complex<double> c = arma::trace(esT_cx.row(i) * chern_op * es_cx.col(i));
+		if (i == 0 || std::abs(c) > std::pow(10., -16.))
+			std::cout << "<" << i << "| O_chern |" << i << "> = " << c << std::endl;
+	}
+	std::cout << "----------" << std::endl;
+	std::cout << std::endl;
 	chern_op.clear();
 	print_data(out, obs_data_cx[2]);
 	
