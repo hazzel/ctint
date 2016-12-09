@@ -224,7 +224,7 @@ int main(int ac, char** av)
 	M2.clear();
 	M4.clear();
 	
-	int Ntau = 10, Nmat = 0;
+	int Ntau = 100, Nmat = 0;
 	double t_step = 0.2;
 	out << k << "\t" << L << "\t" << V << "\t" << T << "\t"
 		<< E << "\t" << m2 << "\t" << m4 << "\t" << m4/(m2*m2) << "\t"
@@ -264,7 +264,6 @@ int main(int ac, char** av)
 	hspace.build_operator([&]
 		(const std::pair<int_t, int_t>& n)
 		{
-			auto& K = lat.symmetry_point("K");
 			//kekule
 			for (auto& b : lat.bonds("kekule"))
 			{
@@ -323,11 +322,11 @@ int main(int ac, char** av)
 				if (p.sign != 0)
 					chern_st(hspace.index(p.id), n.second) += std::complex<double>{0., -p.sign
 						/ static_cast<double>(lat.n_bonds())};
-				//p = hspace.c_i({1, n.first}, b.first);
-				//p = hspace.c_dag_i(p, b.second);
-				//if (p.sign != 0)
-				//	chern_st(hspace.index(p.id), n.second) += std::complex<double>{0., -p.sign
-				//		/ static_cast<double>(lat.n_bonds())};
+				p = hspace.c_i({1, n.first}, b.first);
+				p = hspace.c_dag_i(p, b.second);
+				if (p.sign != 0)
+					chern_st(hspace.index(p.id), n.second) += std::complex<double>{0., p.sign
+						/ static_cast<double>(lat.n_bonds())};
 			}
 			*/
 		});
@@ -347,6 +346,25 @@ int main(int ac, char** av)
 	}
 	std::cout << "----------" << std::endl;
 	std::cout << std::endl;
+	if (hspace.sub_dimension() < 1000)
+	{
+		arma::vec ev_chern; arma::cx_mat es_chern;
+		arma::cx_mat chern_dense(chern_op);
+		arma::eig_sym(ev_chern, es_chern, chern_dense);
+		
+		//for (int i = 0; i < 5; ++i)
+		//	std::cout << "E_chern = " << ev_chern[i] << std::endl;
+		std::cout << ev_chern << std::endl;
+	}
+	else
+	{
+		arma::cx_vec ev_chern; arma::cx_mat es_chern;
+		arma::eigs_gen(ev_chern, es_chern, chern_op, std::min(hspace.sub_dimension()-2,
+			static_cast<int_t>(k)), "sa");
+		
+		for (int i = 0; i < 5; ++i)
+			std::cout << "E_chern = " << ev_chern[i] << std::endl;
+	}
 	chern_op.clear();
 	print_data(out, obs_data_cx[2]);
 	
