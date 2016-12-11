@@ -61,9 +61,9 @@ void print_overlap(arma::SpMat<T>& op, const std::string& name,
 	for (int i = 0; i < esT_cx.n_rows; ++i)
 	{
 		double c = std::abs(arma::trace(esT_cx.row(i) * op * es_cx.col(0)));
-		if (i == 0 || c > std::pow(10., -14.))
+		if (i == 0 || c > std::pow(10., -15.))
 		{
-			std::cout << "<" << i << "| " + name + " |0> = " << c
+			std::cout << "|<" << i << "| " + name + " |0>|^2 = " << c
 				<< ", E(" << i << ") - E(0) = " << ev[i]-ev[0] << std::endl;
 			++cnt;
 		}
@@ -253,9 +253,12 @@ int main(int ac, char** av)
 	out << k << "\t" << L << "\t" << V << "\t" << T << "\t"
 		<< E << "\t" << m2 << "\t" << m4 << "\t" << m4/(m2*m2) << "\t"
 		<< Ntau << "\t" << Nmat << std::endl;
-	std::cout << k << "\t" << L << "\t" << V << "\t" << T << "\t"
-		<< E << "\t" << m2 << "\t" << m4 << "\t" << m4/(m2*m2) << "\t"
-		<< Ntau << "\t" << Nmat << std::endl;
+	std::cout << "E = " << E << std::endl;
+	std::cout << "M2 = " << m2 << std::endl;
+	std::cout << "M4 = " << m4 << std::endl;
+	std::cout << "B_CDW = " << m4/(m2*m2) << std::endl;
+	std::cout << "T = " << T << std::endl;
+
 	
 	// Build dynamic observables
 	std::cout << "Constructing dynamic operators...";
