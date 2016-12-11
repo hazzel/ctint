@@ -50,6 +50,30 @@ std::vector<T> get_imaginary_time_obs(arma::SpMat<T>& op,
 }
 
 template<typename T>
+void print_overlap(arma::SpMat<T>& op, const std::string& name,
+	arma::vec& ev, arma::mat& es, arma::mat& esT)
+{
+	arma::Mat<T> es_cx = arma::conv_to<arma::Mat<T>>::from(es);
+	arma::Mat<T> esT_cx = arma::conv_to<arma::Mat<T>>::from(esT);
+	std::cout << std::endl;
+	std::cout << "----------" << std::endl;
+	int cnt = 0;
+	for (int i = 0; i < esT_cx.n_rows; ++i)
+	{
+		double c = std::abs(arma::trace(esT_cx.row(i) * op * es_cx.col(0)));
+		if (i == 0 || c > std::pow(10., -14.))
+		{
+			std::cout << "<" << i << "| " + name + " |0> = " << c
+				<< ", E(" << i << ") - E(0) = " << ev[i]-ev[0] << std::endl;
+			++cnt;
+		}
+		if (cnt >= 10) break;
+	}
+	std::cout << "----------" << std::endl;
+	std::cout << std::endl;
+}
+
+template<typename T>
 void print_data(std::ostream& out, const T& data)
 {
 	for (int j = 0; j < data.size(); ++j)
@@ -224,7 +248,7 @@ int main(int ac, char** av)
 	M2.clear();
 	M4.clear();
 	
-	int Ntau = 100, Nmat = 0;
+	int Ntau = 50, Nmat = 0;
 	double t_step = 0.2;
 	out << k << "\t" << L << "\t" << V << "\t" << T << "\t"
 		<< E << "\t" << m2 << "\t" << m4 << "\t" << m4/(m2*m2) << "\t"
@@ -257,6 +281,7 @@ int main(int ac, char** av)
 	ni_st.clear();
 	obs_data_cx.emplace_back(get_imaginary_time_obs(ni_op, Ntau, t_step, degeneracy, ev,
 		es, esT));
+	print_overlap(ni_op, "cdw", ev, es, esT);
 	ni_op.clear();
 	print_data(out, obs_data_cx[0]);
 	
@@ -292,6 +317,7 @@ int main(int ac, char** av)
 		ev, es, esT));
 	for (int i = 0; i < degeneracy; ++i)
 		kek += arma::trace(esT_cx.row(i) * kekule_op * es_cx.col(i));
+	print_overlap(kekule_op, "kekule", ev, es, esT);
 	kekule_op.clear();
 	print_data(out, obs_data_cx[1]);
 	
@@ -313,7 +339,6 @@ int main(int ac, char** av)
 					chern_st(hspace.index(p.id), n.second) += std::complex<double>{0., -p.sign
 						/ static_cast<double>(lat.n_bonds())};
 			}
-			/*
 			//chern
 			for (auto& b : lat.bonds("chern_2"))
 			{
@@ -328,7 +353,6 @@ int main(int ac, char** av)
 					chern_st(hspace.index(p.id), n.second) += std::complex<double>{0., p.sign
 						/ static_cast<double>(lat.n_bonds())};
 			}
-			*/
 		});
 	arma::sp_cx_mat chern_op = chern_st.build_matrix();
 	chern_st.clear();
@@ -336,35 +360,7 @@ int main(int ac, char** av)
 		ev, es, esT));
 	for (int i = 0; i < degeneracy; ++i)
 		chern += arma::trace(esT_cx.row(i) * chern_op * es_cx.col(i));
-	std::cout << std::endl;
-	std::cout << "----------" << std::endl;
-	for (int i = 0; i < esT_cx.n_rows; ++i)
-	{
-		std::complex<double> c = arma::trace(esT_cx.row(i) * chern_op * es_cx.col(i));
-		if (i == 0 || std::abs(c) > std::pow(10., -16.))
-			std::cout << "<" << i << "| O_chern |" << i << "> = " << c << std::endl;
-	}
-	std::cout << "----------" << std::endl;
-	std::cout << std::endl;
-	if (hspace.sub_dimension() < 1000)
-	{
-		arma::vec ev_chern; arma::cx_mat es_chern;
-		arma::cx_mat chern_dense(chern_op);
-		arma::eig_sym(ev_chern, es_chern, chern_dense);
-		
-		//for (int i = 0; i < 5; ++i)
-		//	std::cout << "E_chern = " << ev_chern[i] << std::endl;
-		std::cout << ev_chern << std::endl;
-	}
-	else
-	{
-		arma::cx_vec ev_chern; arma::cx_mat es_chern;
-		arma::eigs_gen(ev_chern, es_chern, chern_op, std::min(hspace.sub_dimension()-2,
-			static_cast<int_t>(k)), "sa");
-		
-		for (int i = 0; i < 5; ++i)
-			std::cout << "E_chern = " << ev_chern[i] << std::endl;
-	}
+	print_overlap(chern_op, "chern", ev, es, esT);
 	chern_op.clear();
 	print_data(out, obs_data_cx[2]);
 	
@@ -395,6 +391,7 @@ int main(int ac, char** av)
 			epsilon_st(n.second, n.second) -= ep;
 		});
 	epsilon_op = epsilon_st.build_matrix();
+	print_overlap(epsilon_op, "epsilon", ev, es, esT);
 	epsilon_st.clear();
 	obs_data_cx.emplace_back(get_imaginary_time_obs(epsilon_op, Ntau, t_step, degeneracy,
 		ev, es, esT));
@@ -420,6 +417,7 @@ int main(int ac, char** av)
 				}
 			});
 		arma::sp_cx_mat sp_op = sp_st.build_matrix();
+		print_overlap(sp_op, "sp", ev, es, esT);
 		sp_st.clear();
 		obs_data_cx.emplace_back(get_imaginary_time_obs(sp_op, Ntau, t_step, degeneracy,
 			ev, es, esT));
@@ -447,6 +445,7 @@ int main(int ac, char** av)
 				}
 			});
 		arma::sp_cx_mat tp_op = tp_st.build_matrix();
+		print_overlap(tp_op, "tp", ev, es, esT);
 		tp_st.clear();
 		obs_data_cx.emplace_back(get_imaginary_time_obs(tp_op, Ntau, t_step, degeneracy,
 			ev, es, esT));
