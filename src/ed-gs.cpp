@@ -88,9 +88,9 @@ void print_data(std::ostream& out, const T& data)
 int main(int ac, char** av)
 {
 	int L;
+	double tprime;
 	double V;
 	double mu;
-	double T;
 	int k;
 	std::string ensemble, geometry;
 
@@ -98,6 +98,7 @@ int main(int ac, char** av)
 	desc.add_options()
 		("help", "produce help message")
 		("L", po::value<int>(&L)->default_value(3), "linear lattice dimension")
+		("tprime", po::value<double>(&tprime)->default_value(0.), "d3 hopping")
 		("V", po::value<double>(&V)->default_value(1.355), "interaction strength")
 		("mu", po::value<double>(&mu)->default_value(0.), "chemical potential")
 		("k", po::value<int>(&k)->default_value(100), "number of eigenstates")
@@ -171,6 +172,13 @@ int main(int ac, char** av)
 					H_st(n.second, n.second) += V * (hspace.n_i({1, n.first}, i)
 						- 0.5) * (hspace.n_i({1, n.first}, j) - 0.5);
 			}
+		}
+		for (auto& a : lat.bonds("d3_bonds"))
+		{
+			state m = hspace.c_i({-1, n.first}, a.second);
+			m = hspace.c_dag_i(m, a.first);
+			if (m.sign != 0)
+				H_st(hspace.index(m.id), n.second) += m.sign * (-1.) * tprime;
 		}
 	});
 	arma::sp_mat H = H_st.build_matrix();
@@ -250,14 +258,13 @@ int main(int ac, char** av)
 	
 	int Ntau = 50, Nmat = 0;
 	double t_step = 0.2;
-	out << k << "\t" << L << "\t" << V << "\t" << T << "\t"
+	out << k << "\t" << L << "\t" << V << "\t" << 0 << "\t"
 		<< E << "\t" << m2 << "\t" << m4 << "\t" << m4/(m2*m2) << "\t"
 		<< Ntau << "\t" << Nmat << std::endl;
 	std::cout << "E = " << E << std::endl;
 	std::cout << "M2 = " << m2 << std::endl;
 	std::cout << "M4 = " << m4 << std::endl;
 	std::cout << "B_CDW = " << m4/(m2*m2) << std::endl;
-	std::cout << "T = " << T << std::endl;
 
 	
 	// Build dynamic observables
@@ -342,20 +349,22 @@ int main(int ac, char** av)
 					chern_st(hspace.index(p.id), n.second) += std::complex<double>{0., -p.sign
 						/ static_cast<double>(lat.n_bonds())};
 			}
+			/*
 			//chern
 			for (auto& b : lat.bonds("chern_2"))
 			{
 				state p = hspace.c_i({1, n.first}, b.second);
 				p = hspace.c_dag_i(p, b.first);
 				if (p.sign != 0)
-					chern_st(hspace.index(p.id), n.second) += std::complex<double>{0., -p.sign
+					chern_st(hspace.index(p.id), n.second) += std::complex<double>{0., p.sign
 						/ static_cast<double>(lat.n_bonds())};
 				p = hspace.c_i({1, n.first}, b.first);
 				p = hspace.c_dag_i(p, b.second);
 				if (p.sign != 0)
-					chern_st(hspace.index(p.id), n.second) += std::complex<double>{0., p.sign
+					chern_st(hspace.index(p.id), n.second) += std::complex<double>{0., -p.sign
 						/ static_cast<double>(lat.n_bonds())};
 			}
+			*/
 		});
 	arma::sp_cx_mat chern_op = chern_st.build_matrix();
 	chern_st.clear();
