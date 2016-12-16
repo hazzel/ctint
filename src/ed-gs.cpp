@@ -69,7 +69,7 @@ void print_overlap(arma::SpMat<T>& op, const std::string& name,
 				<< ", E(" << i << ") - E(0) = " << ev[i]-ev[0] << std::endl;
 			++cnt;
 		}
-		if (cnt >= 10) break;
+		if (cnt >= 20) break;
 	}
 	std::cout << "----------" << std::endl;
 	std::cout << std::endl;
@@ -320,7 +320,6 @@ int main(int ac, char** av)
 						-std::complex<double>(p.sign)
 						/ static_cast<double>(lat.n_bonds());
 			}
-			
 		});
 	arma::sp_cx_mat kekule_op = kekule_st.build_matrix();
 	kekule_st.clear();
