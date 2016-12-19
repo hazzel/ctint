@@ -57,19 +57,21 @@ void print_overlap(arma::SpMat<T>& op, const std::string& name,
 	arma::Mat<T> esT_cx = arma::conv_to<arma::Mat<T>>::from(esT);
 	std::cout << std::endl;
 	std::cout << "----------" << std::endl;
-	int cnt = 0;
-	for (int i = 0; i < esT_cx.n_rows; ++i)
+	for (int d = 0; d < degeneracy; ++d)
 	{
-		double c = 0.;
-		for (int d = 0; d < degeneracy; ++d)
-			c += std::abs(arma::trace(esT_cx.row(i) * op * es_cx.col(d))) / degeneracy;
-		if (i < degeneracy || c > std::pow(10., -13.))
+		int cnt = 0;
+		for (int i = 0; i < esT_cx.n_rows; ++i)
 		{
-			std::cout << "|<" << i << "| " + name + " |0>|^2 = " << c
-				<< ", E(" << i << ") - E(0) = " << ev[i]-ev[0] << std::endl;
-			++cnt;
+			double c = 0.;
+			c += std::abs(arma::trace(esT_cx.row(i) * op * es_cx.col(d)));
+			if (i < degeneracy || c > std::pow(10., -13.))
+			{
+				std::cout << "|<" << i << "| " + name + " |" << d << ">|^2 = " << c
+					<< ", E(" << i << ") - E(0) = " << ev[i]-ev[0] << std::endl;
+				++cnt;
+			}
+			if (cnt >= 20) break;
 		}
-		if (cnt >= 20) break;
 	}
 	std::cout << "----------" << std::endl;
 	std::cout << std::endl;
@@ -282,7 +284,6 @@ int main(int ac, char** av)
 			{
 				std::complex<double> phase = std::exp(std::complex<double>(0.,
 						K.dot(lat.real_space_coord(i))));
-				//CDW
 				ni_K_st(n.second, n.second)
 					+= lat.parity(i) * phase / std::complex<double>(lat.n_sites())
 						* (hspace.n_i({1, n.first}, i) - 0.5);
@@ -295,6 +296,29 @@ int main(int ac, char** av)
 	print_overlap(ni_K_op, "cdw_K", degeneracy, ev, es, esT);
 	ni_K_op.clear();
 	print_data(out, obs_data_cx[1]);
+	
+	sparse_storage<std::complex<double>, int_t> ni_sym_K_st(hspace.sub_dimension());
+	hspace.build_operator([&]
+		(const std::pair<int_t, int_t>& n)
+		{
+			auto& K = lat.symmetry_point("K");
+			for (int i = 0; i < lat.n_sites(); ++i)
+			{
+				std::complex<double> phase = std::exp(std::complex<double>(0.,
+						K.dot(lat.real_space_coord(i))));
+				ni_sym_K_st(n.second, n.second)
+					+= phase / std::complex<double>(lat.n_sites())
+						* (hspace.n_i({1, n.first}, i) - 0.5);
+			}
+		});
+	arma::sp_cx_mat ni_sym_K_op = ni_sym_K_st.build_matrix();
+	ni_sym_K_st.clear();
+	obs_data_cx.emplace_back(get_imaginary_time_obs(ni_sym_K_op, Ntau, t_step, degeneracy, ev,
+		es, esT));
+	print_overlap(ni_sym_K_op, "cdw_sym_K", degeneracy, ev, es, esT);
+	ni_sym_K_op.clear();
+	print_data(out, obs_data_cx[2]);
+	
 	
 	sparse_storage<std::complex<double>, int_t> kekule_st(hspace.sub_dimension());
 	hspace.build_operator([&]
@@ -329,7 +353,7 @@ int main(int ac, char** av)
 		kek += arma::trace(esT_cx.row(i) * kekule_op * es_cx.col(i)) / std::complex<double>(degeneracy);
 	print_overlap(kekule_op, "kekule", degeneracy, ev, es, esT);
 	kekule_op.clear();
-	print_data(out, obs_data_cx[2]);
+	print_data(out, obs_data_cx[3]);
 	
 	sparse_storage<std::complex<double>, int_t> chern_st(hspace.sub_dimension());
 	hspace.build_operator([&]
@@ -380,7 +404,48 @@ int main(int ac, char** av)
 	}
 	chern_op.clear();
 	chern2_op.clear();
-	print_data(out, obs_data_cx[3]);
+	print_data(out, obs_data_cx[4]);
+	
+	sparse_storage<std::complex<double>, int_t> gamma_mod_st(hspace.sub_dimension());
+	hspace.build_operator([&]
+		(const std::pair<int_t, int_t>& n)
+		{
+			double pi = 4. * std::atan(1.);
+			for (auto& b : lat.bonds("nn_bond_1"))
+			{
+				std::complex<double> phase = std::exp(std::complex<double>(0., 0.*pi));
+				state p = hspace.c_i({1, n.first}, b.second);
+				p = hspace.c_dag_i(p, b.first);
+				if (p.sign != 0)
+					gamma_mod_st(hspace.index(p.id), n.second) += phase * std::complex<double>(p.sign)
+						/ std::complex<double>(lat.n_bonds());
+			}
+			for (auto& b : lat.bonds("nn_bond_2"))
+			{
+				std::complex<double> phase = std::exp(std::complex<double>(0., 2./3.*pi));
+				state p = hspace.c_i({1, n.first}, b.second);
+				p = hspace.c_dag_i(p, b.first);
+				if (p.sign != 0)
+					gamma_mod_st(hspace.index(p.id), n.second) += phase * std::complex<double>(p.sign)
+						/ std::complex<double>(lat.n_bonds());
+			}
+			for (auto& b : lat.bonds("nn_bond_3"))
+			{
+				std::complex<double> phase = std::exp(std::complex<double>(0., 4./3.*pi));
+				state p = hspace.c_i({1, n.first}, b.second);
+				p = hspace.c_dag_i(p, b.first);
+				if (p.sign != 0)
+					gamma_mod_st(hspace.index(p.id), n.second) += phase * std::complex<double>(p.sign)
+						/ std::complex<double>(lat.n_bonds());
+			}
+		});
+	arma::sp_cx_mat gamma_mod_op = gamma_mod_st.build_matrix();
+	gamma_mod_st.clear();
+	obs_data_cx.emplace_back(get_imaginary_time_obs(gamma_mod_op, Ntau, t_step, degeneracy, ev,
+		es, esT));
+	print_overlap(gamma_mod_op, "gamma_mod", degeneracy, ev, es, esT);
+	gamma_mod_op.clear();
+	print_data(out, obs_data_cx[5]);
 	
 	sparse_storage<std::complex<double>, int_t> epsilon_st(hspace.sub_dimension());
 	hspace.build_operator([&]
@@ -409,12 +474,12 @@ int main(int ac, char** av)
 			epsilon_st(n.second, n.second) -= ep;
 		});
 	epsilon_op = epsilon_st.build_matrix();
-	print_overlap(epsilon_op, "epsilon", degeneracy, ev, es, esT);
+	print_overlap(epsilon_op, "epsilon - <ep>", degeneracy, ev, es, esT);
 	epsilon_st.clear();
 	obs_data_cx.emplace_back(get_imaginary_time_obs(epsilon_op, Ntau, t_step, degeneracy,
 		ev, es, esT));
 	epsilon_op.clear();
-	print_data(out, obs_data_cx[4]);
+	print_data(out, obs_data_cx[6]);
 	
 	if (ensemble == "gc")
 	{
@@ -440,7 +505,7 @@ int main(int ac, char** av)
 		obs_data_cx.emplace_back(get_imaginary_time_obs(sp_op, Ntau, t_step, degeneracy,
 			ev, es, esT));
 		sp_op.clear();
-		print_data(out, obs_data_cx[5]);
+		print_data(out, obs_data_cx[7]);
 		
 		sparse_storage<std::complex<double>, int_t> tp_st(hspace.sub_dimension());
 		hspace.build_operator([&]
@@ -468,7 +533,7 @@ int main(int ac, char** av)
 		obs_data_cx.emplace_back(get_imaginary_time_obs(tp_op, Ntau, t_step, degeneracy,
 			ev, es, esT));
 		tp_op.clear();
-		print_data(out, obs_data_cx[6]);
+		print_data(out, obs_data_cx[8]);
 	}
 	
 	std::cout << "Done" << std::endl;
