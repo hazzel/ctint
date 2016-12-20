@@ -411,6 +411,7 @@ int main(int ac, char** av)
 		(const std::pair<int_t, int_t>& n)
 		{
 			double pi = 4. * std::atan(1.);
+			std::complex<double> im = {0., 1.};
 			for (auto& b : lat.bonds("nn_bond_1"))
 			{
 				std::complex<double> phase = std::exp(std::complex<double>(0., 0.*pi));
@@ -418,6 +419,11 @@ int main(int ac, char** av)
 				p = hspace.c_dag_i(p, b.first);
 				if (p.sign != 0)
 					gamma_mod_st(hspace.index(p.id), n.second) += phase * std::complex<double>(p.sign)
+						/ std::complex<double>(lat.n_bonds());
+				p = hspace.c_i({1, n.first}, b.first);
+				p = hspace.c_dag_i(p, b.second);
+				if (p.sign != 0)
+					gamma_mod_st(hspace.index(p.id), n.second) += std::conj(phase) * std::complex<double>(p.sign)
 						/ std::complex<double>(lat.n_bonds());
 			}
 			for (auto& b : lat.bonds("nn_bond_2"))
@@ -428,6 +434,11 @@ int main(int ac, char** av)
 				if (p.sign != 0)
 					gamma_mod_st(hspace.index(p.id), n.second) += phase * std::complex<double>(p.sign)
 						/ std::complex<double>(lat.n_bonds());
+				p = hspace.c_i({1, n.first}, b.first);
+				p = hspace.c_dag_i(p, b.second);
+				if (p.sign != 0)
+					gamma_mod_st(hspace.index(p.id), n.second) += std::conj(phase) * std::complex<double>(p.sign)
+						/ std::complex<double>(lat.n_bonds());
 			}
 			for (auto& b : lat.bonds("nn_bond_3"))
 			{
@@ -436,6 +447,11 @@ int main(int ac, char** av)
 				p = hspace.c_dag_i(p, b.first);
 				if (p.sign != 0)
 					gamma_mod_st(hspace.index(p.id), n.second) += phase * std::complex<double>(p.sign)
+						/ std::complex<double>(lat.n_bonds());
+				p = hspace.c_i({1, n.first}, b.first);
+				p = hspace.c_dag_i(p, b.second);
+				if (p.sign != 0)
+					gamma_mod_st(hspace.index(p.id), n.second) += std::conj(phase) * std::complex<double>(p.sign)
 						/ std::complex<double>(lat.n_bonds());
 			}
 		});
