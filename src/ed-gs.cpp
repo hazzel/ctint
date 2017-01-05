@@ -8,7 +8,6 @@
 #include <cstdlib>
 #include <armadillo>
 #include <boost/program_options.hpp>
-#include <boost/multiprecision/mpfr.hpp>
 #include "lattice.h"
 #include "hex_honeycomb.h"
 #include "honeycomb.h"
@@ -16,9 +15,6 @@
 #include "sparse_storage.h"
 
 namespace po = boost::program_options;
-
-namespace mp = boost::multiprecision;
-typedef mp::number<mp::mpfr_float_backend<300> >  mp_float;
 
 template<typename T>
 void print_help(const T& desc)

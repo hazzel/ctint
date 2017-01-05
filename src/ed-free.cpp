@@ -8,15 +8,11 @@
 #include <cstdlib>
 #include <armadillo>
 #include <boost/program_options.hpp>
-#include <boost/multiprecision/mpfr.hpp>
 #include <Eigen/Dense>
 #include "lattice.h"
 #include "honeycomb.h"
 
 namespace po = boost::program_options;
-
-namespace mp = boost::multiprecision;
-typedef mp::number<mp::mpfr_float_backend<300> >  mp_float;
 
 using complex_t = std::complex<double>;
 template<int n, int m>
