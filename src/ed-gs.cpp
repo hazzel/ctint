@@ -327,11 +327,21 @@ int main(int ac, char** av)
 				p = hspace.c_dag_i(p, b.first);
 				if (p.sign != 0)
 					kekule_st(hspace.index(p.id), n.second) +=
-						std::complex<double>(p.sign)
+						2.*std::complex<double>(p.sign)
 						/ static_cast<double>(lat.n_bonds());
 			}
 			
 			for (auto& b : lat.bonds("kekule_2"))
+			{
+				state p = hspace.c_i({1, n.first}, b.second);
+				p = hspace.c_dag_i(p, b.first);
+				if (p.sign != 0)
+					kekule_st(hspace.index(p.id), n.second) +=
+						-std::complex<double>(p.sign)
+						/ static_cast<double>(lat.n_bonds());
+			}
+			
+			for (auto& b : lat.bonds("kekule_3"))
 			{
 				state p = hspace.c_i({1, n.first}, b.second);
 				p = hspace.c_dag_i(p, b.first);
