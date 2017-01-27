@@ -45,6 +45,29 @@ std::vector<T> get_imaginary_time_obs(arma::SpMat<T>& op,
 	return obs_vec;
 }
 
+// Imaginary time observables
+template<typename T>
+std::vector<T> get_imaginary_time_obs(arma::SpMat<T>& op, 
+	arma::SpMat<T>& op2, int Ntau, double t_step, int degeneracy,
+	arma::vec& ev, arma::mat& es, arma::mat& esT)
+{
+	arma::Mat<T> es_cx = arma::conv_to<arma::Mat<T>>::from(es);
+	arma::Mat<T> esT_cx = arma::conv_to<arma::Mat<T>>::from(esT);
+	arma::SpMat<T> opT = op2.t();
+	std::vector<T> obs_vec(Ntau + 1);
+	for (int n = 0; n <= Ntau; ++n)
+	{
+		double tau = n * t_step;
+		obs_vec[n] = T(0.);
+		for (int a = 0 ; a < degeneracy; ++a)
+			for (int b = 0; b < ev.n_rows; ++b)
+				obs_vec[n] += std::exp(tau * (ev(a) - ev(b)))
+					* arma::trace(esT_cx.row(a) * op * es_cx.col(b))
+					* arma::trace(esT_cx.row(b) * opT * es_cx.col(a)) / std::complex<double>(degeneracy);
+	}
+	return obs_vec;
+}
+
 template<typename T>
 void print_overlap(arma::SpMat<T>& op, const std::string& name,
 	int degeneracy, arma::vec& ev, arma::mat& es, arma::mat& esT)
@@ -379,22 +402,6 @@ int main(int ac, char** av)
 					chern_st(hspace.index(p.id), n.second) += std::complex<double>{0., -p.sign
 						/ static_cast<double>(lat.n_bonds())};
 			}
-			/*
-			//chern
-			for (auto& b : lat.bonds("chern_2"))
-			{
-				state p = hspace.c_i({1, n.first}, b.second);
-				p = hspace.c_dag_i(p, b.first);
-				if (p.sign != 0)
-					chern_st(hspace.index(p.id), n.second) += std::complex<double>{0., p.sign
-						/ static_cast<double>(lat.n_bonds())};
-				p = hspace.c_i({1, n.first}, b.first);
-				p = hspace.c_dag_i(p, b.second);
-				if (p.sign != 0)
-					chern_st(hspace.index(p.id), n.second) += std::complex<double>{0., -p.sign
-						/ static_cast<double>(lat.n_bonds())};
-			}
-			*/
 		});
 	arma::sp_cx_mat chern_op = chern_st.build_matrix();
 	chern_st.clear();
