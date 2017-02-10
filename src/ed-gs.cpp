@@ -76,14 +76,14 @@ void print_overlap(arma::SpMat<T>& op, const std::string& name,
 	arma::Mat<T> esT_cx = arma::conv_to<arma::Mat<T>>::from(esT);
 	std::cout << std::endl;
 	std::cout << "----------" << std::endl;
-	for (int d = 0; d < degeneracy; ++d)
+	for (int d = 0; d < 2; ++d)
 	{
 		int cnt = 0;
 		for (int i = 0; i < esT_cx.n_rows; ++i)
 		{
 			double c = 0.;
 			c += std::abs(arma::trace(esT_cx.row(i) * op * es_cx.col(d)));
-			if (i < degeneracy || c > std::pow(10., -13.))
+			if (i < 2 || c > std::pow(10., -13.))
 			{
 				std::cout << "|<" << i << "| " + name + " |" << d << ">|^2 = " << c
 					<< ", E(" << i << ") - E(0) = " << ev[i]-ev[0] << std::endl;
@@ -171,6 +171,31 @@ int main(int ac, char** av)
 	std::cout << "Dimension of sub space: " << hspace.sub_dimension()
 		<< std::endl;
 
+	
+	std::vector<std::map<int, int>> cb_bonds(3);
+	for (int i = 0; i < lat.n_sites(); ++i)
+	{
+		auto& nn = lat.neighbors(i, "nearest neighbors");
+		for (int j : nn)
+		{
+			for (auto& b : cb_bonds)
+			{
+				if (!b.count(i) && !b.count(j))
+				{
+					b[i] = j;
+					b[j] = i;
+					break;
+				}
+			}
+		}
+	}
+	auto get_bond_type = [&] (const std::pair<int, int>& bond) -> int
+	{
+		for (int i = 0; i < cb_bonds.size(); ++i)
+			if (cb_bonds[i].at(bond.first) == bond.second)
+				return i;
+	};
+			
 	//Build Hamiltonian
 	std::cout << "Constructing static operators...";
 	std::cout.flush();
@@ -180,16 +205,25 @@ int main(int ac, char** av)
 	{
 		for (int_t i = 0; i < lat.n_sites(); ++i)
 		{
-			//Chemical potential: -mu sum_i c_i^dag c_i
-			H_st(n.second, n.second) -= mu * hspace.n_i({1, n.first}, i);
+			//(Staggered) Chemical potential: -mu sum_i c_i^dag c_i
+			H_st(n.second, n.second) -= lat.parity(i) * mu * hspace.n_i({1, n.first}, i);
 			
 			for (int_t j : lat.neighbors(i, "nearest neighbors"))
 			{
 				//Hopping term: -t sum_<ij> c_i^dag c_j
 				state m = hspace.c_i({-1, n.first}, j);
 				m = hspace.c_dag_i(m, i);
+				double tp;
+				//if (L % 3 == 0 && get_bond_type({i, j}) == 0)
+				//auto& kek_bonds = lat.bonds("kekule");
+				//if (L % 3 == 0 && std::find(kek_bonds.begin(), kek_bonds.end(), std::make_pair<int, int>(i, j)) != kek_bonds.end())
+				//if (cb_bonds[0].at(i) == j || cb_bonds[0].at(j) == i)
+				//	tp = -1.001;
+				//else
+					tp = -1.;
+				
 				if (m.sign != 0)
-					H_st(hspace.index(m.id), n.second) += m.sign * (-1.);
+					H_st(hspace.index(m.id), n.second) += m.sign * tp;
 
 				//Interaction: V sum_<ij> (n_i - 0.5) (n_j - 0.5)
 				if (i < j)
@@ -252,7 +286,7 @@ int main(int ac, char** av)
 		E += ev(i) / degeneracy;
 		n_total += arma::trace(esT.row(i) * n_total_op * es.col(i)) / degeneracy;
 	}
-	
+		
 	int Ntau = 50, Nmat = 0;
 	double t_step = 0.2;
 	out << k << "\t" << L << "\t" << V << "\t" << 0 << "\t"
@@ -522,7 +556,7 @@ int main(int ac, char** av)
 					auto& K = lat.symmetry_point("K");
 					std::complex<double> phase = std::exp(std::complex<double>(0.,
 						K.dot(lat.real_space_coord(i))));
-					state p = hspace.c_i({1, n.first}, i);
+					state p = hspace.c_dag_i({1, n.first}, i);
 					if (p.sign != 0)
 						sp_st(hspace.index(p.id), n.second) += phase
 							* std::complex<double>(p.sign);

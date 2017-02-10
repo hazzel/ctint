@@ -97,12 +97,37 @@ mc::mc(const std::string& dir)
 	qmc.add_event(event_print_vertices{config, config.measure}, "print_vertices");
 	qmc.add_event(event_build{config, rng}, "initial build");
 	
+	std::vector<std::map<int, int>> cb_bonds(3);
+	for (int i = 0; i < config.l.n_sites(); ++i)
+	{
+		auto& nn = config.l.neighbors(i, "nearest neighbors");
+		for (int j : nn)
+		{
+			for (auto& b : cb_bonds)
+			{
+				if (!b.count(i) && !b.count(j))
+				{
+					b[i] = j;
+					b[j] = i;
+					break;
+				}
+			}
+		}
+	}
+	auto get_bond_type = [&] (const std::pair<int, int>& bond) -> int
+	{
+		for (int i = 0; i < cb_bonds.size(); ++i)
+			if (cb_bonds[i].at(bond.first) == bond.second)
+				return i;
+	};
+	
 	std::ofstream f_epsilon("ep_lattice.txt");
 	std::ofstream f_kek("kek_lattice.txt");
 	std::ofstream f_kek_2("kek_2_lattice.txt");
 	std::ofstream f_kek_3("kek_3_lattice.txt");
 	std::ofstream f_chern("chern_lattice.txt");
 	std::ofstream f_chern_2("chern_2_lattice.txt");
+	std::ofstream f_bond_type("bond_type_lattice.txt");
 	for (auto& b : config.l.bonds("nearest neighbors"))
 		f_epsilon << b.first << "," << config.l.real_space_coord(b.first)[0] << ","
 			<< config.l.real_space_coord(b.first)[1] << "," << b.second << ","
@@ -133,12 +158,18 @@ mc::mc(const std::string& dir)
 			<< config.l.real_space_coord(b.first)[1] << "," << b.second << ","
 			<< config.l.real_space_coord(b.second)[0] << ","
 			<< config.l.real_space_coord(b.second)[1] << std::endl;
+	for (auto& b : cb_bonds[1])
+		f_bond_type << b.first << "," << config.l.real_space_coord(b.first)[0] << ","
+			<< config.l.real_space_coord(b.first)[1] << "," << b.second << ","
+			<< config.l.real_space_coord(b.second)[0] << ","
+			<< config.l.real_space_coord(b.second)[1] << std::endl;
 	f_epsilon.close();
 	f_kek.close();
 	f_kek_2.close();
 	f_kek_3.close();
 	f_chern.close();
 	f_chern_2.close();
+	f_bond_type.close();
 }
 
 mc::~mc()
