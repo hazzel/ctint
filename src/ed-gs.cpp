@@ -113,6 +113,7 @@ int main(int ac, char** av)
 	int L;
 	double tprime;
 	double V;
+	double stag_mu;
 	double mu;
 	int k;
 	std::string ensemble, geometry;
@@ -123,6 +124,7 @@ int main(int ac, char** av)
 		("L", po::value<int>(&L)->default_value(3), "linear lattice dimension")
 		("tprime", po::value<double>(&tprime)->default_value(0.), "d3 hopping")
 		("V", po::value<double>(&V)->default_value(1.355), "interaction strength")
+		("stag_mu", po::value<double>(&stag_mu)->default_value(0.), "staggered chemical potential")
 		("mu", po::value<double>(&mu)->default_value(0.), "chemical potential")
 		("k", po::value<int>(&k)->default_value(100), "number of eigenstates")
 		("ensemble,e", po::value<std::string>(&ensemble)->default_value("gc"),
@@ -143,6 +145,7 @@ int main(int ac, char** av)
 	std::cout << "L = " << L << std::endl;
 	std::cout << "tprime = " << tprime << std::endl;
 	std::cout << "V = " << V << std::endl;
+	std::cout << "stag_mu = " << stag_mu << std::endl;
 	std::cout << "mu = " << mu << std::endl;
 	//Generate lattice
 	lattice lat;
@@ -206,7 +209,8 @@ int main(int ac, char** av)
 		for (int_t i = 0; i < lat.n_sites(); ++i)
 		{
 			//(Staggered) Chemical potential: -mu sum_i c_i^dag c_i
-			H_st(n.second, n.second) -= lat.parity(i) * mu * hspace.n_i({1, n.first}, i);
+			H_st(n.second, n.second) -= lat.parity(i) * stag_mu * hspace.n_i({1, n.first}, i);
+			H_st(n.second, n.second) -= mu * hspace.n_i({1, n.first}, i);
 			
 			for (int_t j : lat.neighbors(i, "nearest neighbors"))
 			{
