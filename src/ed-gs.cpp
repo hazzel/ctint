@@ -304,6 +304,74 @@ int main(int ac, char** av)
 	arma::Mat<std::complex<double>> esT_cx = arma::conv_to<arma::Mat<std::complex<double>>>::from(esT);
 	std::vector<std::vector<std::complex<double>>> obs_data_cx;
 	std::complex<double> cdw2 = 0., cdw4 = 0., ep = 0., kek = 0., chern = 0., chern2 = 0., chern4 = 0.;
+	std::complex<double> h_t = 0., h_v = 0., h_mu = 0.;
+	
+	sparse_storage<std::complex<double>, int_t> ht_st(hspace.sub_dimension());
+	hspace.build_operator([&]
+		(const std::pair<int_t, int_t>& n)
+		{
+			for (int_t i = 0; i < lat.n_sites(); ++i)
+			{
+				for (int_t j : lat.neighbors(i, "nearest neighbors"))
+				{
+					//Hopping term: -t sum_<ij> c_i^dag c_j
+					state m = hspace.c_i({-1, n.first}, j);
+					m = hspace.c_dag_i(m, i);
+					double tp = -1.;
+					
+					if (m.sign != 0)
+						ht_st(hspace.index(m.id), n.second) += m.sign * tp;
+				}
+			}
+			for (auto& a : lat.bonds("d3_bonds"))
+			{
+				state m = hspace.c_i({-1, n.first}, a.second);
+				m = hspace.c_dag_i(m, a.first);
+				if (m.sign != 0)
+					ht_st(hspace.index(m.id), n.second) += m.sign * (-1.) * tprime;
+			}
+		});
+	arma::sp_cx_mat ht_op = ht_st.build_matrix();
+	ht_st.clear();
+	for (int i = 0; i < degeneracy; ++i)
+		h_t += arma::trace(esT_cx.row(i) * ht_op * es_cx.col(i)) / std::complex<double>(degeneracy);
+	ht_op.clear();
+	
+	sparse_storage<std::complex<double>, int_t> hv_st(hspace.sub_dimension());
+	hspace.build_operator([&]
+		(const std::pair<int_t, int_t>& n)
+		{
+			for (int_t i = 0; i < lat.n_sites(); ++i)
+				for (int_t j : lat.neighbors(i, "nearest neighbors"))
+				{
+					//Interaction: V sum_<ij> (n_i - 0.5) (n_j - 0.5)
+					if (i < j)
+						hv_st(n.second, n.second) += V * (hspace.n_i({1, n.first}, i)
+							- 0.5) * (hspace.n_i({1, n.first}, j) - 0.5);
+				}
+		});
+	arma::sp_cx_mat hv_op = hv_st.build_matrix();
+	hv_st.clear();
+	for (int i = 0; i < degeneracy; ++i)
+		h_v += arma::trace(esT_cx.row(i) * hv_op * es_cx.col(i)) / std::complex<double>(degeneracy);
+	hv_op.clear();
+	
+	sparse_storage<std::complex<double>, int_t> hmu_st(hspace.sub_dimension());
+	hspace.build_operator([&]
+		(const std::pair<int_t, int_t>& n)
+		{
+			for (int_t i = 0; i < lat.n_sites(); ++i)
+			{
+				//(Staggered) Chemical potential: -mu sum_i c_i^dag c_i
+				hmu_st(n.second, n.second) -= lat.parity(i) * stag_mu * hspace.n_i({1, n.first}, i);
+				hmu_st(n.second, n.second) -= mu * hspace.n_i({1, n.first}, i);
+			}
+		});
+	arma::sp_cx_mat hmu_op = hmu_st.build_matrix();
+	hmu_st.clear();
+	for (int i = 0; i < degeneracy; ++i)
+		h_mu += arma::trace(esT_cx.row(i) * hmu_op * es_cx.col(i)) / std::complex<double>(degeneracy);
+	hmu_op.clear();
 	
 	sparse_storage<std::complex<double>, int_t> ni_st(hspace.sub_dimension());
 	hspace.build_operator([&]
@@ -605,6 +673,9 @@ int main(int ac, char** av)
 	
 	std::cout << "Done" << std::endl;
 	std::cout << "<E> = " << E << std::endl;
+	std::cout << "<H_t> = " << h_t << std::endl;
+	std::cout << "<H_V> = " << h_v << std::endl;
+	std::cout << "<H_mu> = " << h_mu << std::endl;
 	std::cout << "<n> = " << n_total / lat.n_sites() << std::endl;
 	std::cout << "<m2> = " << std::real(cdw2) << std::endl;
 	std::cout << "<m4> = " << std::real(cdw4) << std::endl;
