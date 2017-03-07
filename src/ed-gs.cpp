@@ -303,7 +303,7 @@ int main(int ac, char** av)
 	arma::Mat<std::complex<double>> es_cx = arma::conv_to<arma::Mat<std::complex<double>>>::from(es);
 	arma::Mat<std::complex<double>> esT_cx = arma::conv_to<arma::Mat<std::complex<double>>>::from(esT);
 	std::vector<std::vector<std::complex<double>>> obs_data_cx;
-	std::complex<double> cdw2 = 0., cdw4 = 0., ep = 0., kek = 0., chern = 0., chern2 = 0., chern4 = 0.;
+	std::complex<double> cdw2 = 0., cdw4 = 0., ep = 0., kek_0 = 0., kek_1 = 0., chern = 0., chern2 = 0., chern4 = 0.;
 	std::complex<double> h_t = 0., h_v = 0., h_mu = 0.;
 	
 	sparse_storage<std::complex<double>, int_t> ht_st(hspace.sub_dimension());
@@ -484,8 +484,8 @@ int main(int ac, char** av)
 	kekule_st.clear();
 	obs_data_cx.emplace_back(get_imaginary_time_obs(kekule_op, Ntau, t_step, degeneracy,
 		ev, es, esT));
-	for (int i = 0; i < degeneracy; ++i)
-		kek += arma::trace(esT_cx.row(i) * kekule_op * es_cx.col(i)) / std::complex<double>(degeneracy);
+	kek_0 += arma::trace(esT_cx.row(0) * kekule_op * kekule_op.t() * es_cx.col(0));
+	kek_1 += arma::trace(esT_cx.row(1) * kekule_op * kekule_op.t() * es_cx.col(1));
 	print_overlap(kekule_op, "kekule", degeneracy, ev, es, esT);
 	kekule_op.clear();
 	print_data(out, obs_data_cx[3]);
@@ -681,7 +681,8 @@ int main(int ac, char** av)
 	std::cout << "<m4> = " << std::real(cdw4) << std::endl;
 	std::cout << "B_cdw = " << std::real(cdw4/(cdw2*cdw2)) << std::endl;
 	std::cout << "<epsilon> = " << std::real(ep) << std::endl;
-	std::cout << "<kekule> = " << std::real(kek) << std::endl;
+	std::cout << "<0|kekule|0> = " << std::real(kek_0) << std::endl;
+	std::cout << "<1|kekule|1> = " << std::real(kek_1) << std::endl;
 	std::cout << "<chern> = " << std::imag(chern) << std::endl;
 	std::cout << "<chern^2> = " << std::real(chern2) << std::endl;
 	std::cout << "<chern^4> = " << std::real(chern4) << std::endl;
