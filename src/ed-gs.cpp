@@ -303,7 +303,7 @@ int main(int ac, char** av)
 	arma::Mat<std::complex<double>> es_cx = arma::conv_to<arma::Mat<std::complex<double>>>::from(es);
 	arma::Mat<std::complex<double>> esT_cx = arma::conv_to<arma::Mat<std::complex<double>>>::from(esT);
 	std::vector<std::vector<std::complex<double>>> obs_data_cx;
-	std::complex<double> cdw2 = 0., cdw4 = 0., ep = 0., kek_0 = 0., kek_1 = 0., chern = 0., chern2 = 0., chern4 = 0.;
+	std::complex<double> cdw2 = 0., cdw4 = 0., cdw2_0 = 0., cdw2_1 = 0., ep = 0., ep_0 = 0., ep_1 = 0., kek_0 = 0., kek_1 = 0., chern = 0., chern2 = 0., chern4 = 0.;
 	std::complex<double> h_t = 0., h_v = 0., h_mu = 0.;
 	
 	sparse_storage<std::complex<double>, int_t> ht_st(hspace.sub_dimension());
@@ -397,6 +397,8 @@ int main(int ac, char** av)
 		cdw2 += arma::trace(esT_cx.row(i) * ni2_op * es_cx.col(i)) / std::complex<double>(degeneracy);
 		cdw4 += arma::trace(esT_cx.row(i) * ni2_op * ni2_op * es_cx.col(i)) / std::complex<double>(degeneracy);
 	}
+	cdw2_0 += arma::trace(esT_cx.row(0) * ni2_op * es_cx.col(0));
+	cdw2_1 += arma::trace(esT_cx.row(1) * ni2_op * es_cx.col(1));
 	ni2_op.clear();
 	print_data(out, obs_data_cx[0]);
 	
@@ -602,6 +604,8 @@ int main(int ac, char** av)
 	arma::sp_cx_mat epsilon_op = epsilon_st.build_matrix();
 	for (int i = 0; i < degeneracy; ++i)
 		ep += arma::trace(esT_cx.row(i) * epsilon_op * es_cx.col(i)) / std::complex<double>(degeneracy);
+	ep_0 += arma::trace(esT_cx.row(0) * epsilon_op * es_cx.col(0));
+	ep_1 += arma::trace(esT_cx.row(1) * epsilon_op * es_cx.col(1));
 	//Subtract finite expectation value
 	hspace.build_operator([&]
 		(const std::pair<int_t, int_t>& n)
@@ -678,11 +682,15 @@ int main(int ac, char** av)
 	std::cout << "<H_mu> = " << h_mu << std::endl;
 	std::cout << "<n> = " << n_total / lat.n_sites() << std::endl;
 	std::cout << "<m2> = " << std::real(cdw2) << std::endl;
+	std::cout << "<0|m2|0> = " << std::real(cdw2_0) << std::endl;
+	std::cout << "<1|m2|1> = " << std::real(cdw2_1) << std::endl;
 	std::cout << "<m4> = " << std::real(cdw4) << std::endl;
 	std::cout << "B_cdw = " << std::real(cdw4/(cdw2*cdw2)) << std::endl;
 	std::cout << "<epsilon> = " << std::real(ep) << std::endl;
-	std::cout << "<0|kekule|0> = " << std::real(kek_0) << std::endl;
-	std::cout << "<1|kekule|1> = " << std::real(kek_1) << std::endl;
+	std::cout << "<0|epsilon|0> = " << std::real(ep_0) << std::endl;
+	std::cout << "<1|epsilon|1> = " << std::real(ep_1) << std::endl;
+	std::cout << "<0|kekule^2|0> = " << std::real(kek_0) << std::endl;
+	std::cout << "<1|kekule^2|1> = " << std::real(kek_1) << std::endl;
 	std::cout << "<chern> = " << std::imag(chern) << std::endl;
 	std::cout << "<chern^2> = " << std::real(chern2) << std::endl;
 	std::cout << "<chern^4> = " << std::real(chern4) << std::endl;
