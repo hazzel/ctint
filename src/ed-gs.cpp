@@ -36,11 +36,12 @@ std::vector<T> get_imaginary_time_obs(arma::SpMat<T>& op,
 	{
 		double tau = n * t_step;
 		obs_vec[n] = T(0.);
-		for (int a = 0 ; a < degeneracy; ++a)
+		//for (int a = 0 ; a < degeneracy; ++a)
+		int a = 0;
 			for (int b = 0; b < ev.n_rows; ++b)
 				obs_vec[n] += std::exp(tau * (ev(a) - ev(b)))
 					* arma::trace(esT_cx.row(a) * op * es_cx.col(b))
-					* arma::trace(esT_cx.row(b) * opT * es_cx.col(a)) / std::complex<double>(degeneracy);
+					* arma::trace(esT_cx.row(b) * opT * es_cx.col(a));// / std::complex<double>(degeneracy);
 	}
 	return obs_vec;
 }
@@ -59,11 +60,12 @@ std::vector<T> get_imaginary_time_obs(arma::SpMat<T>& op,
 	{
 		double tau = n * t_step;
 		obs_vec[n] = T(0.);
-		for (int a = 0 ; a < degeneracy; ++a)
+		//for (int a = 0 ; a < degeneracy; ++a)
+		int a = 0;
 			for (int b = 0; b < ev.n_rows; ++b)
 				obs_vec[n] += std::exp(tau * (ev(a) - ev(b)))
 					* arma::trace(esT_cx.row(a) * op * es_cx.col(b))
-					* arma::trace(esT_cx.row(b) * opT * es_cx.col(a)) / std::complex<double>(degeneracy);
+					* arma::trace(esT_cx.row(b) * opT * es_cx.col(a));// / std::complex<double>(degeneracy);
 	}
 	return obs_vec;
 }
@@ -255,6 +257,23 @@ int main(int ac, char** av)
 	});
 	arma::sp_mat n_total_op = n_total_st.build_matrix();
 	n_total_st.clear();
+	
+	sparse_storage<std::complex<double>, int_t> P_st(hspace.sub_dimension());
+	hspace.build_operator([&]
+		(const std::pair<int_t, int_t>& n)
+		{
+			for (int_t i = 0; i < lat.n_sites(); ++i)
+			{
+				state m = hspace.c_i({1, n.first}, lat.inverted_site(i));
+				m = hspace.c_dag_i(m, i);
+				
+				if (m.sign != 0)
+					P_st(hspace.index(m.id), n.second) += m.sign;
+			}
+		});
+	arma::sp_cx_mat P_op = P_st.build_matrix();
+	P_st.clear();
+	
 	std::cout << "Done." << std::endl;
 
 	std::string out_file = "../data/ed_L_" + std::to_string(L) + "__"
@@ -283,6 +302,14 @@ int main(int ac, char** av)
 	for (int i = 0; i < ev.n_rows && std::abs(ev[i] - ev[0]) <= std::pow(10, -12); ++i)
 		++degeneracy;
 	std::cout << "GS degeneracy: " << degeneracy << std::endl;
+	
+	arma::mat gs1 = es.col(0) + es.col(1), gs2 = es.col(0) - es.col(1);
+	gs1 = arma::normalise(gs1);
+	gs2 -= gs1 * arma::dot(gs1, gs2);
+	gs2 = arma::normalise(gs2);
+	es.col(0) = gs1;
+	es.col(1) = gs2;
+	esT = es.t();
 	
 	double E = 0., m2 = 0., m4 = 0., cij = 0., n_total = 0.;
 	for (int i = 0; i < degeneracy; ++i)
