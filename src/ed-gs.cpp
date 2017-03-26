@@ -24,7 +24,7 @@ void print_help(const T& desc)
 
 // Imaginary time observables
 template<typename T>
-std::vector<T> get_imaginary_time_obs(arma::SpMat<T>& op, 
+std::vector<T> get_imaginary_time_obs(arma::SpMat<T>& op,
 	int Ntau, double t_step, int degeneracy,
 	arma::vec& ev, arma::mat& es, arma::mat& esT)
 {
@@ -32,31 +32,8 @@ std::vector<T> get_imaginary_time_obs(arma::SpMat<T>& op,
 	arma::Mat<T> esT_cx = arma::conv_to<arma::Mat<T>>::from(esT);
 	arma::SpMat<T> opT = op.t();
 	std::vector<T> obs_vec(Ntau + 1);
-	for (int n = 0; n <= Ntau; ++n)
-	{
-		double tau = n * t_step;
-		obs_vec[n] = T(0.);
-		//for (int a = 0 ; a < degeneracy; ++a)
-		int a = 0;
-			for (int b = 0; b < ev.n_rows; ++b)
-				obs_vec[n] += std::exp(tau * (ev(a) - ev(b)))
-					* arma::trace(esT_cx.row(a) * op * es_cx.col(b))
-					* arma::trace(esT_cx.row(b) * opT * es_cx.col(a));// / std::complex<double>(degeneracy);
-	}
-	return obs_vec;
-}
-
-// Imaginary time observables
-template<typename T>
-std::vector<T> get_imaginary_time_obs(arma::SpMat<T>& op, 
-	arma::SpMat<T>& op2, int Ntau, double t_step, int degeneracy,
-	arma::vec& ev, arma::mat& es, arma::mat& esT)
-{
-	arma::Mat<T> es_cx = arma::conv_to<arma::Mat<T>>::from(es);
-	arma::Mat<T> esT_cx = arma::conv_to<arma::Mat<T>>::from(esT);
-	arma::SpMat<T> opT = op2.t();
-	std::vector<T> obs_vec(Ntau + 1);
-	for (int n = 0; n <= Ntau; ++n)
+	obs_vec[0] = arma::trace(esT_cx.row(0) * op * opT * es_cx.col(0));
+	for (int n = 1; n <= Ntau; ++n)
 	{
 		double tau = n * t_step;
 		obs_vec[n] = T(0.);
@@ -109,7 +86,7 @@ void print_data(std::ostream& out, const T& data)
 	out << std::endl;
 	std::cout << std::endl;
 }
-	
+
 int main(int ac, char** av)
 {
 	int L;
@@ -176,7 +153,7 @@ int main(int ac, char** av)
 	std::cout << "Dimension of sub space: " << hspace.sub_dimension()
 		<< std::endl;
 
-	
+
 	std::vector<std::map<int, int>> cb_bonds(3);
 	for (int i = 0; i < lat.n_sites(); ++i)
 	{
@@ -200,7 +177,7 @@ int main(int ac, char** av)
 			if (cb_bonds[i].at(bond.first) == bond.second)
 				return i;
 	};
-			
+
 	//Build Hamiltonian
 	std::cout << "Constructing static operators...";
 	std::cout.flush();
@@ -213,7 +190,7 @@ int main(int ac, char** av)
 			//(Staggered) Chemical potential: -mu sum_i c_i^dag c_i
 			H_st(n.second, n.second) -= lat.parity(i) * stag_mu * hspace.n_i({1, n.first}, i);
 			H_st(n.second, n.second) -= mu * hspace.n_i({1, n.first}, i);
-			
+
 			for (int_t j : lat.neighbors(i, "nearest neighbors"))
 			{
 				//Hopping term: -t sum_<ij> c_i^dag c_j
@@ -227,7 +204,7 @@ int main(int ac, char** av)
 				//	tp = -1.001;
 				//else
 					tp = -1.;
-				
+
 				if (m.sign != 0)
 					H_st(hspace.index(m.id), n.second) += m.sign * tp;
 
@@ -247,7 +224,7 @@ int main(int ac, char** av)
 	});
 	arma::sp_mat H = H_st.build_matrix();
 	H_st.clear();
-	
+
 	//Build static observables
 	sparse_storage<double, int_t> n_total_st(hspace.sub_dimension());
 	hspace.build_operator([&] (const std::pair<int_t, int_t>& n)
@@ -257,23 +234,28 @@ int main(int ac, char** av)
 	});
 	arma::sp_mat n_total_op = n_total_st.build_matrix();
 	n_total_st.clear();
-	
-	sparse_storage<std::complex<double>, int_t> P_st(hspace.sub_dimension());
+
+	sparse_storage<double, int_t> P_st(hspace.sub_dimension());
 	hspace.build_operator([&]
 		(const std::pair<int_t, int_t>& n)
 		{
 			for (int_t i = 0; i < lat.n_sites(); ++i)
 			{
-				state m = hspace.c_i({1, n.first}, lat.inverted_site(i));
+				//state m = hspace.c_i({1, n.first}, lat.inverted_site(i));
+				state m = hspace.c_i({1, n.first}, i);
 				m = hspace.c_dag_i(m, i);
-				
+
 				if (m.sign != 0)
+				{
 					P_st(hspace.index(m.id), n.second) += m.sign;
+					std::cout << hspace.index(m.id) << ", " << n.second << std::endl;
+				}
 			}
+			//P_st(n.second, n.second) += 1.0;
 		});
-	arma::sp_cx_mat P_op = P_st.build_matrix();
+	arma::sp_mat P_op = P_st.build_matrix();
 	P_st.clear();
-	
+
 	std::cout << "Done." << std::endl;
 
 	std::string out_file = "../data/ed_L_" + std::to_string(L) + "__"
@@ -294,6 +276,12 @@ int main(int ac, char** av)
 		arma::eigs_sym(ev, es, H, std::min(hspace.sub_dimension()-2,
 			static_cast<int_t>(k)), "sa");
 	}
+
+	std::cout << "H - P * H * P: " << arma::norm(H - P_op * H * P_op) << std::endl;
+	std::cout << "P: " << arma::norm(P_op) << std::endl;
+	std::cout << "P * P: " << arma::norm(P_op*P_op) << std::endl;
+	std::cout << "P * P * P: " << arma::norm(P_op*P_op*P_op) << std::endl;
+
 	H.clear();
 	arma::mat esT = es.t();
 	std::cout << "GS space" << std::endl;
@@ -302,28 +290,33 @@ int main(int ac, char** av)
 	for (int i = 0; i < ev.n_rows && std::abs(ev[i] - ev[0]) <= std::pow(10, -12); ++i)
 		++degeneracy;
 	std::cout << "GS degeneracy: " << degeneracy << std::endl;
-	
-	arma::mat gs1 = es.col(0) + es.col(1), gs2 = es.col(0) - es.col(1);
-	gs1 = arma::normalise(gs1);
-	gs2 -= gs1 * arma::dot(gs1, gs2);
-	gs2 = arma::normalise(gs2);
-	es.col(0) = gs1;
-	es.col(1) = gs2;
-	esT = es.t();
-	
+
+	/*
+	if (degeneracy > 1)
+	{
+		arma::mat gs1 = es.col(0) + P_op * es.col(0), gs2 = es.col(0) - P_op * es.col(0);
+		gs1 = arma::normalise(gs1);
+		gs2 -= gs1 * arma::dot(gs1, gs2);
+		gs2 = arma::normalise(gs2);
+		es.col(0) = gs1;
+		es.col(1) = gs2;
+		esT = es.t();
+	}
+	*/
+
 	double E = 0., m2 = 0., m4 = 0., cij = 0., n_total = 0.;
 	for (int i = 0; i < degeneracy; ++i)
 	{
 		E += ev(i) / degeneracy;
 		n_total += arma::trace(esT.row(i) * n_total_op * es.col(i)) / degeneracy;
 	}
-		
+
 	int Ntau = 50, Nmat = 0;
 	double t_step = 0.2;
 	out << k << "\t" << L << "\t" << V << "\t" << 0 << "\t"
 		<< E << "\t" << m2 << "\t" << m4 << "\t" << m4/(m2*m2) << "\t"
 		<< Ntau << "\t" << Nmat << std::endl;
-	
+
 	// Build dynamic observables
 	std::cout << "Constructing dynamic operators...";
 	std::cout.flush();
@@ -332,7 +325,7 @@ int main(int ac, char** av)
 	std::vector<std::vector<std::complex<double>>> obs_data_cx;
 	std::complex<double> cdw2 = 0., cdw4 = 0., cdw2_0 = 0., cdw2_1 = 0., ep = 0., ep_0 = 0., ep_1 = 0., kek_0 = 0., kek_1 = 0., chern = 0., chern2 = 0., chern4 = 0.;
 	std::complex<double> h_t = 0., h_v = 0., h_mu = 0.;
-	
+
 	sparse_storage<std::complex<double>, int_t> ht_st(hspace.sub_dimension());
 	hspace.build_operator([&]
 		(const std::pair<int_t, int_t>& n)
@@ -345,7 +338,7 @@ int main(int ac, char** av)
 					state m = hspace.c_i({-1, n.first}, j);
 					m = hspace.c_dag_i(m, i);
 					double tp = -1.;
-					
+
 					if (m.sign != 0)
 						ht_st(hspace.index(m.id), n.second) += m.sign * tp;
 				}
@@ -363,7 +356,7 @@ int main(int ac, char** av)
 	for (int i = 0; i < degeneracy; ++i)
 		h_t += arma::trace(esT_cx.row(i) * ht_op * es_cx.col(i)) / std::complex<double>(degeneracy);
 	ht_op.clear();
-	
+
 	sparse_storage<std::complex<double>, int_t> hv_st(hspace.sub_dimension());
 	hspace.build_operator([&]
 		(const std::pair<int_t, int_t>& n)
@@ -382,7 +375,7 @@ int main(int ac, char** av)
 	for (int i = 0; i < degeneracy; ++i)
 		h_v += arma::trace(esT_cx.row(i) * hv_op * es_cx.col(i)) / std::complex<double>(degeneracy);
 	hv_op.clear();
-	
+
 	sparse_storage<std::complex<double>, int_t> hmu_st(hspace.sub_dimension());
 	hspace.build_operator([&]
 		(const std::pair<int_t, int_t>& n)
@@ -399,7 +392,7 @@ int main(int ac, char** av)
 	for (int i = 0; i < degeneracy; ++i)
 		h_mu += arma::trace(esT_cx.row(i) * hmu_op * es_cx.col(i)) / std::complex<double>(degeneracy);
 	hmu_op.clear();
-	
+
 	sparse_storage<std::complex<double>, int_t> ni_st(hspace.sub_dimension());
 	hspace.build_operator([&]
 		(const std::pair<int_t, int_t>& n)
@@ -428,7 +421,7 @@ int main(int ac, char** av)
 	cdw2_1 += arma::trace(esT_cx.row(1) * ni2_op * es_cx.col(1));
 	ni2_op.clear();
 	print_data(out, obs_data_cx[0]);
-	
+
 	sparse_storage<std::complex<double>, int_t> ni_K_st(hspace.sub_dimension());
 	hspace.build_operator([&]
 		(const std::pair<int_t, int_t>& n)
@@ -450,7 +443,7 @@ int main(int ac, char** av)
 	print_overlap(ni_K_op, "cdw_K", degeneracy, ev, es, esT);
 	ni_K_op.clear();
 	print_data(out, obs_data_cx[1]);
-	
+
 	sparse_storage<std::complex<double>, int_t> ni_sym_K_st(hspace.sub_dimension());
 	hspace.build_operator([&]
 		(const std::pair<int_t, int_t>& n)
@@ -472,8 +465,8 @@ int main(int ac, char** av)
 	print_overlap(ni_sym_K_op, "cdw_sym_K", degeneracy, ev, es, esT);
 	ni_sym_K_op.clear();
 	print_data(out, obs_data_cx[2]);
-	
-	
+
+
 	sparse_storage<std::complex<double>, int_t> kekule_st(hspace.sub_dimension());
 	hspace.build_operator([&]
 		(const std::pair<int_t, int_t>& n)
@@ -488,7 +481,7 @@ int main(int ac, char** av)
 						2.*std::complex<double>(p.sign)
 						/ static_cast<double>(lat.n_bonds());
 			}
-			
+
 			for (auto& b : lat.bonds("kekule_2"))
 			{
 				state p = hspace.c_i({1, n.first}, b.second);
@@ -498,7 +491,7 @@ int main(int ac, char** av)
 						-std::complex<double>(p.sign)
 						/ static_cast<double>(lat.n_bonds());
 			}
-			
+
 			for (auto& b : lat.bonds("kekule_3"))
 			{
 				state p = hspace.c_i({1, n.first}, b.second);
@@ -518,7 +511,7 @@ int main(int ac, char** av)
 	print_overlap(kekule_op, "kekule", degeneracy, ev, es, esT);
 	kekule_op.clear();
 	print_data(out, obs_data_cx[3]);
-	
+
 	sparse_storage<std::complex<double>, int_t> chern_st(hspace.sub_dimension());
 	hspace.build_operator([&]
 		(const std::pair<int_t, int_t>& n)
@@ -553,7 +546,7 @@ int main(int ac, char** av)
 	chern_op.clear();
 	chern2_op.clear();
 	print_data(out, obs_data_cx[4]);
-	
+
 	sparse_storage<std::complex<double>, int_t> gamma_mod_st(hspace.sub_dimension());
 	hspace.build_operator([&]
 		(const std::pair<int_t, int_t>& n)
@@ -610,7 +603,7 @@ int main(int ac, char** av)
 	print_overlap(gamma_mod_op, "gamma_mod", degeneracy, ev, es, esT);
 	gamma_mod_op.clear();
 	print_data(out, obs_data_cx[5]);
-	
+
 	sparse_storage<std::complex<double>, int_t> epsilon_st(hspace.sub_dimension());
 	hspace.build_operator([&]
 		(const std::pair<int_t, int_t>& n)
@@ -646,7 +639,7 @@ int main(int ac, char** av)
 		ev, es, esT));
 	epsilon_op.clear();
 	print_data(out, obs_data_cx[6]);
-	
+
 	if (ensemble == "gc")
 	{
 		sparse_storage<std::complex<double>, int_t> sp_st(hspace.sub_dimension());
@@ -672,7 +665,7 @@ int main(int ac, char** av)
 			ev, es, esT));
 		sp_op.clear();
 		print_data(out, obs_data_cx[7]);
-		
+
 		sparse_storage<std::complex<double>, int_t> tp_st(hspace.sub_dimension());
 		hspace.build_operator([&]
 			(const std::pair<int_t, int_t>& n)
@@ -701,7 +694,7 @@ int main(int ac, char** av)
 		tp_op.clear();
 		print_data(out, obs_data_cx[8]);
 	}
-	
+
 	std::cout << "Done" << std::endl;
 	std::cout << "<E> = " << E << std::endl;
 	std::cout << "<H_t> = " << h_t << std::endl;
@@ -722,6 +715,6 @@ int main(int ac, char** av)
 	std::cout << "<chern^2> = " << std::real(chern2) << std::endl;
 	std::cout << "<chern^4> = " << std::real(chern4) << std::endl;
 	std::cout << "B_chern = " << std::real(chern4/(chern2*chern2)) << std::endl;
-	
+
 	out.close();
 }
