@@ -239,19 +239,28 @@ int main(int ac, char** av)
 	hspace.build_operator([&]
 		(const std::pair<int_t, int_t>& n)
 		{
+			state m = {1, n.first};
 			for (int_t i = 0; i < lat.n_sites(); ++i)
 			{
-				//state m = hspace.c_i({1, n.first}, lat.inverted_site(i));
-				state m = hspace.c_i({1, n.first}, i);
-				m = hspace.c_dag_i(m, i);
-
-				if (m.sign != 0)
+				if (hspace.n_i({1, n.first}, i) > 0)
 				{
-					P_st(hspace.index(m.id), n.second) += m.sign;
-					std::cout << hspace.index(m.id) << ", " << n.second << std::endl;
+					if (hspace.n_i({1, n.first}, lat.inverted_site(i)) == 0)
+					{
+						m = hspace.c_i(m, i);
+						m = hspace.c_dag_i(m, lat.inverted_site(i));
+					}
+					else
+					{
+						m = hspace.c_i(m, i);
+						m = hspace.c_i(m, lat.inverted_site(i));
+						m = hspace.c_dag_i(m, lat.inverted_site(i));
+						m = hspace.c_dag_i(m, i);
+					}
 				}
 			}
-			//P_st(n.second, n.second) += 1.0;
+			if (m.sign != 0)
+				//P_st(hspace.index(m.id), n.second) += m.sign;
+				P_st(hspace.index(m.id), n.second) += 1.;
 		});
 	arma::sp_mat P_op = P_st.build_matrix();
 	P_st.clear();
@@ -277,12 +286,6 @@ int main(int ac, char** av)
 			static_cast<int_t>(k)), "sa");
 	}
 
-	std::cout << "H - P * H * P: " << arma::norm(H - P_op * H * P_op) << std::endl;
-	std::cout << "P: " << arma::norm(P_op) << std::endl;
-	std::cout << "P * P: " << arma::norm(P_op*P_op) << std::endl;
-	std::cout << "P * P * P: " << arma::norm(P_op*P_op*P_op) << std::endl;
-
-	H.clear();
 	arma::mat esT = es.t();
 	std::cout << "GS space" << std::endl;
 	std::cout << "GS energy: " << ev[0] << std::endl;
@@ -291,18 +294,27 @@ int main(int ac, char** av)
 		++degeneracy;
 	std::cout << "GS degeneracy: " << degeneracy << std::endl;
 
-	/*
-	if (degeneracy > 1)
+	//if (degeneracy > 1)
 	{
+		arma::sp_mat id = arma::speye<arma::sp_mat>(H.n_rows, H.n_cols);
+		std::cout << "P * H - H * P = " << arma::norm(P_op * H - H * P_op) << std::endl;
+		std::cout << "id - P * P = " << arma::norm(id - P_op * P_op) << std::endl;
 		arma::mat gs1 = es.col(0) + P_op * es.col(0), gs2 = es.col(0) - P_op * es.col(0);
 		gs1 = arma::normalise(gs1);
 		gs2 -= gs1 * arma::dot(gs1, gs2);
 		gs2 = arma::normalise(gs2);
+
+		std::cout << "E(gs1) = " << arma::dot(gs1, H * gs1) << std::endl;
+		std::cout << "P(gs1) = " << arma::dot(gs1, P_op * gs1) << std::endl;
+		std::cout << "E(gs2) = " << arma::dot(gs2, H * gs2) << std::endl;
+		std::cout << "P(gs2) = " << arma::dot(gs2, P_op * gs2) << std::endl;
+		std::cout << "PH = " << arma::dot(P_op * es.col(0), P_op * H * es.col(0)) << std::endl;
+		std::cout << "HP = " << arma::dot(P_op * es.col(0), H * P_op * es.col(0)) << std::endl;
+
 		es.col(0) = gs1;
 		es.col(1) = gs2;
 		esT = es.t();
 	}
-	*/
 
 	double E = 0., m2 = 0., m4 = 0., cij = 0., n_total = 0.;
 	for (int i = 0; i < degeneracy; ++i)
@@ -310,12 +322,16 @@ int main(int ac, char** av)
 		E += ev(i) / degeneracy;
 		n_total += arma::trace(esT.row(i) * n_total_op * es.col(i)) / degeneracy;
 	}
+	H.clear();
+	n_total_op.clear();
 
 	int Ntau = 50, Nmat = 0;
 	double t_step = 0.2;
 	out << k << "\t" << L << "\t" << V << "\t" << 0 << "\t"
 		<< E << "\t" << m2 << "\t" << m4 << "\t" << m4/(m2*m2) << "\t"
 		<< Ntau << "\t" << Nmat << std::endl;
+
+	return 0;
 
 	// Build dynamic observables
 	std::cout << "Constructing dynamic operators...";
