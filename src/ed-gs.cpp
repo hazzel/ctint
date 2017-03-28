@@ -147,7 +147,8 @@ int main(int ac, char** av)
 		if (ensemble == "gc")
 			return hspace.n_el({1, state_id}) >= 0;
 		else
-			return hspace.n_el({1, state_id}) == lat.n_sites()/2; });
+			//return hspace.n_el({1, state_id}) == lat.n_sites()/2; });
+			return hspace.n_el({1, state_id}) == 1; });
 	std::cout << "Dimension of total Hilbert space: " << hspace.dimension()
 		<< std::endl;
 	std::cout << "Dimension of sub space: " << hspace.sub_dimension()
@@ -296,20 +297,29 @@ int main(int ac, char** av)
 
 	//if (degeneracy > 1)
 	{
+		double epsilon = std::pow(10., -6.);
 		arma::sp_mat id = arma::speye<arma::sp_mat>(H.n_rows, H.n_cols);
 		std::cout << "P * H - H * P = " << arma::norm(P_op * H - H * P_op) << std::endl;
 		std::cout << "id - P * P = " << arma::norm(id - P_op * P_op) << std::endl;
 		arma::mat gs1 = es.col(0) + P_op * es.col(0), gs2 = es.col(0) - P_op * es.col(0);
-		gs1 = arma::normalise(gs1);
+		if (arma::norm(gs1) < epsilon)
+			gs1.zeros();
+		else
+			gs1 = arma::normalise(gs1);
 		gs2 -= gs1 * arma::dot(gs1, gs2);
 		gs2 = arma::normalise(gs2);
 
+		std::cout << "|<0|0>|^2 = " << std::abs(arma::dot(gs1, gs1)) << std::endl;
+		std::cout << "|<1|1>|^2 = " << std::abs(arma::dot(gs2, gs2)) << std::endl;
+		std::cout << "|<0|1>|^2 = " << std::abs(arma::dot(gs1, gs2)) << std::endl;
 		std::cout << "E(gs1) = " << arma::dot(gs1, H * gs1) << std::endl;
+		std::cout << "N(gs1) = " << arma::dot(gs1, n_total_op * gs1) << std::endl;
 		std::cout << "P(gs1) = " << arma::dot(gs1, P_op * gs1) << std::endl;
 		std::cout << "E(gs2) = " << arma::dot(gs2, H * gs2) << std::endl;
+		std::cout << "N(gs1) = " << arma::dot(gs2, n_total_op * gs2) << std::endl;
 		std::cout << "P(gs2) = " << arma::dot(gs2, P_op * gs2) << std::endl;
-		std::cout << "PH = " << arma::dot(P_op * es.col(0), P_op * H * es.col(0)) << std::endl;
-		std::cout << "HP = " << arma::dot(P_op * es.col(0), H * P_op * es.col(0)) << std::endl;
+		std::cout << "<0P|PH|0> = " << arma::dot(P_op * es.col(0), P_op * H * es.col(0)) << std::endl;
+		std::cout << "<0P|HP|0> = " << arma::dot(P_op * es.col(0), H * P_op * es.col(0)) << std::endl;
 
 		es.col(0) = gs1;
 		es.col(1) = gs2;
