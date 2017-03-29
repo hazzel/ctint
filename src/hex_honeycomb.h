@@ -52,21 +52,27 @@ struct hex_honeycomb
 		boost::add_edge(0, 1, *g);
 		boost::add_edge(0, 5, *g);
 		real_space_map.push_back(Eigen::Vector2d{0., 0.});
+		coord_map.push_back({0, 0});
 		boost::add_edge(1, 0, *g);
 		boost::add_edge(1, 2, *g);
 		real_space_map.push_back(Eigen::Vector2d{delta});
+		coord_map.push_back({0, 0});
 		boost::add_edge(2, 1, *g);
 		boost::add_edge(2, 3, *g);
 		real_space_map.push_back(Eigen::Vector2d{a1});
+		coord_map.push_back({1, 0});
 		boost::add_edge(3, 2, *g);
 		boost::add_edge(3, 4, *g);
 		real_space_map.push_back(Eigen::Vector2d{a2 + delta});
+		coord_map.push_back({0, 1});
 		boost::add_edge(4, 3, *g);
 		boost::add_edge(4, 5, *g);
 		real_space_map.push_back(Eigen::Vector2d{a2});
+		coord_map.push_back({0, 1});
 		boost::add_edge(5, 4, *g);
 		boost::add_edge(5, 0, *g);
 		real_space_map.push_back(Eigen::Vector2d{a2 + delta - a1});
+		coord_map.push_back({-1, 1});
 	}
 
 	Eigen::Vector2d closest_k_point(const Eigen::Vector2d& K)

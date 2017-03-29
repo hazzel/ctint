@@ -147,8 +147,7 @@ int main(int ac, char** av)
 		if (ensemble == "gc")
 			return hspace.n_el({1, state_id}) >= 0;
 		else
-			//return hspace.n_el({1, state_id}) == lat.n_sites()/2; });
-			return hspace.n_el({1, state_id}) == 1; });
+			return hspace.n_el({1, state_id}) == lat.n_sites()/2; });
 	std::cout << "Dimension of total Hilbert space: " << hspace.dimension()
 		<< std::endl;
 	std::cout << "Dimension of sub space: " << hspace.sub_dimension()
@@ -195,7 +194,7 @@ int main(int ac, char** av)
 			for (int_t j : lat.neighbors(i, "nearest neighbors"))
 			{
 				//Hopping term: -t sum_<ij> c_i^dag c_j
-				state m = hspace.c_i({-1, n.first}, j);
+				state m = hspace.c_i({1, n.first}, j);
 				m = hspace.c_dag_i(m, i);
 				double tp;
 				//if (L % 3 == 0 && get_bond_type({i, j}) == 0)
@@ -217,7 +216,7 @@ int main(int ac, char** av)
 		}
 		for (auto& a : lat.bonds("d3_bonds"))
 		{
-			state m = hspace.c_i({-1, n.first}, a.second);
+			state m = hspace.c_i({1, n.first}, a.second);
 			m = hspace.c_dag_i(m, a.first);
 			if (m.sign != 0)
 				H_st(hspace.index(m.id), n.second) += m.sign * (-1.) * tprime;
@@ -252,16 +251,17 @@ int main(int ac, char** av)
 					}
 					else
 					{
+						if (i > lat.inverted_site(i)) continue;
 						m = hspace.c_i(m, i);
 						m = hspace.c_i(m, lat.inverted_site(i));
-						m = hspace.c_dag_i(m, lat.inverted_site(i));
 						m = hspace.c_dag_i(m, i);
+						m = hspace.c_dag_i(m, lat.inverted_site(i));
 					}
 				}
 			}
 			if (m.sign != 0)
-				//P_st(hspace.index(m.id), n.second) += m.sign;
-				P_st(hspace.index(m.id), n.second) += 1.;
+				P_st(hspace.index(m.id), n.second) += m.sign;
+				//P_st(hspace.index(m.id), n.second) += 1.;
 		});
 	arma::sp_mat P_op = P_st.build_matrix();
 	P_st.clear();
@@ -294,8 +294,8 @@ int main(int ac, char** av)
 	for (int i = 0; i < ev.n_rows && std::abs(ev[i] - ev[0]) <= std::pow(10, -12); ++i)
 		++degeneracy;
 	std::cout << "GS degeneracy: " << degeneracy << std::endl;
-
-	//if (degeneracy > 1)
+		
+	if (degeneracy == 2)
 	{
 		double epsilon = std::pow(10., -6.);
 		arma::sp_mat id = arma::speye<arma::sp_mat>(H.n_rows, H.n_cols);
@@ -318,8 +318,6 @@ int main(int ac, char** av)
 		std::cout << "E(gs2) = " << arma::dot(gs2, H * gs2) << std::endl;
 		std::cout << "N(gs1) = " << arma::dot(gs2, n_total_op * gs2) << std::endl;
 		std::cout << "P(gs2) = " << arma::dot(gs2, P_op * gs2) << std::endl;
-		std::cout << "<0P|PH|0> = " << arma::dot(P_op * es.col(0), P_op * H * es.col(0)) << std::endl;
-		std::cout << "<0P|HP|0> = " << arma::dot(P_op * es.col(0), H * P_op * es.col(0)) << std::endl;
 
 		es.col(0) = gs1;
 		es.col(1) = gs2;
@@ -340,8 +338,6 @@ int main(int ac, char** av)
 	out << k << "\t" << L << "\t" << V << "\t" << 0 << "\t"
 		<< E << "\t" << m2 << "\t" << m4 << "\t" << m4/(m2*m2) << "\t"
 		<< Ntau << "\t" << Nmat << std::endl;
-
-	return 0;
 
 	// Build dynamic observables
 	std::cout << "Constructing dynamic operators...";
