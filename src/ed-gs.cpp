@@ -306,6 +306,10 @@ int main(int ac, char** av)
 			gs1.zeros();
 		else
 			gs1 = arma::normalise(gs1);
+		if (arma::norm(gs2) < epsilon)
+			gs2.zeros();
+		else
+			gs2 = arma::normalise(gs2);
 		gs2 -= gs1 * arma::dot(gs1, gs2);
 		gs2 = arma::normalise(gs2);
 
