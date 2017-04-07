@@ -126,6 +126,7 @@ struct honeycomb
 		points["Kp"] = closest_k_point({2.*pi/3., -2.*pi/3./std::sqrt(3.)});
 		points["Gamma"] = closest_k_point({0., 0.});
 		points["M"] = closest_k_point({2.*pi/3., 0.});
+		points["q"] = closest_k_point(b1 / L);
 		l.add_symmetry_points(points);
 
 		//Site maps
@@ -400,6 +401,56 @@ struct honeycomb
 					else
 						y = x - 1;
 					list.push_back({y % N, x % N});
+				}
+		});
+		
+l.generate_bond_map("nn_bond_1_inv", [&]
+		(lattice::pair_vector_t& list)
+		{
+			int N = l.n_sites();
+
+			for (int i = 0; i < L; ++i)
+				for (int j = 0; j < L; ++j)
+				{
+					int x = 2 * i + 2 * L * j;
+					int y = x + 1;
+					list.push_back({l.inverted_site(y % N), l.inverted_site(x % N)});
+				}
+		});
+		
+		l.generate_bond_map("nn_bond_2_inv", [&]
+		(lattice::pair_vector_t& list)
+		{
+			int N = l.n_sites();
+
+			for (int i = 0; i < L; ++i)
+				for (int j = 0; j < L; ++j)
+				{
+					int x = 2 * i + 2 * L * j;
+					int y;
+					if (i == 0)
+						y = x + 4 * L - 1;
+					else
+						y = x + 2 * L - 1;
+					list.push_back({l.inverted_site(y % N), l.inverted_site(x % N)});
+				}
+		});
+		
+		l.generate_bond_map("nn_bond_3_inv", [&]
+		(lattice::pair_vector_t& list)
+		{
+			int N = l.n_sites();
+
+			for (int i = 0; i < L; ++i)
+				for (int j = 0; j < L; ++j)
+				{
+					int x = 2 * i + 2 * L * j;
+					int y;
+					if (i == 0)
+						y = x + 2 * L - 1;
+					else
+						y = x - 1;
+					list.push_back({l.inverted_site(y % N), l.inverted_site(x % N)});
 				}
 		});
 	}

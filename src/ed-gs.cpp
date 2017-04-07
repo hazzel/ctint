@@ -32,13 +32,20 @@ std::vector<T> get_imaginary_time_obs(arma::SpMat<T>& op,
 	arma::Mat<T> esT_cx = arma::conv_to<arma::Mat<T>>::from(esT);
 	arma::SpMat<T> opT = op.t();
 	std::vector<T> obs_vec(Ntau + 1);
-	obs_vec[0] = arma::trace(esT_cx.row(0) * op * opT * es_cx.col(0));
+	int a;
+	if (degeneracy == 1)
+		a = 0;
+	else
+		a = 1;
+	obs_vec[0] = arma::trace(esT_cx.row(a) * op * opT * es_cx.col(a));
+	std::cout << "----------" << std::endl;
+	for (int d = 0; d < degeneracy; ++d)
+		std::cout << "<" << d << "| O * Ot |" << d << "> = " << arma::trace(esT_cx.row(d) * op * opT * es_cx.col(d)) << std::endl;
 	for (int n = 1; n <= Ntau; ++n)
 	{
 		double tau = n * t_step;
 		obs_vec[n] = T(0.);
 		//for (int a = 0 ; a < degeneracy; ++a)
-		int a = 0;
 			for (int b = 0; b < ev.n_rows; ++b)
 				obs_vec[n] += std::exp(tau * (ev(a) - ev(b)))
 					* arma::trace(esT_cx.row(a) * op * es_cx.col(b))
@@ -49,23 +56,28 @@ std::vector<T> get_imaginary_time_obs(arma::SpMat<T>& op,
 
 template<typename T>
 void print_overlap(arma::SpMat<T>& op, const std::string& name,
-	int degeneracy, arma::vec& ev, arma::mat& es, arma::mat& esT)
+	int degeneracy, arma::vec& ev, arma::mat& es, arma::mat& esT, arma::SpMat<T>& P_cx)
+	//int degeneracy, arma::vec& ev, arma::mat& es, arma::mat& esT)
 {
 	arma::Mat<T> es_cx = arma::conv_to<arma::Mat<T>>::from(es);
 	arma::Mat<T> esT_cx = arma::conv_to<arma::Mat<T>>::from(esT);
 	std::cout << std::endl;
-	std::cout << "----------" << std::endl;
-	for (int d = 0; d < 2; ++d)
+	std::cout << "Parity: P * O * P - O = " << arma::norm(arma::nonzeros(P_cx * op * P_cx - op)) << std::endl;
+	std::cout << "Parity: P * O * P + O = " << arma::norm(arma::nonzeros(P_cx * op * P_cx + op)) << std::endl;
+	for (int d = 0; d < degeneracy; ++d)
 	{
 		int cnt = 0;
 		for (int i = 0; i < esT_cx.n_rows; ++i)
 		{
 			double c = 0.;
 			c += std::abs(arma::trace(esT_cx.row(i) * op * es_cx.col(d)));
-			if (i < 2 || c > std::pow(10., -13.))
+			if (i < degeneracy || c > std::pow(10., -13.))
 			{
-				std::cout << "|<" << i << "| " + name + " |" << d << ">|^2 = " << c
+				std::cout << "|<" << i << "| " + name + " |" << d << ">|^2 = " << c*c
 					<< ", E(" << i << ") - E(0) = " << ev[i]-ev[0] << std::endl;
+				std::cout << "<" << d << "|O P O|" << d << "> = " << arma::trace(esT_cx.row(d) * op.t() * P_cx * op * es_cx.col(d))
+					/ arma::trace(esT_cx.row(d) * op.t() * op * es_cx.col(d)) << std::endl;
+				std::cout << "<" << i << "| P |" << i << "> = " << arma::trace(esT_cx.row(i) * P_cx * es_cx.col(i)) << std::endl;
 				++cnt;
 			}
 			if (cnt >= 20) break;
@@ -73,6 +85,81 @@ void print_overlap(arma::SpMat<T>& op, const std::string& name,
 	}
 	std::cout << "----------" << std::endl;
 	std::cout << std::endl;
+}
+
+arma::mat symmetrize_es(arma::vec& ev, arma::mat& es, arma::SpMat<double>& P)
+{
+	double epsilon = std::pow(10., -5.);
+
+	arma::mat S_s = es + P * es;
+	arma::mat S_a = es - P * es;
+	arma::mat S_so(es.n_rows, es.n_cols);
+	arma::mat S_ao(es.n_rows, es.n_cols);
+	arma::mat S_f = arma::zeros(es.n_rows, 2*es.n_cols);
+
+	int n_sectors = 1, n_last_sector = 1;
+	double E = ev(0);
+	for (int i = 0; i < es.n_cols; ++i)
+	{
+		if (arma::norm(S_s.col(i)) > epsilon)
+			S_s.col(i) /= arma::norm(S_s.col(i));
+		else
+			S_s.col(i) *= 0.;
+		if (arma::norm(S_a.col(i)) > epsilon)
+			S_a.col(i) /= arma::norm(S_a.col(i));
+		else
+			S_a.col(i) *= 0.;
+		if (std::abs(ev(i) - E) > epsilon)
+		{
+			++n_sectors;
+			E = ev(i);
+			n_last_sector = 1;
+		}
+		else
+			++n_last_sector;
+	}
+
+	int cnt = 0;
+	for (int i = 0; i < es.n_cols - n_last_sector; ++i)
+	{
+		int j;
+		for (j = i; j < es.n_cols - n_last_sector && std::abs(ev[j]-ev[i]) < epsilon ; ++j)
+		{
+			S_so.col(j) = S_s.col(j);
+			S_ao.col(j) = S_a.col(j);
+			for (int k = i; k < j; ++k)
+			{
+				S_so.col(j) -= S_so.col(k) * arma::dot(S_so.col(k), S_s.col(j));
+				S_ao.col(j) -= S_ao.col(k) * arma::dot(S_ao.col(k), S_a.col(j));
+			}
+			std::cout << "orth: i=" << i << ", j=" << j << ": " << arma::norm(S_so.col(j)) << " " << arma::norm(S_ao.col(j)) << std::endl;
+			if (arma::norm(S_so.col(j)) > epsilon)
+			{
+				S_so.col(j) /= arma::norm(S_so.col(j));
+				S_f.col(cnt) = S_so.col(j);
+				++cnt;
+			}
+			if (arma::norm(S_ao.col(j)) > epsilon)
+			{
+				S_ao.col(j) /= arma::norm(S_ao.col(j));
+				S_f.col(cnt) = S_ao.col(j);
+				++cnt;
+			}
+		}
+		i = j - 1;
+	}
+	std::cout << "Total energy sectors: " << n_sectors << std::endl;
+	std::cout << "Symmetrized states: " << cnt << " out of " << es.n_cols << " up to energy E-E_0=" << ev(cnt-1)-ev(0) << std::endl;
+	
+	S_f.cols(cnt, es.n_cols - 1) = es.cols(cnt, es.n_cols - 1);
+	/*
+	if (cnt != n_sectors - 1)
+	{
+		std::cout << "Error! Found " << cnt << " out of " << 2*es.n_cols << std::endl;
+		throw(std::runtime_error("Error in symmetrization. Wrong number of states."));
+	}
+	*/
+	return S_f.cols(0, es.n_cols - 1);
 }
 
 template<typename T>
@@ -196,17 +283,9 @@ int main(int ac, char** av)
 				//Hopping term: -t sum_<ij> c_i^dag c_j
 				state m = hspace.c_i({1, n.first}, j);
 				m = hspace.c_dag_i(m, i);
-				double tp;
-				//if (L % 3 == 0 && get_bond_type({i, j}) == 0)
-				//auto& kek_bonds = lat.bonds("kekule");
-				//if (L % 3 == 0 && std::find(kek_bonds.begin(), kek_bonds.end(), std::make_pair<int, int>(i, j)) != kek_bonds.end())
-				//if (cb_bonds[0].at(i) == j || cb_bonds[0].at(j) == i)
-				//	tp = -1.001;
-				//else
-					tp = -1.;
 
 				if (m.sign != 0)
-					H_st(hspace.index(m.id), n.second) += m.sign * tp;
+					H_st(hspace.index(m.id), n.second) += m.sign * (-1.);
 
 				//Interaction: V sum_<ij> (n_i - 0.5) (n_j - 0.5)
 				if (i < j)
@@ -261,10 +340,38 @@ int main(int ac, char** av)
 			}
 			if (m.sign != 0)
 				P_st(hspace.index(m.id), n.second) += m.sign;
-				//P_st(hspace.index(m.id), n.second) += 1.;
 		});
 	arma::sp_mat P_op = P_st.build_matrix();
 	P_st.clear();
+	sparse_storage<std::complex<double>, int_t> P_cx_st(hspace.sub_dimension());
+	hspace.build_operator([&]
+		(const std::pair<int_t, int_t>& n)
+		{
+			state m = {1, n.first};
+			for (int_t i = 0; i < lat.n_sites(); ++i)
+			{
+				if (hspace.n_i({1, n.first}, i) > 0)
+				{
+					if (hspace.n_i({1, n.first}, lat.inverted_site(i)) == 0)
+					{
+						m = hspace.c_i(m, i);
+						m = hspace.c_dag_i(m, lat.inverted_site(i));
+					}
+					else
+					{
+						if (i > lat.inverted_site(i)) continue;
+						m = hspace.c_i(m, i);
+						m = hspace.c_i(m, lat.inverted_site(i));
+						m = hspace.c_dag_i(m, i);
+						m = hspace.c_dag_i(m, lat.inverted_site(i));
+					}
+				}
+			}
+			if (m.sign != 0)
+				P_cx_st(hspace.index(m.id), n.second) += m.sign;
+		});
+	arma::sp_cx_mat P_cx_op = P_cx_st.build_matrix();
+	P_cx_st.clear();
 
 	std::cout << "Done." << std::endl;
 
@@ -294,25 +401,16 @@ int main(int ac, char** av)
 	for (int i = 0; i < ev.n_rows && std::abs(ev[i] - ev[0]) <= std::pow(10, -12); ++i)
 		++degeneracy;
 	std::cout << "GS degeneracy: " << degeneracy << std::endl;
-		
+	
+	es = symmetrize_es(ev, es, P_op);
+	esT = es.t();
 	if (degeneracy == 2)
 	{
-		double epsilon = std::pow(10., -6.);
 		arma::sp_mat id = arma::speye<arma::sp_mat>(H.n_rows, H.n_cols);
 		std::cout << "P * H - H * P = " << arma::norm(P_op * H - H * P_op) << std::endl;
 		std::cout << "id - P * P = " << arma::norm(id - P_op * P_op) << std::endl;
-		arma::mat gs1 = es.col(0) + P_op * es.col(0), gs2 = es.col(0) - P_op * es.col(0);
-		if (arma::norm(gs1) < epsilon)
-			gs1.zeros();
-		else
-			gs1 = arma::normalise(gs1);
-		if (arma::norm(gs2) < epsilon)
-			gs2.zeros();
-		else
-			gs2 = arma::normalise(gs2);
-		gs2 -= gs1 * arma::dot(gs1, gs2);
-		gs2 = arma::normalise(gs2);
 
+		arma::mat gs1 = es.col(0), gs2 = es.col(1);
 		std::cout << "|<0|0>|^2 = " << std::abs(arma::dot(gs1, gs1)) << std::endl;
 		std::cout << "|<1|1>|^2 = " << std::abs(arma::dot(gs2, gs2)) << std::endl;
 		std::cout << "|<0|1>|^2 = " << std::abs(arma::dot(gs1, gs2)) << std::endl;
@@ -320,13 +418,10 @@ int main(int ac, char** av)
 		std::cout << "N(gs1) = " << arma::dot(gs1, n_total_op * gs1) << std::endl;
 		std::cout << "P(gs1) = " << arma::dot(gs1, P_op * gs1) << std::endl;
 		std::cout << "E(gs2) = " << arma::dot(gs2, H * gs2) << std::endl;
-		std::cout << "N(gs1) = " << arma::dot(gs2, n_total_op * gs2) << std::endl;
+		std::cout << "N(gs2) = " << arma::dot(gs2, n_total_op * gs2) << std::endl;
 		std::cout << "P(gs2) = " << arma::dot(gs2, P_op * gs2) << std::endl;
-
-		es.col(0) = gs1;
-		es.col(1) = gs2;
-		esT = es.t();
 	}
+	P_op.clear();
 
 	double E = 0., m2 = 0., m4 = 0., cij = 0., n_total = 0.;
 	for (int i = 0; i < degeneracy; ++i)
@@ -435,7 +530,8 @@ int main(int ac, char** av)
 	ni_st.clear();
 	obs_data_cx.emplace_back(get_imaginary_time_obs(ni_op, Ntau, t_step, degeneracy, ev,
 		es, esT));
-	print_overlap(ni_op, "cdw", degeneracy, ev, es, esT);
+	print_overlap(ni_op, "cdw", degeneracy, ev, es, esT, P_cx_op);
+	//print_overlap(ni_op, "cdw", degeneracy, ev, es, esT);
 	arma::sp_cx_mat ni2_op = ni_op * ni_op;
 	ni_op.clear();
 	for (int i = 0; i < degeneracy; ++i)
@@ -466,7 +562,8 @@ int main(int ac, char** av)
 	ni_K_st.clear();
 	obs_data_cx.emplace_back(get_imaginary_time_obs(ni_K_op, Ntau, t_step, degeneracy, ev,
 		es, esT));
-	print_overlap(ni_K_op, "cdw_K", degeneracy, ev, es, esT);
+	print_overlap(ni_K_op, "cdw_K", degeneracy, ev, es, esT, P_cx_op);
+	//print_overlap(ni_K_op, "cdw_K", degeneracy, ev, es, esT);
 	ni_K_op.clear();
 	print_data(out, obs_data_cx[1]);
 
@@ -488,7 +585,8 @@ int main(int ac, char** av)
 	ni_sym_K_st.clear();
 	obs_data_cx.emplace_back(get_imaginary_time_obs(ni_sym_K_op, Ntau, t_step, degeneracy, ev,
 		es, esT));
-	print_overlap(ni_sym_K_op, "cdw_sym_K", degeneracy, ev, es, esT);
+	print_overlap(ni_sym_K_op, "cdw_sym_K", degeneracy, ev, es, esT, P_cx_op);
+	//print_overlap(ni_sym_K_op, "cdw_sym_K", degeneracy, ev, es, esT);
 	ni_sym_K_op.clear();
 	print_data(out, obs_data_cx[2]);
 
@@ -504,7 +602,7 @@ int main(int ac, char** av)
 				p = hspace.c_dag_i(p, b.first);
 				if (p.sign != 0)
 					kekule_st(hspace.index(p.id), n.second) +=
-						2.*std::complex<double>(p.sign)
+						-std::complex<double>(p.sign)
 						/ static_cast<double>(lat.n_bonds());
 			}
 
@@ -524,7 +622,7 @@ int main(int ac, char** av)
 				p = hspace.c_dag_i(p, b.first);
 				if (p.sign != 0)
 					kekule_st(hspace.index(p.id), n.second) +=
-						-std::complex<double>(p.sign)
+						2.*std::complex<double>(p.sign)
 						/ static_cast<double>(lat.n_bonds());
 			}
 		});
@@ -534,7 +632,7 @@ int main(int ac, char** av)
 		ev, es, esT));
 	kek_0 += arma::trace(esT_cx.row(0) * kekule_op * kekule_op.t() * es_cx.col(0));
 	kek_1 += arma::trace(esT_cx.row(1) * kekule_op * kekule_op.t() * es_cx.col(1));
-	print_overlap(kekule_op, "kekule", degeneracy, ev, es, esT);
+	print_overlap(kekule_op, "kekule", degeneracy, ev, es, esT, P_cx_op);
 	kekule_op.clear();
 	print_data(out, obs_data_cx[3]);
 
@@ -556,12 +654,26 @@ int main(int ac, char** av)
 					chern_st(hspace.index(p.id), n.second) += std::complex<double>{0., -p.sign
 						/ static_cast<double>(lat.n_bonds())};
 			}
+			
+			for (auto& b : lat.bonds("chern_2"))
+			{
+				state p = hspace.c_i({1, n.first}, b.second);
+				p = hspace.c_dag_i(p, b.first);
+				if (p.sign != 0)
+					chern_st(hspace.index(p.id), n.second) += std::complex<double>{0., p.sign
+						/ static_cast<double>(lat.n_bonds())};
+				p = hspace.c_i({1, n.first}, b.first);
+				p = hspace.c_dag_i(p, b.second);
+				if (p.sign != 0)
+					chern_st(hspace.index(p.id), n.second) += std::complex<double>{0., -p.sign
+						/ static_cast<double>(lat.n_bonds())};
+			}
 		});
 	arma::sp_cx_mat chern_op = chern_st.build_matrix();
 	chern_st.clear();
 	obs_data_cx.emplace_back(get_imaginary_time_obs(chern_op, Ntau, t_step, degeneracy,
 		ev, es, esT));
-	print_overlap(chern_op, "chern", degeneracy, ev, es, esT);
+	print_overlap(chern_op, "chern", degeneracy, ev, es, esT, P_cx_op);
 	arma::sp_cx_mat chern2_op = chern_op * chern_op;
 	for (int i = 0; i < degeneracy; ++i)
 	{
@@ -579,54 +691,34 @@ int main(int ac, char** av)
 		{
 			double pi = 4. * std::atan(1.);
 			std::complex<double> im = {0., 1.};
-			for (auto& b : lat.bonds("nn_bond_1"))
-			{
-				std::complex<double> phase = std::exp(std::complex<double>(0., 0.*pi));
-				state p = hspace.c_i({1, n.first}, b.second);
-				p = hspace.c_dag_i(p, b.first);
-				if (p.sign != 0)
-					gamma_mod_st(hspace.index(p.id), n.second) += phase * std::complex<double>(p.sign)
-						/ std::complex<double>(lat.n_bonds());
-				p = hspace.c_i({1, n.first}, b.first);
-				p = hspace.c_dag_i(p, b.second);
-				if (p.sign != 0)
-					gamma_mod_st(hspace.index(p.id), n.second) += std::conj(phase) * std::complex<double>(p.sign)
-						/ std::complex<double>(lat.n_bonds());
-			}
-			for (auto& b : lat.bonds("nn_bond_2"))
-			{
-				std::complex<double> phase = std::exp(std::complex<double>(0., 2./3.*pi));
-				state p = hspace.c_i({1, n.first}, b.second);
-				p = hspace.c_dag_i(p, b.first);
-				if (p.sign != 0)
-					gamma_mod_st(hspace.index(p.id), n.second) += phase * std::complex<double>(p.sign)
-						/ std::complex<double>(lat.n_bonds());
-				p = hspace.c_i({1, n.first}, b.first);
-				p = hspace.c_dag_i(p, b.second);
-				if (p.sign != 0)
-					gamma_mod_st(hspace.index(p.id), n.second) += std::conj(phase) * std::complex<double>(p.sign)
-						/ std::complex<double>(lat.n_bonds());
-			}
-			for (auto& b : lat.bonds("nn_bond_3"))
-			{
-				std::complex<double> phase = std::exp(std::complex<double>(0., 4./3.*pi));
-				state p = hspace.c_i({1, n.first}, b.second);
-				p = hspace.c_dag_i(p, b.first);
-				if (p.sign != 0)
-					gamma_mod_st(hspace.index(p.id), n.second) += phase * std::complex<double>(p.sign)
-						/ std::complex<double>(lat.n_bonds());
-				p = hspace.c_i({1, n.first}, b.first);
-				p = hspace.c_dag_i(p, b.second);
-				if (p.sign != 0)
-					gamma_mod_st(hspace.index(p.id), n.second) += std::conj(phase) * std::complex<double>(p.sign)
-						/ std::complex<double>(lat.n_bonds());
-			}
+			std::vector<const std::vector<std::pair<int, int>>*> bonds =
+				{&lat.bonds("nn_bond_1"), &lat.bonds("nn_bond_2"),
+				&lat.bonds("nn_bond_3"), &lat.bonds("nn_bond_1_inv"), &lat.bonds("nn_bond_2_inv"),
+				&lat.bonds("nn_bond_3_inv")};
+			std::vector<std::complex<double>> phases =
+				{std::exp(im * 0. * pi), std::exp(im * 2./3. * pi), std::exp(im * 4./3. * pi),
+				-std::exp(im * 0. * pi), -std::exp(im * 2./3. * pi), -std::exp(im * 4./3. * pi)};
+			for (int i = 0; i < bonds.size(); ++i)
+				for (int j = 0; j < bonds[i]->size(); ++j)
+				{
+					auto& b = (*bonds[i])[j];
+					state p = hspace.c_i({1, n.first}, b.second);
+					p = hspace.c_dag_i(p, b.first);
+					if (p.sign != 0)
+						gamma_mod_st(hspace.index(p.id), n.second) += phases[i] * std::complex<double>(p.sign)
+							/ std::complex<double>(lat.n_bonds());
+					p = hspace.c_i({1, n.first}, b.first);
+					p = hspace.c_dag_i(p, b.second);
+					if (p.sign != 0)
+						gamma_mod_st(hspace.index(p.id), n.second) += -std::conj(phases[i]) * std::complex<double>(p.sign)
+							/ std::complex<double>(lat.n_bonds());
+				}
 		});
 	arma::sp_cx_mat gamma_mod_op = gamma_mod_st.build_matrix();
 	gamma_mod_st.clear();
 	obs_data_cx.emplace_back(get_imaginary_time_obs(gamma_mod_op, Ntau, t_step, degeneracy, ev,
 		es, esT));
-	print_overlap(gamma_mod_op, "gamma_mod", degeneracy, ev, es, esT);
+	print_overlap(gamma_mod_op, "gamma_mod", degeneracy, ev, es, esT, P_cx_op);
 	gamma_mod_op.clear();
 	print_data(out, obs_data_cx[5]);
 
@@ -659,7 +751,8 @@ int main(int ac, char** av)
 			epsilon_st(n.second, n.second) -= ep;
 		});
 	epsilon_op = epsilon_st.build_matrix();
-	print_overlap(epsilon_op, "epsilon - <ep>", degeneracy, ev, es, esT);
+	print_overlap(epsilon_op, "epsilon - <ep>", degeneracy, ev, es, esT, P_cx_op);
+	//print_overlap(epsilon_op, "epsilon - <ep>", degeneracy, ev, es, esT);
 	epsilon_st.clear();
 	obs_data_cx.emplace_back(get_imaginary_time_obs(epsilon_op, Ntau, t_step, degeneracy,
 		ev, es, esT));
@@ -685,7 +778,8 @@ int main(int ac, char** av)
 				}
 			});
 		arma::sp_cx_mat sp_op = sp_st.build_matrix();
-		print_overlap(sp_op, "sp", degeneracy, ev, es, esT);
+		print_overlap(sp_op, "sp", degeneracy, ev, es, esT, P_cx_op);
+		//print_overlap(sp_op, "sp", degeneracy, ev, es, esT);
 		sp_st.clear();
 		obs_data_cx.emplace_back(get_imaginary_time_obs(sp_op, Ntau, t_step, degeneracy,
 			ev, es, esT));
@@ -713,7 +807,8 @@ int main(int ac, char** av)
 				}
 			});
 		arma::sp_cx_mat tp_op = tp_st.build_matrix();
-		print_overlap(tp_op, "tp", degeneracy, ev, es, esT);
+		print_overlap(tp_op, "tp", degeneracy, ev, es, esT, P_cx_op);
+		//print_overlap(tp_op, "tp", degeneracy, ev, es, esT);
 		tp_st.clear();
 		obs_data_cx.emplace_back(get_imaginary_time_obs(tp_op, Ntau, t_step, degeneracy,
 			ev, es, esT));
