@@ -544,41 +544,74 @@ int main(int ac, char** av)
 	ni2_op.clear();
 	print_data(out, obs_data_cx[0]);
 
-	sparse_storage<std::complex<double>, int_t> ni_K_st(hspace.sub_dimension());
+	sparse_storage<std::complex<double>, int_t> ep_as_st(hspace.sub_dimension());
 	hspace.build_operator([&]
 		(const std::pair<int_t, int_t>& n)
 		{
-			auto& K = lat.symmetry_point("K");
-			for (int i = 0; i < lat.n_sites(); ++i)
-			{
-				std::complex<double> phase = std::exp(std::complex<double>(0.,
-						K.dot(lat.real_space_coord(i))));
-				ni_K_st(n.second, n.second)
-					+= lat.parity(i) * phase / std::complex<double>(lat.n_sites())
-						* (hspace.n_i({1, n.first}, i) - 0.5);
-			}
+			std::vector<const std::vector<std::pair<int, int>>*> bonds =
+				{&lat.bonds("nn_bond_1"), &lat.bonds("nn_bond_2"),
+				&lat.bonds("nn_bond_3")};
+			for (int i = 0; i < bonds.size(); ++i)
+				for (int j = 0; j < bonds[i]->size(); ++j)
+				{
+					auto& b = (*bonds[i])[j];
+					state p = hspace.c_i({1, n.first}, b.second);
+					p = hspace.c_dag_i(p, b.first);
+					if (p.sign != 0)
+						ep_as_st(hspace.index(p.id), n.second) += std::complex<double>(p.sign)
+							/ std::complex<double>(lat.n_bonds());
+					p = hspace.c_i({1, n.first}, b.first);
+					p = hspace.c_dag_i(p, b.second);
+					if (p.sign != 0)
+						ep_as_st(hspace.index(p.id), n.second) += -std::complex<double>(p.sign)
+							/ std::complex<double>(lat.n_bonds());
+				}
 		});
-	arma::sp_cx_mat ni_K_op = ni_K_st.build_matrix();
-	ni_K_st.clear();
-	obs_data_cx.emplace_back(get_imaginary_time_obs(ni_K_op, Ntau, t_step, degeneracy, ev,
+	arma::sp_cx_mat ep_as_op = ep_as_st.build_matrix();
+	ep_as_st.clear();
+	obs_data_cx.emplace_back(get_imaginary_time_obs(ep_as_op, Ntau, t_step, degeneracy, ev,
 		es, esT));
-	print_overlap(ni_K_op, "cdw_K", degeneracy, ev, es, esT, P_cx_op);
-	//print_overlap(ni_K_op, "cdw_K", degeneracy, ev, es, esT);
-	ni_K_op.clear();
+	print_overlap(ep_as_op, "ep_as", degeneracy, ev, es, esT, P_cx_op);
+	ep_as_op.clear();
 	print_data(out, obs_data_cx[1]);
 
 	sparse_storage<std::complex<double>, int_t> ni_sym_K_st(hspace.sub_dimension());
 	hspace.build_operator([&]
 		(const std::pair<int_t, int_t>& n)
 		{
-			auto& K = lat.symmetry_point("K");
-			for (int i = 0; i < lat.n_sites(); ++i)
+			//kekule
+			for (auto& b : lat.bonds("chern"))
 			{
-				std::complex<double> phase = std::exp(std::complex<double>(0.,
-						K.dot(lat.real_space_coord(i))));
-				ni_sym_K_st(n.second, n.second)
-					+= phase / std::complex<double>(lat.n_sites())
-						* (hspace.n_i({1, n.first}, i) - 0.5);
+				state p = hspace.c_i({1, n.first}, b.second);
+				p = hspace.c_dag_i(p, b.first);
+				if (p.sign != 0)
+					ni_sym_K_st(hspace.index(p.id), n.second) +=
+						std::complex<double>(p.sign)
+						/ static_cast<double>(lat.n_bonds());
+						
+				p = hspace.c_i({1, n.first}, b.first);
+				p = hspace.c_dag_i(p, b.second);
+				if (p.sign != 0)
+					ni_sym_K_st(hspace.index(p.id), n.second) +=
+						std::complex<double>(p.sign)
+						/ static_cast<double>(lat.n_bonds());
+			}
+
+			for (auto& b : lat.bonds("chern_2"))
+			{
+				state p = hspace.c_i({1, n.first}, b.second);
+				p = hspace.c_dag_i(p, b.first);
+				if (p.sign != 0)
+					ni_sym_K_st(hspace.index(p.id), n.second) +=
+						-std::complex<double>(p.sign)
+						/ static_cast<double>(lat.n_bonds());
+						
+				p = hspace.c_i({1, n.first}, b.first);
+				p = hspace.c_dag_i(p, b.second);
+				if (p.sign != 0)
+					ni_sym_K_st(hspace.index(p.id), n.second) +=
+						std::complex<double>(p.sign)
+						/ static_cast<double>(lat.n_bonds());
 			}
 		});
 	arma::sp_cx_mat ni_sym_K_op = ni_sym_K_st.build_matrix();
@@ -589,7 +622,6 @@ int main(int ac, char** av)
 	//print_overlap(ni_sym_K_op, "cdw_sym_K", degeneracy, ev, es, esT);
 	ni_sym_K_op.clear();
 	print_data(out, obs_data_cx[2]);
-
 
 	sparse_storage<std::complex<double>, int_t> kekule_st(hspace.sub_dimension());
 	hspace.build_operator([&]
@@ -660,12 +692,12 @@ int main(int ac, char** av)
 				state p = hspace.c_i({1, n.first}, b.second);
 				p = hspace.c_dag_i(p, b.first);
 				if (p.sign != 0)
-					chern_st(hspace.index(p.id), n.second) += std::complex<double>{0., p.sign
+					chern_st(hspace.index(p.id), n.second) += std::complex<double>{0., -p.sign
 						/ static_cast<double>(lat.n_bonds())};
 				p = hspace.c_i({1, n.first}, b.first);
 				p = hspace.c_dag_i(p, b.second);
 				if (p.sign != 0)
-					chern_st(hspace.index(p.id), n.second) += std::complex<double>{0., -p.sign
+					chern_st(hspace.index(p.id), n.second) += std::complex<double>{0., p.sign
 						/ static_cast<double>(lat.n_bonds())};
 			}
 		});
@@ -691,13 +723,11 @@ int main(int ac, char** av)
 		{
 			double pi = 4. * std::atan(1.);
 			std::complex<double> im = {0., 1.};
+			
 			std::vector<const std::vector<std::pair<int, int>>*> bonds =
 				{&lat.bonds("nn_bond_1"), &lat.bonds("nn_bond_2"),
-				&lat.bonds("nn_bond_3"), &lat.bonds("nn_bond_1_inv"), &lat.bonds("nn_bond_2_inv"),
-				&lat.bonds("nn_bond_3_inv")};
-			std::vector<std::complex<double>> phases =
-				{std::exp(im * 0. * pi), std::exp(im * 2./3. * pi), std::exp(im * 4./3. * pi),
-				-std::exp(im * 0. * pi), -std::exp(im * 2./3. * pi), -std::exp(im * 4./3. * pi)};
+				&lat.bonds("nn_bond_3")};
+			std::vector<std::complex<double>> phases = {2.*im*std::sin(0. * pi), 2.*im*std::sin(2./3. * pi), 2.*im*std::sin(4./3. * pi)};
 			for (int i = 0; i < bonds.size(); ++i)
 				for (int j = 0; j < bonds[i]->size(); ++j)
 				{
@@ -710,7 +740,7 @@ int main(int ac, char** av)
 					p = hspace.c_i({1, n.first}, b.first);
 					p = hspace.c_dag_i(p, b.second);
 					if (p.sign != 0)
-						gamma_mod_st(hspace.index(p.id), n.second) += -std::conj(phases[i]) * std::complex<double>(p.sign)
+						gamma_mod_st(hspace.index(p.id), n.second) += -phases[i] * std::complex<double>(p.sign)
 							/ std::complex<double>(lat.n_bonds());
 				}
 		});

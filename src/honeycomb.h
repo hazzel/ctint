@@ -404,7 +404,7 @@ struct honeycomb
 				}
 		});
 		
-l.generate_bond_map("nn_bond_1_inv", [&]
+		l.generate_bond_map("nn_bond_1_inv", [&]
 		(lattice::pair_vector_t& list)
 		{
 			int N = l.n_sites();
