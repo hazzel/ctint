@@ -36,7 +36,7 @@ std::vector<T> get_imaginary_time_obs(arma::SpMat<T>& op,
 	if (degeneracy == 1)
 		a = 0;
 	else
-		a = 0;
+		a = 1;
 	obs_vec[0] = arma::trace(esT_cx.row(a) * op * opT * es_cx.col(a));
 	std::cout << "----------" << std::endl;
 	for (int d = 0; d < degeneracy; ++d)
@@ -114,6 +114,7 @@ arma::mat symmetrize_es(arma::vec& ev, arma::mat& es, arma::SpMat<double>& P)
 			++n_sectors;
 			E = ev(i);
 			n_last_sector = 1;
+			std::cout << "Sector " << i << ": " << ev(i) << std::endl;
 		}
 		else
 			++n_last_sector;
@@ -132,7 +133,7 @@ arma::mat symmetrize_es(arma::vec& ev, arma::mat& es, arma::SpMat<double>& P)
 				S_so.col(j) -= S_so.col(k) * arma::dot(S_so.col(k), S_s.col(j));
 				S_ao.col(j) -= S_ao.col(k) * arma::dot(S_ao.col(k), S_a.col(j));
 			}
-			std::cout << "orth: i=" << i << ", j=" << j << ": " << arma::norm(S_so.col(j)) << " " << arma::norm(S_ao.col(j)) << std::endl;
+			std::cout << "E=" << ev(i) << ", orth: i=" << i << ", j=" << j << ": " << arma::norm(S_so.col(j)) << " " << arma::norm(S_ao.col(j)) << std::endl;
 			if (arma::norm(S_so.col(j)) > epsilon)
 			{
 				S_so.col(j) /= arma::norm(S_so.col(j));
@@ -372,6 +373,16 @@ int main(int ac, char** av)
 		});
 	arma::sp_cx_mat P_cx_op = P_cx_st.build_matrix();
 	P_cx_st.clear();
+	
+	sparse_storage<double, int_t> PH_st(hspace.sub_dimension());
+	hspace.build_operator([&]
+		(const std::pair<int_t, int_t>& n)
+		{
+			state m = hspace.ph_symmetry({1, n.first});
+			PH_st(hspace.index(m.id), n.second) += m.sign;
+		});
+	arma::sp_mat PH_op = PH_st.build_matrix();
+	PH_st.clear();
 
 	std::cout << "Done." << std::endl;
 
@@ -407,6 +418,7 @@ int main(int ac, char** av)
 	if (degeneracy == 2)
 	{
 		arma::sp_mat id = arma::speye<arma::sp_mat>(H.n_rows, H.n_cols);
+		std::cout << "Inversion symmetry" << std::endl;
 		std::cout << "P * H - H * P = " << arma::norm(P_op * H - H * P_op) << std::endl;
 		std::cout << "id - P * P = " << arma::norm(id - P_op * P_op) << std::endl;
 
@@ -422,6 +434,25 @@ int main(int ac, char** av)
 		std::cout << "P(gs2) = " << arma::dot(gs2, P_op * gs2) << std::endl;
 	}
 	P_op.clear();
+	if (degeneracy == 2)
+	{
+		arma::sp_mat id = arma::speye<arma::sp_mat>(H.n_rows, H.n_cols);
+		std::cout << "Particle hole symmetry" << std::endl;
+		std::cout << "P * H - H * P = " << arma::norm(PH_op * H - H * PH_op) << std::endl;
+		std::cout << "id - P * P = " << arma::norm(id - PH_op * PH_op) << std::endl;
+
+		arma::mat gs1 = es.col(0), gs2 = es.col(1);
+		std::cout << "|<0|0>|^2 = " << std::abs(arma::dot(gs1, gs1)) << std::endl;
+		std::cout << "|<1|1>|^2 = " << std::abs(arma::dot(gs2, gs2)) << std::endl;
+		std::cout << "|<0|1>|^2 = " << std::abs(arma::dot(gs1, gs2)) << std::endl;
+		std::cout << "E(gs1) = " << arma::dot(gs1, H * gs1) << std::endl;
+		std::cout << "N(gs1) = " << arma::dot(gs1, n_total_op * gs1) << std::endl;
+		std::cout << "P(gs1) = " << arma::dot(gs1, PH_op * gs1) << std::endl;
+		std::cout << "E(gs2) = " << arma::dot(gs2, H * gs2) << std::endl;
+		std::cout << "N(gs2) = " << arma::dot(gs2, n_total_op * gs2) << std::endl;
+		std::cout << "P(gs2) = " << arma::dot(gs2, PH_op * gs2) << std::endl;
+	}
+	PH_op.clear();
 
 	double E = 0., m2 = 0., m4 = 0., cij = 0., n_total = 0.;
 	for (int i = 0; i < degeneracy; ++i)
@@ -579,7 +610,6 @@ int main(int ac, char** av)
 	hspace.build_operator([&]
 		(const std::pair<int_t, int_t>& n)
 		{
-			//kekule
 			for (auto& b : lat.bonds("chern"))
 			{
 				state p = hspace.c_i({1, n.first}, b.second);

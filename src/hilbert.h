@@ -58,6 +58,19 @@ class hilbert
 					sign *= -1;
 			return state{sign, set_bit(psi.id, i)};
 		}
+		
+		state ph_symmetry(const state& psi)
+		{
+			state ph_psi = {psi.sign, dim-1};
+			
+			for (int_t j = 0; j < lat.n_sites(); ++j)
+				if (test_bit(psi.id, j))
+				{
+					ph_psi = c_i(ph_psi, j);
+					ph_psi.sign *= lat.parity(j);
+				}
+			return ph_psi;
+		}
 
 		int_t sub_dimension() { return base_index.size(); }
 		int_t dimension() { return dim; }
@@ -85,21 +98,21 @@ class hilbert
 			std::for_each(base_index.begin(), base_index.end(), op);
 		}
 	private:
-		int_t set_bit(int_t integer, int_t offset)
+		int_t set_bit(int_t integer, int_t digit)
 		{
-			return integer | (1 << offset);
+			return integer | (1 << digit);
 		}
-		int_t clear_bit(int_t integer, int_t offset)
+		int_t clear_bit(int_t integer, int_t digit)
 		{
-			return integer & (~(1 << offset));
+			return integer & (~(1 << digit));
 		}
-		int_t invert_bit(int_t integer, int_t offset)
+		int_t invert_bit(int_t integer, int_t digit)
 		{
-			return integer ^ (1 << offset);
+			return integer ^ (1 << digit);
 		}
-		int_t test_bit(int_t integer, int_t offset)
+		int_t test_bit(int_t integer, int_t digit)
 		{
-			return (integer & (1 << offset)) >> offset;
+			return (integer & (1 << digit)) >> digit;
 		}
 	private:
 		lattice& lat;

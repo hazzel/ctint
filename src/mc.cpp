@@ -133,17 +133,17 @@ mc::mc(const std::string& dir)
 			<< config.l.real_space_coord(b.first)[1] << "," << b.second << ","
 			<< config.l.real_space_coord(b.second)[0] << ","
 			<< config.l.real_space_coord(b.second)[1] << std::endl;
-	for (auto& b : config.l.bonds("kekule"))
+	for (auto& b : config.l.bonds("nn_bond_1"))
 		f_kek << b.first << "," << config.l.real_space_coord(b.first)[0] << ","
 			<< config.l.real_space_coord(b.first)[1] << "," << b.second << ","
 			<< config.l.real_space_coord(b.second)[0] << ","
 			<< config.l.real_space_coord(b.second)[1] << std::endl;
-	for (auto& b : config.l.bonds("kekule"))
+	for (auto& b : config.l.bonds("nn_bond_2"))
 		f_kek_2 << config.l.inverted_site(b.first) << "," << config.l.real_space_coord(config.l.inverted_site(b.first))[0] << ","
 			<< config.l.real_space_coord(config.l.inverted_site(b.first))[1] << "," << config.l.inverted_site(b.second) << ","
 			<< config.l.real_space_coord(config.l.inverted_site(b.second))[0] << ","
 			<< config.l.real_space_coord(config.l.inverted_site(b.second))[1] << std::endl;
-	for (auto& b : config.l.bonds("kekule_3"))
+	for (auto& b : config.l.bonds("nn_bond_3"))
 		f_kek_3 << config.l.inverted_site(b.first) << "," << config.l.real_space_coord(config.l.inverted_site(b.first))[0] << ","
 			<< config.l.real_space_coord(config.l.inverted_site(b.first))[1] << "," << config.l.inverted_site(b.second) << ","
 			<< config.l.real_space_coord(config.l.inverted_site(b.second))[0] << ","
