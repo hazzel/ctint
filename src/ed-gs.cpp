@@ -138,7 +138,7 @@ arma::mat symmetrize_es(arma::vec& ev, arma::mat& es, arma::SpMat<double>& P)
 				S_so.col(j) -= S_so.col(k) * arma::dot(S_so.col(k), S_s.col(j));
 				S_ao.col(j) -= S_ao.col(k) * arma::dot(S_ao.col(k), S_a.col(j));
 			}
-			std::cout << "E=" << ev(i) << ", orth: i=" << i << ", j=" << j << ": " << arma::norm(S_so.col(j)) << " " << arma::norm(S_ao.col(j)) << std::endl;
+			//std::cout << "E=" << ev(i) << ", orth: i=" << i << ", j=" << j << ": " << arma::norm(S_so.col(j)) << " " << arma::norm(S_ao.col(j)) << std::endl;
 			if (arma::norm(S_so.col(j)) > epsilon)
 			{
 				S_so.col(j) /= arma::norm(S_so.col(j));
@@ -177,7 +177,7 @@ void print_data(std::ostream& out, const T& data)
 
 int main(int ac, char** av)
 {
-	int L;
+	int Lx, Ly;
 	double tprime;
 	double V;
 	double stag_mu;
@@ -188,7 +188,8 @@ int main(int ac, char** av)
 	po::options_description desc("Allowed options");
 	desc.add_options()
 		("help", "produce help message")
-		("L", po::value<int>(&L)->default_value(3), "linear lattice dimension")
+		("Lx", po::value<int>(&Lx)->default_value(3), "x linear lattice dimension")
+		("Ly", po::value<int>(&Ly)->default_value(3), "y linear lattice dimension")
 		("tprime", po::value<double>(&tprime)->default_value(0.), "d3 hopping")
 		("V", po::value<double>(&V)->default_value(1.355), "interaction strength")
 		("stag_mu", po::value<double>(&stag_mu)->default_value(0.), "staggered chemical potential")
@@ -197,19 +198,18 @@ int main(int ac, char** av)
 		("ensemble,e", po::value<std::string>(&ensemble)->default_value("gc"),
 			"ensemble: gc or c")
 		("geometry,g", po::value<std::string>(&geometry)->default_value("rhom"),
-			"geometry: rhombic or hexagonal");
+			"geometry: rhombic/tilted/hexagonal");
 	po::variables_map vm;
 	po::store(po::parse_command_line(ac, av, desc), vm);
 	po::notify(vm);
 
 	if (vm.count("help")) print_help(desc);
 	if (geometry == "hex")
-		L = 1;
-	else
-		geometry = "rhom";
+		Lx = 1;
 	std::cout << "geometry: " << geometry << std::endl;
 	std::cout << "ensemble: " << ensemble << std::endl;
-	std::cout << "L = " << L << std::endl;
+	std::cout << "Lx = " << Lx << std::endl;
+	std::cout << "Ly = " << Ly << std::endl;
 	std::cout << "tprime = " << tprime << std::endl;
 	std::cout << "V = " << V << std::endl;
 	std::cout << "stag_mu = " << stag_mu << std::endl;
@@ -218,13 +218,19 @@ int main(int ac, char** av)
 	lattice lat;
 	if (geometry == "hex")
 	{
-		hex_honeycomb h(L);
+		hex_honeycomb h(Lx);
 		lat.generate_graph(h);
 		h.generate_maps(lat);
 	}
+	else if (geometry == "tilted")
+	{
+		tilted_honeycomb hc(Lx, Ly);
+		lat.generate_graph(hc);
+		hc.generate_maps(lat);
+	}
 	else if (geometry == "rhom")
 	{
-		honeycomb h(L);
+		honeycomb h(Lx, Ly);
 		lat.generate_graph(h);
 		h.generate_maps(lat);
 	}
@@ -395,7 +401,8 @@ int main(int ac, char** av)
 
 	std::cout << "Done." << std::endl;
 
-	std::string out_file = "../data/ed_L_" + std::to_string(L) + "__"
+	std::string out_file = "../data/ed_Lx_" + std::to_string(Lx) + "__"
+		+ "Ly_" + std::to_string(Ly) + "__"
 		+ "V_" + std::to_string(V) + "__"
 		+ "GS__"
 		+ ensemble;
@@ -435,14 +442,13 @@ int main(int ac, char** av)
 		std::cout << "Particle hole symmetry" << std::endl;
 		std::cout << "PH * H - H * PH = " << arma::norm(PH_op * H - H * PH_op) << std::endl;
 		std::cout << "id - PH * PH = " << arma::norm(id - PH_op * PH_op) << std::endl;
-
-		for (int i = 0; i < degeneracy; ++i)
-		{
-			std::cout << "E(gs" << i << ") = " << arma::dot(es.col(i), H * es.col(i)) << std::endl;
-			std::cout << "N(gs" << i << ") = " << arma::dot(es.col(i), n_total_op * es.col(i)) << std::endl;
-			std::cout << "P(gs" << i << ") = " << arma::dot(es.col(i), P_op * es.col(i)) << std::endl;
-			std::cout << "PH(gs" << i << ") = " << arma::dot(es.col(i), PH_op * es.col(i)) << std::endl;
-		}
+	}
+	for (int i = 0; i < 6; ++i)
+	{
+		std::cout << "E(" << i << ") = " << arma::dot(es.col(i), H * es.col(i)) << std::endl;
+		std::cout << "N(" << i << ") = " << arma::dot(es.col(i), n_total_op * es.col(i)) << std::endl;
+		std::cout << "P(" << i << ") = " << arma::dot(es.col(i), P_op * es.col(i)) << std::endl;
+		std::cout << "PH(" << i << ") = " << arma::dot(es.col(i), PH_op * es.col(i)) << std::endl;
 	}
 	P_op.clear();
 	PH_op.clear();
@@ -458,7 +464,7 @@ int main(int ac, char** av)
 
 	int Ntau = 50, Nmat = 0;
 	double t_step = 0.2;
-	out << k << "\t" << L << "\t" << V << "\t" << 0 << "\t"
+	out << k << "\t" << Lx << "\t" << Ly << "\t" << V << "\t" << 0 << "\t"
 		<< E << "\t" << m2 << "\t" << m4 << "\t" << m4/(m2*m2) << "\t"
 		<< Ntau << "\t" << Nmat << std::endl;
 
@@ -468,7 +474,7 @@ int main(int ac, char** av)
 	arma::Mat<std::complex<double>> es_cx = arma::conv_to<arma::Mat<std::complex<double>>>::from(es);
 	arma::Mat<std::complex<double>> esT_cx = arma::conv_to<arma::Mat<std::complex<double>>>::from(esT);
 	std::vector<std::vector<std::complex<double>>> obs_data_cx;
-	std::complex<double> cdw2 = 0., cdw4 = 0., cdw2_0 = 0., cdw2_1 = 0., ep = 0., ep_0 = 0., ep_1 = 0., kek_0 = 0., kek_1 = 0., chern = 0., chern2 = 0., chern4 = 0.;
+	std::complex<double> cdw2 = 0., cdw4 = 0., cdw2_0 = 0., cdw2_1 = 0., S_cdw = 0., ep = 0., ep_0 = 0., ep_1 = 0., kek_0 = 0., kek_1 = 0., chern = 0., chern2 = 0., chern4 = 0., S_chern = 0.;
 	std::complex<double> h_t = 0., h_v = 0., h_mu = 0.;
 
 	sparse_storage<std::complex<double>, int_t> ht_st(hspace.sub_dimension());
@@ -510,9 +516,15 @@ int main(int ac, char** av)
 				for (int_t j : lat.neighbors(i, "nearest neighbors"))
 				{
 					//Interaction: V sum_<ij> (n_i - 0.5) (n_j - 0.5)
+					
 					if (i < j)
 						hv_st(n.second, n.second) += V * (hspace.n_i({1, n.first}, i)
 							- 0.5) * (hspace.n_i({1, n.first}, j) - 0.5);
+					
+					/*
+					if (i < j)
+						hv_st(n.second, n.second) += V * hspace.n_i({1, n.first}, i) * hspace.n_i({1, n.first}, j);
+					*/
 				}
 		});
 	arma::sp_cx_mat hv_op = hv_st.build_matrix();
@@ -539,6 +551,7 @@ int main(int ac, char** av)
 	hmu_op.clear();
 
 	sparse_storage<std::complex<double>, int_t> ni_st(hspace.sub_dimension());
+	sparse_storage<std::complex<double>, int_t> S_cdw_st(hspace.sub_dimension());
 	hspace.build_operator([&]
 		(const std::pair<int_t, int_t>& n)
 		{
@@ -548,6 +561,12 @@ int main(int ac, char** av)
 				ni_st(n.second, n.second)
 					+= lat.parity(i) / std::complex<double>(lat.n_sites())
 						* (hspace.n_i({1, n.first}, i) - 0.5);
+				auto& r_i = lat.real_space_coord(i);
+				auto& q = lat.symmetry_point("q");
+				std::complex<double> im = {0., 1.};
+				S_cdw_st(n.second, n.second)
+					+= lat.parity(i) / std::complex<double>(lat.n_sites())
+						* (hspace.n_i({1, n.first}, i) - 0.5) * std::exp(im * q.dot(r_i));
 			}
 		});
 	arma::sp_cx_mat ni_op = ni_st.build_matrix();
@@ -558,14 +577,18 @@ int main(int ac, char** av)
 	//print_overlap(ni_op, "cdw", degeneracy, ev, es, esT);
 	arma::sp_cx_mat ni2_op = ni_op * ni_op;
 	ni_op.clear();
+	arma::sp_cx_mat S_cdw_op = S_cdw_st.build_matrix();
+	S_cdw_st.clear();
 	for (int i = 0; i < degeneracy; ++i)
 	{
 		cdw2 += arma::trace(esT_cx.row(i) * ni2_op * es_cx.col(i)) / std::complex<double>(degeneracy);
 		cdw4 += arma::trace(esT_cx.row(i) * ni2_op * ni2_op * es_cx.col(i)) / std::complex<double>(degeneracy);
+		S_cdw += arma::trace(esT_cx.row(i) * S_cdw_op * S_cdw_op.t() * es_cx.col(i)) / std::complex<double>(degeneracy);
 	}
 	cdw2_0 += arma::trace(esT_cx.row(0) * ni2_op * es_cx.col(0));
 	cdw2_1 += arma::trace(esT_cx.row(1) * ni2_op * es_cx.col(1));
 	ni2_op.clear();
+	S_cdw_op.clear();
 	print_data(out, obs_data_cx[0]);
 	
 	sparse_storage<std::complex<double>, int_t> ep_V_st(hspace.sub_dimension());
@@ -575,9 +598,15 @@ int main(int ac, char** av)
 			for (auto& a : lat.bonds("nearest neighbors"))
 			{
 				if (a.first > a.second) continue;
+				/*
 				ep_V_st(n.second, n.second)
 					+= 1. / std::complex<double>(lat.n_bonds())
 						* (hspace.n_i({1, n.first}, a.first) - 0.5) * (hspace.n_i({1, n.first}, a.second) - 0.5);
+				*/
+
+				ep_V_st(n.second, n.second)
+					+= 1. / std::complex<double>(lat.n_bonds())
+						* std::complex<double>(hspace.n_i({1, n.first}, a.first)) * std::complex<double>(hspace.n_i({1, n.first}, a.second));
 			}
 		});
 	arma::sp_cx_mat ep_V_op = ep_V_st.build_matrix();
@@ -712,36 +741,61 @@ int main(int ac, char** av)
 	print_data(out, obs_data_cx[4]);
 
 	sparse_storage<std::complex<double>, int_t> chern_st(hspace.sub_dimension());
+	sparse_storage<std::complex<double>, int_t> S_chern_st(hspace.sub_dimension());
 	hspace.build_operator([&]
 		(const std::pair<int_t, int_t>& n)
 		{
 			//chern
 			for (auto& b : lat.bonds("chern"))
 			{
+				auto& r_i = lat.real_space_coord(b.first);
+				auto& q = lat.symmetry_point("q");
+				std::complex<double> im = {0., 1.};
+				
 				state p = hspace.c_i({1, n.first}, b.second);
 				p = hspace.c_dag_i(p, b.first);
 				if (p.sign != 0)
+				{
 					chern_st(hspace.index(p.id), n.second) += std::complex<double>{0., p.sign
 						/ static_cast<double>(lat.n_bonds())};
+					S_chern_st(hspace.index(p.id), n.second) += std::complex<double>{0., p.sign
+						/ static_cast<double>(lat.n_bonds())} * std::exp(im * q.dot(r_i));
+				}
 				p = hspace.c_i({1, n.first}, b.first);
 				p = hspace.c_dag_i(p, b.second);
 				if (p.sign != 0)
+				{
 					chern_st(hspace.index(p.id), n.second) += std::complex<double>{0., -p.sign
 						/ static_cast<double>(lat.n_bonds())};
+					S_chern_st(hspace.index(p.id), n.second) += std::complex<double>{0., -p.sign
+						/ static_cast<double>(lat.n_bonds())} * std::exp(im * q.dot(r_i));
+				}
 			}
 			
 			for (auto& b : lat.bonds("chern_2"))
 			{
+				auto& r_i = lat.real_space_coord(b.first);
+				auto& q = lat.symmetry_point("q");
+				std::complex<double> im = {0., 1.};
+				
 				state p = hspace.c_i({1, n.first}, b.second);
 				p = hspace.c_dag_i(p, b.first);
 				if (p.sign != 0)
+				{
 					chern_st(hspace.index(p.id), n.second) += std::complex<double>{0., -p.sign
 						/ static_cast<double>(lat.n_bonds())};
+					S_chern_st(hspace.index(p.id), n.second) += std::complex<double>{0., -p.sign
+						/ static_cast<double>(lat.n_bonds())} * std::exp(im * q.dot(r_i));
+				}
 				p = hspace.c_i({1, n.first}, b.first);
 				p = hspace.c_dag_i(p, b.second);
 				if (p.sign != 0)
+				{
 					chern_st(hspace.index(p.id), n.second) += std::complex<double>{0., p.sign
 						/ static_cast<double>(lat.n_bonds())};
+					S_chern_st(hspace.index(p.id), n.second) += std::complex<double>{0., p.sign
+						/ static_cast<double>(lat.n_bonds())} * std::exp(im * q.dot(r_i));
+				}
 			}
 		});
 	arma::sp_cx_mat chern_op = chern_st.build_matrix();
@@ -749,15 +803,19 @@ int main(int ac, char** av)
 	obs_data_cx.emplace_back(get_imaginary_time_obs(chern_op, Ntau, t_step, degeneracy,
 		ev, es, esT));
 	print_overlap(chern_op, "chern", degeneracy, ev, es, esT, P_cx_op, PH_cx_op);
+	arma::sp_cx_mat S_chern_op = S_chern_st.build_matrix();
+	S_chern_st.clear();
 	arma::sp_cx_mat chern2_op = chern_op * chern_op;
 	for (int i = 0; i < degeneracy; ++i)
 	{
 		chern += arma::trace(esT_cx.row(i) * chern_op * es_cx.col(i)) / std::complex<double>(degeneracy);
 		chern2 += arma::trace(esT_cx.row(i) * chern2_op * es_cx.col(i)) / std::complex<double>(degeneracy);
 		chern4 += arma::trace(esT_cx.row(i) * chern2_op * chern2_op * es_cx.col(i)) / std::complex<double>(degeneracy);
+		S_chern += arma::trace(esT_cx.row(i) * S_chern_op * S_chern_op.t() * es_cx.col(i)) / std::complex<double>(degeneracy);
 	}
 	chern_op.clear();
 	chern2_op.clear();
+	S_chern_op.clear();
 	print_data(out, obs_data_cx[5]);
 
 	sparse_storage<std::complex<double>, int_t> gamma_mod_st(hspace.sub_dimension());
@@ -899,7 +957,9 @@ int main(int ac, char** av)
 	std::cout << "<0|m2|0> = " << std::real(cdw2_0) << std::endl;
 	std::cout << "<1|m2|1> = " << std::real(cdw2_1) << std::endl;
 	std::cout << "<m4> = " << std::real(cdw4) << std::endl;
+	std::cout << "S_cdw_q = " << std::real(S_cdw) << std::endl;
 	std::cout << "B_cdw = " << std::real(cdw4/(cdw2*cdw2)) << std::endl;
+	std::cout << "R_cdw = " << std::real(1. - S_cdw/cdw2) << std::endl;
 	std::cout << "<epsilon> = " << std::real(ep) << std::endl;
 	std::cout << "<0|epsilon|0> = " << std::real(ep_0) << std::endl;
 	std::cout << "<1|epsilon|1> = " << std::real(ep_1) << std::endl;
@@ -908,6 +968,8 @@ int main(int ac, char** av)
 	std::cout << "<chern> = " << std::imag(chern) << std::endl;
 	std::cout << "<chern^2> = " << std::real(chern2) << std::endl;
 	std::cout << "<chern^4> = " << std::real(chern4) << std::endl;
+	std::cout << "S_chern_q = " << std::real(S_chern) << std::endl;
+	std::cout << "R_cdw = " << std::real(1. - S_chern/chern2) << std::endl;
 	std::cout << "B_chern = " << std::real(chern4/(chern2*chern2)) << std::endl;
 
 	out.close();

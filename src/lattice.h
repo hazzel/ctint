@@ -28,7 +28,6 @@ class lattice
 		typedef std::map<std::string, nested_vector_t> neighbor_map_t;
 		typedef std::map<std::string, pair_vector_t> bond_map_t;
 		typedef std::vector<Eigen::Vector2d> real_space_map_t;
-		typedef std::vector<std::pair<int, int>> coord_map_t;
 		typedef std::map<std::string, Eigen::Vector2d> point_map_t;
 
 		lattice()
@@ -43,7 +42,10 @@ class lattice
 			graph = generator.graph();
 			generate_distance_map();
 			real_space_map = generator.real_space_map;
-			coord_map = generator.coord_map;
+			
+			//std::cout << "n_bonds = " << n_bonds() << std::endl;
+			//std::cout << "Bonds:" << std::endl;
+			//print_bonds();
 		}
 
 		void generate_neighbor_map(const std::string& name,
@@ -139,12 +141,12 @@ class lattice
 		}
 
 		//TODO: generalize as vertex property on graph
-		int sublattice(vertex_t site) const
+		inline int sublattice(vertex_t site) const
 		{
 			return site % 2;
 		}
 
-		double parity(vertex_t site) const
+		inline double parity(vertex_t site) const
 		{
 			return (site % 2 == 0) ? 1.0 : -1.0;
 		}
@@ -156,6 +158,7 @@ class lattice
 		
 		vertex_t site_at_position(const Eigen::Vector2d& R) const
 		{
+			/*
 			for (int a = 0; a < 2; ++a)
 				for (int b = 0; b < 2; ++b)
 				{
@@ -163,7 +166,33 @@ class lattice
 					for (int i = 0; i < n_sites(); ++i)
 					{
 						auto& R_i = real_space_coord(i);
-						if ((new_R - R_i).norm() < std::pow(10., -14.))
+						if ((new_R - R_i).norm() < std::pow(10., -10.))
+							return i;
+					}
+				}
+			throw std::runtime_error("No lattice site at this position.");
+			*/
+			std::vector<double> fx, fy;
+			fx.push_back(0);
+			fy.push_back(0);
+			for (int i = 1; i <= Lx; ++i)
+			{
+				fx.push_back(i);
+				fx.push_back(-i);
+			}
+			for (int i = 1; i <= Ly; ++i)
+			{
+				fy.push_back(i);
+				fy.push_back(-i);
+			}
+			for (int a = 0; a < fx.size(); ++a)
+				for (int b = 0; b < fy.size(); ++b)
+				{
+					Eigen::Vector2d new_R = R + fx[a] * Lx * a1 + fy[b] * Ly * a2;
+					for (int i = 0; i < n_sites(); ++i)
+					{
+						auto& R_i = real_space_coord(i);
+						if ((new_R - R_i).norm() < std::pow(10., -12.))
 							return i;
 					}
 				}
@@ -172,17 +201,23 @@ class lattice
 		
 		bool is_lattice_site(const Eigen::Vector2d& R) const
 		{
-			std::vector<double> f;
-			f.push_back(0.);
-			for (int i = 1; i <= L; ++i)
+			std::vector<double> fx, fy;
+			fx.push_back(0);
+			fy.push_back(0);
+			for (int i = 1; i <= Lx; ++i)
 			{
-				f.push_back(i);
-				f.push_back(-i);
+				fx.push_back(i);
+				fx.push_back(-i);
 			}
-			for (int a = 0; a < f.size(); ++a)
-				for (int b = 0; b < f.size(); ++b)
+			for (int i = 1; i <= Ly; ++i)
+			{
+				fy.push_back(i);
+				fy.push_back(-i);
+			}
+			for (int a = 0; a < fx.size(); ++a)
+				for (int b = 0; b < fy.size(); ++b)
 				{
-					Eigen::Vector2d new_R = R + f[a] * L * a1 + f[b] * L * a2;
+					Eigen::Vector2d new_R = R + fx[a] * Lx * a1 + fy[b] * Ly * a2;
 					for (int i = 0; i < n_sites(); ++i)
 					{
 						auto& R_i = real_space_coord(i);
@@ -197,7 +232,6 @@ class lattice
 		{
 			double pi = 4. * std::atan(1.);
 			Eigen::Rotation2D<double> rot(pi);
-			Eigen::Vector2d center = {1., 0.};
 			auto& R = real_space_coord(i) - center;
 			Eigen::Vector2d rot_R = rot * R + center;
 			return site_at_position(rot_R);
@@ -207,7 +241,6 @@ class lattice
 		{
 			double pi = 4. * std::atan(1.);
 			Eigen::Rotation2D<double> rot(angle / 180. * pi);
-			Eigen::Vector2d center = {1., 0.};
 			for (int i = 0; i < n_sites(); ++i)
 			{
 				auto& R = real_space_coord(i) - center;
@@ -267,9 +300,10 @@ class lattice
 		// Base vectors of reciprocal lattice
 		Eigen::Vector2d b1;
 		Eigen::Vector2d b2;
-		// Vector to second sublattice point
-		Eigen::Vector2d delta;
-		int L;
+		// Center of inversion symmetry
+		Eigen::Vector2d center;
+		int Lx;
+		int Ly;
 	private:
 		graph_t* graph;
 		int neighbor_dist;
@@ -278,6 +312,5 @@ class lattice
 		neighbor_map_t neighbor_maps;
 		bond_map_t bond_maps;
 		real_space_map_t real_space_map;
-		coord_map_t coord_map;
 		point_map_t symmetry_points;
 };

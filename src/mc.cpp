@@ -20,7 +20,8 @@ mc::mc(const std::string& dir)
 		0);
 	config.param.n_discrete_tau = pars.value_or_default<int>("discrete_tau",
 		0);
-	hc.L = pars.value_or_default<int>("L", 9);
+	hc.Lx = pars.value_or_default<int>("L", 9);
+	hc.Ly = pars.value_or_default<int>("L", 9);
 	config.param.beta = 1./pars.value_or_default<double>("T", 0.2);
 	config.param.V = pars.value_or_default<double>("V", 1.355);
 	config.param.mu = pars.value_or_default<double>("mu", 0.);
