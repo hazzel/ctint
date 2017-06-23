@@ -11,6 +11,7 @@
 #include "lattice.h"
 #include "hex_honeycomb.h"
 #include "honeycomb.h"
+#include "tilted_honeycomb.h"
 #include "hilbert.h"
 #include "sparse_storage.h"
 
