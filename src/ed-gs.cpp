@@ -402,7 +402,7 @@ int main(int ac, char** av)
 
 	std::cout << "Done." << std::endl;
 
-	std::string out_file = "../data/ed_Lx_" + std::to_string(Lx) + "__"
+	std::string out_file = "../data/ed_" + geometry + "__Lx_" + std::to_string(Lx) + "__"
 		+ "Ly_" + std::to_string(Ly) + "__"
 		+ "V_" + std::to_string(V) + "__"
 		+ "GS__"

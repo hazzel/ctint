@@ -185,6 +185,10 @@ struct tilted_honeycomb
 			(lattice::vertex_t i, lattice::vertex_t j)
 			{ return l.distance(i, j) == 3; });
 		
+		l.generate_bond_map("t3_bonds", [&]
+			(lattice::pair_vector_t& list)
+		{});
+				
 		l.generate_bond_map("kekule", [&]
 			(lattice::pair_vector_t& list)
 		{});

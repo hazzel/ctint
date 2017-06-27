@@ -158,20 +158,6 @@ class lattice
 		
 		vertex_t site_at_position(const Eigen::Vector2d& R) const
 		{
-			/*
-			for (int a = 0; a < 2; ++a)
-				for (int b = 0; b < 2; ++b)
-				{
-					Eigen::Vector2d new_R = R + a * L * a1 + b * L * a2;
-					for (int i = 0; i < n_sites(); ++i)
-					{
-						auto& R_i = real_space_coord(i);
-						if ((new_R - R_i).norm() < std::pow(10., -10.))
-							return i;
-					}
-				}
-			throw std::runtime_error("No lattice site at this position.");
-			*/
 			std::vector<double> fx, fy;
 			fx.push_back(0);
 			fy.push_back(0);

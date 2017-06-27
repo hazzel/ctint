@@ -156,6 +156,36 @@ struct honeycomb
 			(lattice::vertex_t i, lattice::vertex_t j)
 			{ return l.distance(i, j) == 3; });
 		
+		l.generate_bond_map("t3_bonds", [&]
+			(lattice::pair_vector_t& list)
+		{
+			int N = l.n_sites();
+			
+			for (int j = 0; j < Ly; ++j)
+			{
+				for (int i = 0; i < Lx; ++i)
+				{
+					int n = j * 2 * Lx + i * 2;
+					list.push_back({n, (n + 2 * Lx + 1 + N) % N});
+					list.push_back({(n + 2 * Lx + 1 + N) % N, n});
+					
+					list.push_back({n, (n - 2 * Lx + 1 + N) % N});
+					list.push_back({(n - 2 * Lx + 1 + N) % N, n});
+					
+					if (i == 0 || i == 1)
+					{
+						list.push_back({n, (n + 4 * Lx - 3 + N) % N});
+						list.push_back({(n + 4 * Lx - 3 + N) % N, n});
+					}
+					else
+					{
+						list.push_back({n, (n + 2 * Lx - 3 + N) % N});
+						list.push_back({(n + 2 * Lx - 3 + N) % N, n});
+					}
+				}
+			}
+		});
+		
 		l.generate_bond_map("kekule", [&]
 			(lattice::pair_vector_t& list)
 		{
