@@ -20,8 +20,9 @@ mc::mc(const std::string& dir)
 		0);
 	config.param.n_discrete_tau = pars.value_or_default<int>("discrete_tau",
 		0);
-	hc.Lx = pars.value_or_default<int>("L", 9);
-	hc.Ly = pars.value_or_default<int>("L", 9);
+	//hc.Lx = pars.value_or_default<int>("L", 9);
+	//hc.Ly = pars.value_or_default<int>("L", 9);
+	hc.L = pars.value_or_default<int>("L", 9);
 	config.param.beta = 1./pars.value_or_default<double>("T", 0.2);
 	config.param.V = pars.value_or_default<double>("V", 1.355);
 	config.param.mu = pars.value_or_default<double>("mu", 0.);
@@ -123,17 +124,21 @@ mc::mc(const std::string& dir)
 	};
 	
 	std::ofstream f_epsilon("ep_lattice.txt");
+	/*
 	std::ofstream f_kek("kek_lattice.txt");
 	std::ofstream f_kek_2("kek_2_lattice.txt");
 	std::ofstream f_kek_3("kek_3_lattice.txt");
 	std::ofstream f_chern("chern_lattice.txt");
 	std::ofstream f_chern_2("chern_2_lattice.txt");
 	std::ofstream f_bond_type("bond_type_lattice.txt");
+	*/
+	std::ofstream t3_bonds("t3_lattice.txt");
 	for (auto& b : config.l.bonds("nearest neighbors"))
 		f_epsilon << b.first << "," << config.l.real_space_coord(b.first)[0] << ","
 			<< config.l.real_space_coord(b.first)[1] << "," << b.second << ","
 			<< config.l.real_space_coord(b.second)[0] << ","
 			<< config.l.real_space_coord(b.second)[1] << std::endl;
+	/*
 	for (auto& b : config.l.bonds("nn_bond_1"))
 		f_kek << b.first << "," << config.l.real_space_coord(b.first)[0] << ","
 			<< config.l.real_space_coord(b.first)[1] << "," << b.second << ","
@@ -164,13 +169,22 @@ mc::mc(const std::string& dir)
 			<< config.l.real_space_coord(b.first)[1] << "," << b.second << ","
 			<< config.l.real_space_coord(b.second)[0] << ","
 			<< config.l.real_space_coord(b.second)[1] << std::endl;
+	*/
+	for (auto& b : config.l.bonds("t3_bonds"))
+		t3_bonds << b.first << "," << config.l.real_space_coord(b.first)[0] << ","
+			<< config.l.real_space_coord(b.first)[1] << "," << b.second << ","
+			<< config.l.real_space_coord(b.second)[0] << ","
+			<< config.l.real_space_coord(b.second)[1] << std::endl;
 	f_epsilon.close();
+	/*
 	f_kek.close();
 	f_kek_2.close();
 	f_kek_3.close();
 	f_chern.close();
 	f_chern_2.close();
 	f_bond_type.close();
+	*/
+	t3_bonds.close();
 }
 
 mc::~mc()

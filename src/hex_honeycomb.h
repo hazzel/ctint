@@ -18,6 +18,8 @@ struct hex_honeycomb
 	int L;
 	std::vector<Eigen::Vector2d> real_space_map;
 	std::vector<std::pair<int, int>> coord_map;
+	std::vector<std::array<int, 3>> vertex_list;
+	std::map<std::array<int, 3>, int> tuple_map;
 	// Base vectors of Bravais lattice
 	Eigen::Vector2d a1;
 	Eigen::Vector2d a2;
@@ -43,6 +45,61 @@ struct hex_honeycomb
 		b2 = Eigen::Vector2d(2.*pi/3., -2.*pi/std::sqrt(3.));
 		center = Eigen::Vector2d(0., 0.);
 	}
+	
+	std::array<int, 3> neighbor_site(std::array<int, 3> site, int type)
+	{
+		int x = site[0], y = site[1], z = site[2];
+		//even sublattice
+		if (x + y + z == 1)
+		{
+			if (type == 0)
+			{
+				if (x == L)
+					return {-L+1, y+L, z+L};
+				else
+					return {x+1, y, z};
+			}
+			else if (type == 1)
+			{
+				if (y == L)
+					return {x+L, -L+1, z+L};
+				else				
+					return {x, y+1, z};
+			}
+			else if (type == 2)
+			{
+				if (z == L)
+					return {x+L, y+L, -L+1};
+				else				
+					return {x, y, z+1};
+			}
+		}
+		//odd sublattice
+		else
+		{
+			if (type == 0)
+			{
+				if (x == -L+1)
+					return {L, y-L, z-L};
+				else
+					return {x-1, y, z};
+			}
+			else if (type == 1)
+			{
+				if (y == -L+1)
+					return {x-L, L, z-L};
+				else				
+					return {x, y-1, z};
+			}
+			else if (type == 2)
+			{
+				if (z == -L+1)
+					return {x-L, y-L, L};
+				else				
+					return {x, y, z-1};
+			}
+		}
+	}
 
 	graph_t* graph()
 	{
@@ -54,12 +111,12 @@ struct hex_honeycomb
 	
 	int distance(std::array<int, 3> s1, std::array<int, 3> s2)
 	{
-		int u1 = std::get<0>(s1);
-		int v1 = std::get<1>(s1);
-		int w1 = std::get<2>(s1);
-		int u2 = std::get<0>(s2);
-		int v2 = std::get<1>(s2);
-		int w2 = std::get<2>(s2);
+		int u1 = s1[0];
+		int v1 = s1[1];
+		int w1 = s1[2];
+		int u2 = s2[0];
+		int v2 = s2[1];
+		int w2 = s2[2];
 		int d0 = std::abs(u2 - u1) + std::abs(v2 - v1) + std::abs(w2 - w1);
 		int d1 = std::abs(u2 - u1 + 2 * L) + std::abs(v2 - v1 - L) + std::abs(w2 - w1 - L);
 		int d2 = std::abs(u2 - u1 - 2 * L) + std::abs(v2 - v1 + L) + std::abs(w2 - w1 + L);
@@ -76,29 +133,7 @@ struct hex_honeycomb
 		typedef std::pair<int, int> edge_t;
 		int n_vertices = boost::num_vertices(*g);
 		
-		/*
-		boost::add_edge(0, 1, *g);
-		boost::add_edge(0, 5, *g);
-		real_space_map.push_back(Eigen::Vector2d{0., 0.});
-		boost::add_edge(1, 0, *g);
-		boost::add_edge(1, 2, *g);
-		real_space_map.push_back(Eigen::Vector2d{delta});
-		boost::add_edge(2, 1, *g);
-		boost::add_edge(2, 3, *g);
-		real_space_map.push_back(Eigen::Vector2d{a1});
-		boost::add_edge(3, 2, *g);
-		boost::add_edge(3, 4, *g);
-		real_space_map.push_back(Eigen::Vector2d{a2 + delta});
-		boost::add_edge(4, 3, *g);
-		boost::add_edge(4, 5, *g);
-		real_space_map.push_back(Eigen::Vector2d{a2});
-		boost::add_edge(5, 4, *g);
-		boost::add_edge(5, 0, *g);
-		real_space_map.push_back(Eigen::Vector2d{a2 + delta - a1});
-		*/
-		
-		
-		std::vector<std::array<int, 3>> vertex_list(n_vertices);
+		vertex_list.resize(n_vertices);
 		real_space_map.resize(n_vertices);
 		int n_even = 0, n_odd = 1;
 		for (int i = -L + 1; i <= L; ++i)
@@ -109,12 +144,14 @@ struct hex_honeycomb
 					if (sum == 1)
 					{
 						vertex_list[n_even] = {i, j, k};
+						tuple_map[{i, j, k}] = n_even;
 						real_space_map[n_even] = Eigen::Vector2d{i*c1 + j*c2 + k*c3};
 						n_even += 2;
 					}
 					else if (sum == 2)
 					{
 						vertex_list[n_odd] = {i, j, k};
+						tuple_map[{i, j, k}] = n_odd;
 						real_space_map[n_odd] = Eigen::Vector2d{i*c1 + j*c2 + k*c3};
 						n_odd += 2;
 					}
@@ -126,7 +163,6 @@ struct hex_honeycomb
 					boost::add_edge(i, j, *g);
 					boost::add_edge(j, i, *g);
 				}
-		
 	}
 
 	void generate_maps(lattice& l)
@@ -164,7 +200,36 @@ struct hex_honeycomb
 		
 		l.generate_bond_map("t3_bonds", [&]
 			(lattice::pair_vector_t& list)
-		{});
+		{
+			for (int i = -L + 1; i <= L; ++i)
+				for (int j = -L + 1; j <= L; ++j)
+					for (int k = -L + 1; k <= L; ++k)
+					{
+						int sum = i + j + k;
+						std::array<int, 3> t = {i, j, k};
+						if (sum == 1)
+						{
+							int n = tuple_map.at(t);
+							auto ns_1 = neighbor_site(t, 0);
+							auto ns_2 = neighbor_site(ns_1, 1);
+							auto ns_3 = neighbor_site(ns_2, 2);
+							list.push_back({tuple_map.at(ns_3), n});
+							list.push_back({n, tuple_map.at(ns_3)});
+							
+							ns_1 = neighbor_site(t, 1);
+							ns_2 = neighbor_site(ns_1, 2);
+							ns_3 = neighbor_site(ns_2, 0);
+							list.push_back({tuple_map.at(ns_3), n});
+							list.push_back({n, tuple_map.at(ns_3)});
+							
+							ns_1 = neighbor_site(t, 2);
+							ns_2 = neighbor_site(ns_1, 0);
+							ns_3 = neighbor_site(ns_2, 1);
+							list.push_back({tuple_map.at(ns_3), n});
+							list.push_back({n, tuple_map.at(ns_3)});
+						}
+					}
+		});
 		
 		l.generate_bond_map("kekule", [&]
 			(lattice::pair_vector_t& list)

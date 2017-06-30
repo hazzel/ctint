@@ -15,6 +15,7 @@
 #include "dump.h"
 #include "mctools.h"
 #include "honeycomb.h"
+#include "hex_honeycomb.h"
 #include "lattice.h"
 #include "greens_function.h"
 #include "configuration.h"
@@ -61,7 +62,7 @@ class mc
 		configuration config;
 		mctools qmc;
 		parser pars;
-		honeycomb hc;
+		hex_honeycomb hc;
 		int sweep;
 		int n_cycles;
 		int n_warmup;
