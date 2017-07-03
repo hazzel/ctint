@@ -124,36 +124,34 @@ mc::mc(const std::string& dir)
 	};
 	
 	std::ofstream f_epsilon("ep_lattice.txt");
-	/*
 	std::ofstream f_kek("kek_lattice.txt");
 	std::ofstream f_kek_2("kek_2_lattice.txt");
 	std::ofstream f_kek_3("kek_3_lattice.txt");
 	std::ofstream f_chern("chern_lattice.txt");
 	std::ofstream f_chern_2("chern_2_lattice.txt");
 	std::ofstream f_bond_type("bond_type_lattice.txt");
-	*/
 	std::ofstream t3_bonds("t3_lattice.txt");
 	for (auto& b : config.l.bonds("nearest neighbors"))
 		f_epsilon << b.first << "," << config.l.real_space_coord(b.first)[0] << ","
 			<< config.l.real_space_coord(b.first)[1] << "," << b.second << ","
 			<< config.l.real_space_coord(b.second)[0] << ","
 			<< config.l.real_space_coord(b.second)[1] << std::endl;
-	/*
-	for (auto& b : config.l.bonds("nn_bond_1"))
+	
+	for (auto& b : config.l.bonds("kekule"))
 		f_kek << b.first << "," << config.l.real_space_coord(b.first)[0] << ","
 			<< config.l.real_space_coord(b.first)[1] << "," << b.second << ","
 			<< config.l.real_space_coord(b.second)[0] << ","
 			<< config.l.real_space_coord(b.second)[1] << std::endl;
-	for (auto& b : config.l.bonds("nn_bond_2"))
-		f_kek_2 << config.l.inverted_site(b.first) << "," << config.l.real_space_coord(config.l.inverted_site(b.first))[0] << ","
-			<< config.l.real_space_coord(config.l.inverted_site(b.first))[1] << "," << config.l.inverted_site(b.second) << ","
-			<< config.l.real_space_coord(config.l.inverted_site(b.second))[0] << ","
-			<< config.l.real_space_coord(config.l.inverted_site(b.second))[1] << std::endl;
-	for (auto& b : config.l.bonds("nn_bond_3"))
-		f_kek_3 << config.l.inverted_site(b.first) << "," << config.l.real_space_coord(config.l.inverted_site(b.first))[0] << ","
-			<< config.l.real_space_coord(config.l.inverted_site(b.first))[1] << "," << config.l.inverted_site(b.second) << ","
-			<< config.l.real_space_coord(config.l.inverted_site(b.second))[0] << ","
-			<< config.l.real_space_coord(config.l.inverted_site(b.second))[1] << std::endl;
+	for (auto& b : config.l.bonds("kekule_2"))
+		f_kek_2 << b.first << "," << config.l.real_space_coord(b.first)[0] << ","
+			<< config.l.real_space_coord(b.first)[1] << "," << b.second << ","
+			<< config.l.real_space_coord(b.second)[0] << ","
+			<< config.l.real_space_coord(b.second)[1] << std::endl;
+	for (auto& b : config.l.bonds("kekule_3"))
+		f_kek_3 << b.first << "," << config.l.real_space_coord(b.first)[0] << ","
+			<< config.l.real_space_coord(b.first)[1] << "," << b.second << ","
+			<< config.l.real_space_coord(b.second)[0] << ","
+			<< config.l.real_space_coord(b.second)[1] << std::endl;
 	for (auto& b : config.l.bonds("chern"))
 		f_chern << b.first << "," << config.l.real_space_coord(b.first)[0] << ","
 			<< config.l.real_space_coord(b.first)[1] << "," << b.second << ","
@@ -169,21 +167,18 @@ mc::mc(const std::string& dir)
 			<< config.l.real_space_coord(b.first)[1] << "," << b.second << ","
 			<< config.l.real_space_coord(b.second)[0] << ","
 			<< config.l.real_space_coord(b.second)[1] << std::endl;
-	*/
 	for (auto& b : config.l.bonds("t3_bonds"))
 		t3_bonds << b.first << "," << config.l.real_space_coord(b.first)[0] << ","
 			<< config.l.real_space_coord(b.first)[1] << "," << b.second << ","
 			<< config.l.real_space_coord(b.second)[0] << ","
 			<< config.l.real_space_coord(b.second)[1] << std::endl;
 	f_epsilon.close();
-	/*
 	f_kek.close();
 	f_kek_2.close();
 	f_kek_3.close();
 	f_chern.close();
 	f_chern_2.close();
 	f_bond_type.close();
-	*/
 	t3_bonds.close();
 }
 

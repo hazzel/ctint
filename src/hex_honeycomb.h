@@ -233,15 +233,164 @@ struct hex_honeycomb
 		
 		l.generate_bond_map("kekule", [&]
 			(lattice::pair_vector_t& list)
-		{});
+		{
+			std::vector<std::pair<std::array<int, 3>, int>> bonds;
+			bonds.push_back({{0, 0, 1}, 0});
+			bonds.push_back({{1, 0, 1}, 0});
+			
+			int N_min = 0, N_max = bonds.size();
+			while (bonds.size() < 3 * L * L)
+			{
+				for (int i = N_min; i < N_max; i+=2)
+				{
+					std::array<int, 2> bt;
+					if (bonds[i].second == 0)
+						bt = {1, 2};
+					else if (bonds[i].second == 1)
+						bt = {0, 2};
+					else if (bonds[i].second == 2)
+						bt = {0, 1};
+					auto ns_11 = neighbor_site(bonds[i].first, bt[0]);
+					auto ns_12 = neighbor_site(ns_11, bt[1]);
+					auto ns_21 = neighbor_site(bonds[i].first, bt[1]);
+					auto ns_22 = neighbor_site(ns_21, bt[0]);
+					std::cout << "site : " << bonds[i].first[0] << ", " << bonds[i].first[1] << ", " << bonds[i].first[2] << std::endl;
+					std::cout << ns_11[0] << ", " << ns_11[1] << ", " << ns_11[2]
+						<< " <-> " << ns_12[0] << ", " << ns_12[1] << ", " << ns_12[2] << std::endl;
+					bool found = false;
+					for (int i = 0; i < bonds.size(); ++i)
+						if (bonds[i].first == ns_11 || bonds[i].first == ns_12)
+							found = true;
+					std::cout << "found_1 = " << found << std::endl;
+					if (!found)
+					{
+						bonds.push_back({ns_11, bt[1]});
+						bonds.push_back({ns_12, bt[1]});
+					}
+					found = false;
+					for (int i = 0; i < bonds.size(); ++i)
+						if (bonds[i].first == ns_21 || bonds[i].first == ns_22)
+							found = true;
+					std::cout << ns_21[0] << ", " << ns_21[1] << ", " << ns_21[2]
+						<< " <-> " << ns_22[0] << ", " << ns_22[1] << ", " << ns_22[2] << std::endl;
+					std::cout << "found_2 = " << found << std::endl;
+					if (!found)
+					{
+						bonds.push_back({ns_21, bt[0]});
+						bonds.push_back({ns_22, bt[0]});
+					}
+				}
+				N_min = N_max;
+				N_max = bonds.size();
+			}
+			for (int i = 0; i < bonds.size(); i+=2)
+			{
+				std::cout << bonds[i].first[0] << ", " << bonds[i].first[1] << ", " << bonds[i].first[2]
+					<< " <-> " << bonds[i+1].first[0] << ", " << bonds[i+1].first[1] << ", " << bonds[i+1].first[2] << std::endl;
+				list.push_back({tuple_map.at(bonds[i].first), tuple_map.at(bonds[i+1].first)});
+				list.push_back({tuple_map.at(bonds[i+1].first), tuple_map.at(bonds[i].first)});
+			}
+		});
 		
 		l.generate_bond_map("kekule_2", [&]
 			(lattice::pair_vector_t& list)
-		{});
+		{
+			std::vector<std::pair<std::array<int, 3>, int>> bonds;
+			bonds.push_back({{0, 0, 1}, 1});
+			bonds.push_back({{0, 1, 1}, 1});
+			
+			while (bonds.size() < 3 * L * L)
+			{
+				int N = bonds.size();
+				for (int i = 0; i < N; i+=2)
+				{
+					std::array<int, 2> bt;
+					if (bonds[i].second == 0)
+						bt = {1, 2};
+					else if (bonds[i].second == 1)
+						bt = {0, 2};
+					else if (bonds[i].second == 2)
+						bt = {0, 1};
+					auto ns_11 = neighbor_site(bonds[i].first, bt[0]);
+					auto ns_12 = neighbor_site(ns_11, bt[1]);
+					auto ns_21 = neighbor_site(bonds[i].first, bt[1]);
+					auto ns_22 = neighbor_site(ns_21, bt[0]);
+					bool found = false;
+					for (int i = 0; i < bonds.size(); ++i)
+						if (bonds[i].first == ns_11 || bonds[i].first == ns_12)
+							found = true;
+					if (!found)
+					{
+						bonds.push_back({ns_11, bt[1]});
+						bonds.push_back({ns_12, bt[1]});
+					}
+					found = false;
+					for (int i = 0; i < bonds.size(); ++i)
+						if (bonds[i].first == ns_21 || bonds[i].first == ns_22)
+							found = true;
+					if (!found)
+					{
+						bonds.push_back({ns_21, bt[0]});
+						bonds.push_back({ns_22, bt[0]});
+					}
+				}
+			}
+			for (int i = 0; i < bonds.size(); i+=2)
+			{
+				list.push_back({tuple_map.at(bonds[i].first), tuple_map.at(bonds[i+1].first)});
+				list.push_back({tuple_map.at(bonds[i+1].first), tuple_map.at(bonds[i].first)});
+			}
+		});
 		
 		l.generate_bond_map("kekule_3", [&]
 			(lattice::pair_vector_t& list)
-		{});
+		{
+			std::vector<std::pair<std::array<int, 3>, int>> bonds;
+			bonds.push_back({{0, 0, 1}, 2});
+			bonds.push_back({{0, 0, 2}, 2});
+			
+			while (bonds.size() < 3 * L * L)
+			{
+				int N = bonds.size();
+				for (int i = 0; i < N; i+=2)
+				{
+					std::array<int, 2> bt;
+					if (bonds[i].second == 0)
+						bt = {1, 2};
+					else if (bonds[i].second == 1)
+						bt = {0, 2};
+					else if (bonds[i].second == 2)
+						bt = {0, 1};
+					auto ns_11 = neighbor_site(bonds[i].first, bt[0]);
+					auto ns_12 = neighbor_site(ns_11, bt[1]);
+					auto ns_21 = neighbor_site(bonds[i].first, bt[1]);
+					auto ns_22 = neighbor_site(ns_21, bt[0]);
+					bool found = false;
+					for (int i = 0; i < bonds.size(); ++i)
+						if (bonds[i].first == ns_11 || bonds[i].first == ns_12)
+							found = true;
+					if (!found)
+					{
+						bonds.push_back({ns_11, bt[1]});
+						bonds.push_back({ns_12, bt[1]});
+					}
+					found = false;
+					for (int i = 0; i < bonds.size(); ++i)
+						if (bonds[i].first == ns_21 || bonds[i].first == ns_22)
+							found = true;
+					if (!found)
+					{
+						bonds.push_back({ns_21, bt[0]});
+						bonds.push_back({ns_22, bt[0]});
+					}
+				}
+			}
+			for (int i = 0; i < bonds.size(); i+=2)
+			{
+				list.push_back({tuple_map.at(bonds[i].first), tuple_map.at(bonds[i+1].first)});
+				list.push_back({tuple_map.at(bonds[i+1].first), tuple_map.at(bonds[i].first)});
+			}
+		});
 		
 		l.generate_bond_map("single_kekule", [&]
 			(lattice::pair_vector_t& list)
@@ -275,78 +424,107 @@ struct hex_honeycomb
 		(lattice::pair_vector_t& list)
 		{});
 		
-		/*
+		
 		l.generate_bond_map("nn_bond_1", [&]
 		(lattice::pair_vector_t& list)
 		{
-			for (int j = 0; j < Ly; ++j)
-				for (int i = 0; i < Lx; ++i)
-					for (int d = 0; d < 6; d+=2)
+			for (int i = -L + 1; i <= L; ++i)
+				for (int j = -L + 1; j <= L; ++j)
+					for (int k = -L + 1; k <= L; ++k)
 					{
-						int n = j * 6 * Lx + i * 6 + d;
-						list.push_back({neighbor_site(i, j, d, 0), n});
+						int sum = i + j + k;
+						std::array<int, 3> t = {i, j, k};
+						if (sum == 1)
+						{
+							auto ns = neighbor_site(t, 0);
+							list.push_back({tuple_map.at(ns), tuple_map.at(t)});
+						}
 					}
 		});
 		
 		l.generate_bond_map("nn_bond_2", [&]
 		(lattice::pair_vector_t& list)
 		{
-			for (int j = 0; j < Ly; ++j)
-				for (int i = 0; i < Lx; ++i)
-					for (int d = 0; d < 6; d+=2)
+			for (int i = -L + 1; i <= L; ++i)
+				for (int j = -L + 1; j <= L; ++j)
+					for (int k = -L + 1; k <= L; ++k)
 					{
-						int n = j * 6 * Lx + i * 6 + d;
-						list.push_back({neighbor_site(i, j, d, 2), n});
+						int sum = i + j + k;
+						std::array<int, 3> t = {i, j, k};
+						if (sum == 1)
+						{
+							auto ns = neighbor_site(t, 1);
+							list.push_back({tuple_map.at(ns), tuple_map.at(t)});
+						}
 					}
 		});
 		
 		l.generate_bond_map("nn_bond_3", [&]
 		(lattice::pair_vector_t& list)
 		{
-			for (int j = 0; j < Ly; ++j)
-				for (int i = 0; i < Lx; ++i)
-					for (int d = 0; d < 6; d+=2)
+			for (int i = -L + 1; i <= L; ++i)
+				for (int j = -L + 1; j <= L; ++j)
+					for (int k = -L + 1; k <= L; ++k)
 					{
-						int n = j * 6 * Lx + i * 6 + d;
-						list.push_back({neighbor_site(i, j, d, 1), n});
+						int sum = i + j + k;
+						std::array<int, 3> t = {i, j, k};
+						if (sum == 1)
+						{
+							auto ns = neighbor_site(t, 2);
+							list.push_back({tuple_map.at(ns), tuple_map.at(t)});
+						}
 					}
 		});
 		
 		l.generate_bond_map("inv_nn_bond_1", [&]
 		(lattice::pair_vector_t& list)
 		{
-			for (int j = 0; j < Ly; ++j)
-				for (int i = 0; i < Lx; ++i)
-					for (int d = 0; d < 6; d+=2)
+			for (int i = -L + 1; i <= L; ++i)
+				for (int j = -L + 1; j <= L; ++j)
+					for (int k = -L + 1; k <= L; ++k)
 					{
-						int n = j * 6 * Lx + i * 6 + d;
-						list.push_back({l.inverted_site(neighbor_site(i, j, d, 0)), l.inverted_site(n)});
+						int sum = i + j + k;
+						std::array<int, 3> t = {i, j, k};
+						if (sum == 1)
+						{
+							auto ns = neighbor_site(t, 0);
+							list.push_back({l.inverted_site(tuple_map.at(ns)), l.inverted_site(tuple_map.at(t))});
+						}
 					}
 		});
 		
 		l.generate_bond_map("inv_nn_bond_2", [&]
 		(lattice::pair_vector_t& list)
 		{
-			for (int j = 0; j < Ly; ++j)
-				for (int i = 0; i < Lx; ++i)
-					for (int d = 0; d < 6; d+=2)
+			for (int i = -L + 1; i <= L; ++i)
+				for (int j = -L + 1; j <= L; ++j)
+					for (int k = -L + 1; k <= L; ++k)
 					{
-						int n = j * 6 * Lx + i * 6 + d;
-						list.push_back({l.inverted_site(neighbor_site(i, j, d, 2)), l.inverted_site(n)});
+						int sum = i + j + k;
+						std::array<int, 3> t = {i, j, k};
+						if (sum == 1)
+						{
+							auto ns = neighbor_site(t, 1);
+							list.push_back({l.inverted_site(tuple_map.at(ns)), l.inverted_site(tuple_map.at(t))});
+						}
 					}
 		});
 		
 		l.generate_bond_map("inv_nn_bond_3", [&]
 		(lattice::pair_vector_t& list)
 		{
-			for (int j = 0; j < Ly; ++j)
-				for (int i = 0; i < Lx; ++i)
-					for (int d = 0; d < 6; d+=2)
+			for (int i = -L + 1; i <= L; ++i)
+				for (int j = -L + 1; j <= L; ++j)
+					for (int k = -L + 1; k <= L; ++k)
 					{
-						int n = j * 6 * Lx + i * 6 + d;
-						list.push_back({l.inverted_site(neighbor_site(i, j, d, 1)), l.inverted_site(n)});
+						int sum = i + j + k;
+						std::array<int, 3> t = {i, j, k};
+						if (sum == 1)
+						{
+							auto ns = neighbor_site(t, 2);
+							list.push_back({l.inverted_site(tuple_map.at(ns)), l.inverted_site(tuple_map.at(t))});
+						}
 					}
 		});
-		*/
 	}
 };
