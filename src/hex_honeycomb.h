@@ -38,7 +38,7 @@ struct hex_honeycomb
 	hex_honeycomb(int L_ = 6)
 		: L(L_),
 			a1(3./2.*L, std::sqrt(3.)/2.*L), a2(3./2.*L, -std::sqrt(3.)/2.*L),
-			c1(1./2., std::sqrt(3.)/2.), c2(-1., 0.), c3(1./2., -std::sqrt(3.)/2.),
+			c1(1./2., std::sqrt(3.)/2.), c2(1./2., -std::sqrt(3.)/2.), c3(-1., 0.),
 			delta(1./2., std::sqrt(3.)/2.)
 	{
 		b1 = Eigen::Vector2d(2.*pi/3., 2.*pi/std::sqrt(3.));
@@ -239,45 +239,66 @@ struct hex_honeycomb
 			bonds.push_back({{1, 0, 1}, 0});
 			
 			int N_min = 0, N_max = bonds.size();
-			while (bonds.size() < 3 * L * L)
+			while (bonds.size() < 6 * L * L)
 			{
 				for (int i = N_min; i < N_max; i+=2)
 				{
-					std::array<int, 2> bt;
+					std::array<int, 3> bt;
 					if (bonds[i].second == 0)
-						bt = {1, 2};
+						bt = {1, 2, 0};
 					else if (bonds[i].second == 1)
-						bt = {0, 2};
+						bt = {0, 2, 1};
 					else if (bonds[i].second == 2)
-						bt = {0, 1};
+						bt = {0, 1, 2};
 					auto ns_11 = neighbor_site(bonds[i].first, bt[0]);
 					auto ns_12 = neighbor_site(ns_11, bt[1]);
 					auto ns_21 = neighbor_site(bonds[i].first, bt[1]);
 					auto ns_22 = neighbor_site(ns_21, bt[0]);
-					std::cout << "site : " << bonds[i].first[0] << ", " << bonds[i].first[1] << ", " << bonds[i].first[2] << std::endl;
-					std::cout << ns_11[0] << ", " << ns_11[1] << ", " << ns_11[2]
-						<< " <-> " << ns_12[0] << ", " << ns_12[1] << ", " << ns_12[2] << std::endl;
+					auto ns_31 = neighbor_site(bonds[i].first, bt[2]);
+					auto ns_32 = neighbor_site(ns_31, bt[0]);
+					auto ns_33 = neighbor_site(ns_32, bt[1]);
+					auto ns_41 = neighbor_site(bonds[i].first, bt[2]);
+					auto ns_42 = neighbor_site(ns_41, bt[1]);
+					auto ns_43 = neighbor_site(ns_42, bt[0]);
+					
 					bool found = false;
 					for (int i = 0; i < bonds.size(); ++i)
 						if (bonds[i].first == ns_11 || bonds[i].first == ns_12)
 							found = true;
-					std::cout << "found_1 = " << found << std::endl;
 					if (!found)
 					{
-						bonds.push_back({ns_11, bt[1]});
 						bonds.push_back({ns_12, bt[1]});
+						bonds.push_back({ns_11, bt[1]});
 					}
+					
 					found = false;
 					for (int i = 0; i < bonds.size(); ++i)
 						if (bonds[i].first == ns_21 || bonds[i].first == ns_22)
 							found = true;
-					std::cout << ns_21[0] << ", " << ns_21[1] << ", " << ns_21[2]
-						<< " <-> " << ns_22[0] << ", " << ns_22[1] << ", " << ns_22[2] << std::endl;
-					std::cout << "found_2 = " << found << std::endl;
 					if (!found)
 					{
-						bonds.push_back({ns_21, bt[0]});
 						bonds.push_back({ns_22, bt[0]});
+						bonds.push_back({ns_21, bt[0]});
+					}
+					
+					found = false;
+					for (int i = 0; i < bonds.size(); ++i)
+						if (bonds[i].first == ns_32 || bonds[i].first == ns_33)
+							found = true;
+					if (!found)
+					{
+						bonds.push_back({ns_32, bt[1]});
+						bonds.push_back({ns_33, bt[1]});
+					}
+					
+					found = false;
+					for (int i = 0; i < bonds.size(); ++i)
+						if (bonds[i].first == ns_42 || bonds[i].first == ns_43)
+							found = true;
+					if (!found)
+					{
+						bonds.push_back({ns_42, bt[0]});
+						bonds.push_back({ns_43, bt[0]});
 					}
 				}
 				N_min = N_max;
@@ -285,8 +306,6 @@ struct hex_honeycomb
 			}
 			for (int i = 0; i < bonds.size(); i+=2)
 			{
-				std::cout << bonds[i].first[0] << ", " << bonds[i].first[1] << ", " << bonds[i].first[2]
-					<< " <-> " << bonds[i+1].first[0] << ", " << bonds[i+1].first[1] << ", " << bonds[i+1].first[2] << std::endl;
 				list.push_back({tuple_map.at(bonds[i].first), tuple_map.at(bonds[i+1].first)});
 				list.push_back({tuple_map.at(bonds[i+1].first), tuple_map.at(bonds[i].first)});
 			}
@@ -299,41 +318,71 @@ struct hex_honeycomb
 			bonds.push_back({{0, 0, 1}, 1});
 			bonds.push_back({{0, 1, 1}, 1});
 			
-			while (bonds.size() < 3 * L * L)
+			int N_min = 0, N_max = bonds.size();
+			while (bonds.size() < 6 * L * L)
 			{
-				int N = bonds.size();
-				for (int i = 0; i < N; i+=2)
+				for (int i = N_min; i < N_max; i+=2)
 				{
-					std::array<int, 2> bt;
+					std::array<int, 3> bt;
 					if (bonds[i].second == 0)
-						bt = {1, 2};
+						bt = {1, 2, 0};
 					else if (bonds[i].second == 1)
-						bt = {0, 2};
+						bt = {0, 2, 1};
 					else if (bonds[i].second == 2)
-						bt = {0, 1};
+						bt = {0, 1, 2};
 					auto ns_11 = neighbor_site(bonds[i].first, bt[0]);
 					auto ns_12 = neighbor_site(ns_11, bt[1]);
 					auto ns_21 = neighbor_site(bonds[i].first, bt[1]);
 					auto ns_22 = neighbor_site(ns_21, bt[0]);
+					auto ns_31 = neighbor_site(bonds[i].first, bt[2]);
+					auto ns_32 = neighbor_site(ns_31, bt[0]);
+					auto ns_33 = neighbor_site(ns_32, bt[1]);
+					auto ns_41 = neighbor_site(bonds[i].first, bt[2]);
+					auto ns_42 = neighbor_site(ns_41, bt[1]);
+					auto ns_43 = neighbor_site(ns_42, bt[0]);
+					
 					bool found = false;
 					for (int i = 0; i < bonds.size(); ++i)
 						if (bonds[i].first == ns_11 || bonds[i].first == ns_12)
 							found = true;
 					if (!found)
 					{
-						bonds.push_back({ns_11, bt[1]});
 						bonds.push_back({ns_12, bt[1]});
+						bonds.push_back({ns_11, bt[1]});
 					}
+					
 					found = false;
 					for (int i = 0; i < bonds.size(); ++i)
 						if (bonds[i].first == ns_21 || bonds[i].first == ns_22)
 							found = true;
 					if (!found)
 					{
-						bonds.push_back({ns_21, bt[0]});
 						bonds.push_back({ns_22, bt[0]});
+						bonds.push_back({ns_21, bt[0]});
+					}
+					
+					found = false;
+					for (int i = 0; i < bonds.size(); ++i)
+						if (bonds[i].first == ns_32 || bonds[i].first == ns_33)
+							found = true;
+					if (!found)
+					{
+						bonds.push_back({ns_32, bt[1]});
+						bonds.push_back({ns_33, bt[1]});
+					}
+					
+					found = false;
+					for (int i = 0; i < bonds.size(); ++i)
+						if (bonds[i].first == ns_42 || bonds[i].first == ns_43)
+							found = true;
+					if (!found)
+					{
+						bonds.push_back({ns_42, bt[0]});
+						bonds.push_back({ns_43, bt[0]});
 					}
 				}
+				N_min = N_max;
+				N_max = bonds.size();
 			}
 			for (int i = 0; i < bonds.size(); i+=2)
 			{
@@ -349,41 +398,71 @@ struct hex_honeycomb
 			bonds.push_back({{0, 0, 1}, 2});
 			bonds.push_back({{0, 0, 2}, 2});
 			
-			while (bonds.size() < 3 * L * L)
+			int N_min = 0, N_max = bonds.size();
+			while (bonds.size() < 6 * L * L)
 			{
-				int N = bonds.size();
-				for (int i = 0; i < N; i+=2)
+				for (int i = N_min; i < N_max; i+=2)
 				{
-					std::array<int, 2> bt;
+					std::array<int, 3> bt;
 					if (bonds[i].second == 0)
-						bt = {1, 2};
+						bt = {1, 2, 0};
 					else if (bonds[i].second == 1)
-						bt = {0, 2};
+						bt = {0, 2, 1};
 					else if (bonds[i].second == 2)
-						bt = {0, 1};
+						bt = {0, 1, 2};
 					auto ns_11 = neighbor_site(bonds[i].first, bt[0]);
 					auto ns_12 = neighbor_site(ns_11, bt[1]);
 					auto ns_21 = neighbor_site(bonds[i].first, bt[1]);
 					auto ns_22 = neighbor_site(ns_21, bt[0]);
+					auto ns_31 = neighbor_site(bonds[i].first, bt[2]);
+					auto ns_32 = neighbor_site(ns_31, bt[0]);
+					auto ns_33 = neighbor_site(ns_32, bt[1]);
+					auto ns_41 = neighbor_site(bonds[i].first, bt[2]);
+					auto ns_42 = neighbor_site(ns_41, bt[1]);
+					auto ns_43 = neighbor_site(ns_42, bt[0]);
+					
 					bool found = false;
 					for (int i = 0; i < bonds.size(); ++i)
 						if (bonds[i].first == ns_11 || bonds[i].first == ns_12)
 							found = true;
 					if (!found)
 					{
-						bonds.push_back({ns_11, bt[1]});
 						bonds.push_back({ns_12, bt[1]});
+						bonds.push_back({ns_11, bt[1]});
 					}
+					
 					found = false;
 					for (int i = 0; i < bonds.size(); ++i)
 						if (bonds[i].first == ns_21 || bonds[i].first == ns_22)
 							found = true;
 					if (!found)
 					{
-						bonds.push_back({ns_21, bt[0]});
 						bonds.push_back({ns_22, bt[0]});
+						bonds.push_back({ns_21, bt[0]});
+					}
+					
+					found = false;
+					for (int i = 0; i < bonds.size(); ++i)
+						if (bonds[i].first == ns_32 || bonds[i].first == ns_33)
+							found = true;
+					if (!found)
+					{
+						bonds.push_back({ns_32, bt[1]});
+						bonds.push_back({ns_33, bt[1]});
+					}
+					
+					found = false;
+					for (int i = 0; i < bonds.size(); ++i)
+						if (bonds[i].first == ns_42 || bonds[i].first == ns_43)
+							found = true;
+					if (!found)
+					{
+						bonds.push_back({ns_42, bt[0]});
+						bonds.push_back({ns_43, bt[0]});
 					}
 				}
+				N_min = N_max;
+				N_max = bonds.size();
 			}
 			for (int i = 0; i < bonds.size(); i+=2)
 			{
@@ -418,11 +497,51 @@ struct hex_honeycomb
 		
 		l.generate_bond_map("chern", [&]
 		(lattice::pair_vector_t& list)
-		{});
+		{
+			std::vector<std::array<int, 3>> cells = {{0, 0, 1}};
+			std::vector<std::array<int, 2>> path = {{0, 1}, {0, 2}, {1, 0}, {1, 2}, {2, 0}, {2, 1}};
+			int N_cells = (L == 1 ? 1 : 3 * (L*L - L) + 1);
+			while (cells.size() < N_cells)
+				for (auto t : cells)
+					for (auto p : path)
+					{
+						auto s = neighbor_site(neighbor_site(t, p[0]), p[1]);
+						if (std::find(cells.begin(), cells.end(), s) == cells.end())
+							cells.push_back(s);
+					}
+			for (auto t_1 : cells)
+			{
+				auto t_2 = neighbor_site(neighbor_site(t_1, 0), 2);
+				auto t_3 = neighbor_site(neighbor_site(t_1, 1), 2);
+				list.push_back({tuple_map.at(t_1), tuple_map.at(t_3)});
+				list.push_back({tuple_map.at(t_2), tuple_map.at(t_1)});
+				list.push_back({tuple_map.at(t_3), tuple_map.at(t_2)});
+			}
+		});
 		
 		l.generate_bond_map("chern_2", [&]
 		(lattice::pair_vector_t& list)
-		{});
+		{
+			std::vector<std::array<int, 3>> cells = {{1, 0, 1}};
+			std::vector<std::array<int, 2>> path = {{0, 1}, {0, 2}, {1, 0}, {1, 2}, {2, 0}, {2, 1}};
+			int N_cells = (L == 1 ? 1 : 3 * (L*L - L) + 1);
+			while (cells.size() < N_cells)
+				for (auto t : cells)
+					for (auto p : path)
+					{
+						auto s = neighbor_site(neighbor_site(t, p[0]), p[1]);
+						if (std::find(cells.begin(), cells.end(), s) == cells.end())
+							cells.push_back(s);
+					}
+			for (auto t_1 : cells)
+			{
+				auto t_2 = neighbor_site(neighbor_site(t_1, 2), 1);
+				auto t_3 = neighbor_site(neighbor_site(t_1, 0), 1);
+				list.push_back({tuple_map.at(t_2), tuple_map.at(t_1)});
+				list.push_back({tuple_map.at(t_3), tuple_map.at(t_2)});
+				list.push_back({tuple_map.at(t_1), tuple_map.at(t_3)});
+			}
+		});
 		
 		
 		l.generate_bond_map("nn_bond_1", [&]
