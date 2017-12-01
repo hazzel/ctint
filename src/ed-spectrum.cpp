@@ -26,6 +26,7 @@ int main(int ac, char** av)
 	std::vector<double> V;
 	int k;
 	std::string ensemble;
+	double tprime = 0.5;
 
 	po::options_description desc("Allowed options");
 	desc.add_options()

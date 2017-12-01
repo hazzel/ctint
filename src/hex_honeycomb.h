@@ -537,9 +537,9 @@ struct hex_honeycomb
 			{
 				auto t_2 = neighbor_site(neighbor_site(t_1, 2), 1);
 				auto t_3 = neighbor_site(neighbor_site(t_1, 0), 1);
+				list.push_back({tuple_map.at(t_1), tuple_map.at(t_3)});
 				list.push_back({tuple_map.at(t_2), tuple_map.at(t_1)});
 				list.push_back({tuple_map.at(t_3), tuple_map.at(t_2)});
-				list.push_back({tuple_map.at(t_1), tuple_map.at(t_3)});
 			}
 		});
 		

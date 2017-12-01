@@ -161,6 +161,13 @@ struct honeycomb
 		{
 			int N = l.n_sites();
 			
+			//list.push_back({0, 7});
+			//list.push_back({7, 0});
+			//list.push_back({2, 11});
+			//list.push_back({11, 2});
+			//list.push_back({1, 6});
+			//list.push_back({6, 1});
+			
 			for (int j = 0; j < Ly; ++j)
 			{
 				for (int i = 0; i < Lx; ++i)
@@ -302,18 +309,22 @@ struct honeycomb
 					int y = x + 2 * Lx;
 					list.push_back({x % N, y % N});
 	
-					x = 2 * i + 2 * Lx * j;
 					if (i == Lx - 1)
 						y = x - 2 * (Lx - 1);
 					else
 						y = x + 2;
 					list.push_back({(y+N) % N, x % N});
 				
-					x = 2 * i + 2 * Lx * j;
-					if (i == 0)
+					if (i == Lx - 1)
+					{
+						x = 2 * Lx * j;
 						y = x + 4 * Lx - 2;
+					}
 					else
+					{
+						x = 2 * (i+1) + 2 * Lx * j;
 						y = x + 2 * (Lx - 1);
+					}
 					list.push_back({y % N, x % N});
 				}
 		});
@@ -332,22 +343,23 @@ struct honeycomb
 				for (int j = 0; j < Ly; ++j)
 				{
 					int x = 2 * i + 1 + 2 * Lx * j;
-					int y = x + 2 * Lx;
-					list.push_back({y % N, x % N});
-	
-					x = 2 * i + 1 + 2 * Lx * j;
-					if (i == Lx - 1)
-						y = x - 2 * (Lx - 1);
-					else
-						y = x + 2;
-					list.push_back({x % N, (y+N) % N});
-				
-					x = 2 * i + 1 + 2 * Lx * j;
+					int y;
+					
 					if (i == 0)
 						y = x + 4 * Lx - 2;
 					else
 						y = x + 2 * (Lx - 1);
 					list.push_back({x % N, y % N});
+					
+					y = x + 2 * Lx;
+					list.push_back({y % N, x % N});
+					
+					x = (2 * i + 1 + 2 * Lx * (j + 1)) % N;
+					if (i == 0)
+						y = x + 2 * (Lx - 1);
+					else
+						y = x - 2;
+					list.push_back({y % N, x % N});
 				}
 		});
 		

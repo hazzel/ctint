@@ -20,9 +20,9 @@ mc::mc(const std::string& dir)
 		0);
 	config.param.n_discrete_tau = pars.value_or_default<int>("discrete_tau",
 		0);
-	//hc.Lx = pars.value_or_default<int>("L", 9);
-	//hc.Ly = pars.value_or_default<int>("L", 9);
-	hc.L = pars.value_or_default<int>("L", 9);
+	hc.Lx = pars.value_or_default<int>("L", 9);
+	hc.Ly = pars.value_or_default<int>("L", 9);
+	//hc.L = pars.value_or_default<int>("L", 9);
 	config.param.beta = 1./pars.value_or_default<double>("T", 0.2);
 	config.param.V = pars.value_or_default<double>("V", 1.355);
 	config.param.mu = pars.value_or_default<double>("mu", 0.);
@@ -137,17 +137,17 @@ mc::mc(const std::string& dir)
 			<< config.l.real_space_coord(b.second)[0] << ","
 			<< config.l.real_space_coord(b.second)[1] << std::endl;
 	
-	for (auto& b : config.l.bonds("kekule"))
+	for (auto& b : config.l.bonds("nn_bond_1"))
 		f_kek << b.first << "," << config.l.real_space_coord(b.first)[0] << ","
 			<< config.l.real_space_coord(b.first)[1] << "," << b.second << ","
 			<< config.l.real_space_coord(b.second)[0] << ","
 			<< config.l.real_space_coord(b.second)[1] << std::endl;
-	for (auto& b : config.l.bonds("kekule_2"))
+	for (auto& b : config.l.bonds("nn_bond_2"))
 		f_kek_2 << b.first << "," << config.l.real_space_coord(b.first)[0] << ","
 			<< config.l.real_space_coord(b.first)[1] << "," << b.second << ","
 			<< config.l.real_space_coord(b.second)[0] << ","
 			<< config.l.real_space_coord(b.second)[1] << std::endl;
-	for (auto& b : config.l.bonds("kekule_3"))
+	for (auto& b : config.l.bonds("nn_bond_3"))
 		f_kek_3 << b.first << "," << config.l.real_space_coord(b.first)[0] << ","
 			<< config.l.real_space_coord(b.first)[1] << "," << b.second << ","
 			<< config.l.real_space_coord(b.second)[0] << ","
@@ -180,6 +180,7 @@ mc::mc(const std::string& dir)
 	f_chern_2.close();
 	f_bond_type.close();
 	t3_bonds.close();
+	std::cout << "printed lattices" << std::endl;
 }
 
 mc::~mc()

@@ -223,6 +223,15 @@ class lattice
 			return site_at_position(rot_R);
 		}
 		
+		vertex_t rotated_site(vertex_t i, double angle) const
+		{
+			double pi = 4. * std::atan(1.);
+			Eigen::Rotation2D<double> rot(angle / 180. * pi);
+			auto& R = real_space_coord(i) - center;
+			Eigen::Vector2d rot_R = rot * R + center;
+			return site_at_position(rot_R);
+		}
+		
 		bool check_rotation_symmetry(double angle) const
 		{
 			double pi = 4. * std::atan(1.);

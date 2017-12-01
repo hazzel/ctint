@@ -62,7 +62,8 @@ class mc
 		configuration config;
 		mctools qmc;
 		parser pars;
-		hex_honeycomb hc;
+		honeycomb hc;
+		//hex_honeycomb hc;
 		int sweep;
 		int n_cycles;
 		int n_warmup;
