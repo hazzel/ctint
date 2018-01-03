@@ -601,14 +601,14 @@ int main(int ac, char** av)
 		auto energy_levels = get_energy_levels(ev);
 		es_cx = project_symmetry(es_cx, energy_levels, P_op);
 		split_quantum_numbers(energy_levels, es_cx, P_op);
-		es_cx = project_symmetry(es_cx, energy_levels, P_rot60_op);
-		split_quantum_numbers(energy_levels, es_cx, P_rot60_op);
-		es_cx = project_symmetry(es_cx, energy_levels, P_rot120_op);
-		split_quantum_numbers(energy_levels, es_cx, P_rot120_op);
 		es_cx = project_symmetry(es_cx, energy_levels, P_sv_op);
 		split_quantum_numbers(energy_levels, es_cx, P_sv_op);
 		es_cx = project_symmetry(es_cx, energy_levels, P_sh_op);
 		split_quantum_numbers(energy_levels, es_cx, P_sh_op);
+		es_cx = project_symmetry(es_cx, energy_levels, P_rot60_op);
+		split_quantum_numbers(energy_levels, es_cx, P_rot60_op);
+		es_cx = project_symmetry(es_cx, energy_levels, P_rot120_op);
+		split_quantum_numbers(energy_levels, es_cx, P_rot120_op);
 		es_cx = project_symmetry(es_cx, energy_levels, PH_op);
 		split_quantum_numbers(energy_levels, es_cx, PH_op);
 		esT_cx = es_cx.t();

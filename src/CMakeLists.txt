@@ -13,13 +13,7 @@ MESSAGE("load_leveller source directory set to ${MCLL}")
 # Linking and include info
 include_directories(${CMAKE_SOURCE_DIR})
 include_directories($ENV{HOME}/libs/eigen $ENV{HOME}/eigen)
-include_directories($ENV{HOME}/armadillo-6.200.2/include)
-include_directories($ENV{HOME}/libs/armadillo-6.500.5/include)
-include_directories($ENV{HOME}/libs/alglib/src)
-include_directories($ENV{HOME}/alglib/src)
 include_directories(${MCLL})
-
-file(GLOB ALGLIB_SRC $ENV{HOME}/libs/alglib/src/*.cpp $ENV{HOME}/alglib/src/*.cpp)
 
 if(mode STREQUAL "mpi")
 	# Set up MPI
@@ -36,13 +30,13 @@ if(mode STREQUAL "mpi")
 		set(CMAKE_CXX_COMPILE_FLAGS "${CMAKE_CXX_COMPILE_FLAGS} ${MPI_CXX_COMPILE_FLAGS}")
 		set(CMAKE_CXX_LINK_FLAGS "${CMAKE_CXX_LINK_FLAGS} ${MPI_CXX_LINK_FLAGS}")
 		MESSAGE("Using mpi wrapper ${MPI_CXX_COMPILER}")
-		
+
 		include_directories(${MPI_CXX_INCLUDE_PATH})
 	else()
 		MESSAGE("MPI not found.")
 	endif()
-	
-	file(GLOB LL_SRC ${MCLL}/dump.cpp 
+
+	file(GLOB LL_SRC ${MCLL}/dump.cpp
 						${MCLL}/parser.cpp
 						${MCLL}/measurements.cpp
 						${MCLL}/evalable.cpp
@@ -52,7 +46,7 @@ if(mode STREQUAL "mpi")
 						${MCLL}/runner.cpp)
 elseif(mode STREQUAL "single")
 	MESSAGE("Using single core implementation.")
-	file(GLOB LL_SRC ${MCLL}/dump.cpp 
+	file(GLOB LL_SRC ${MCLL}/dump.cpp
 						${MCLL}/parser.cpp
 						${MCLL}/measurements.cpp
 						${MCLL}/evalable.cpp
@@ -81,6 +75,13 @@ IF (ARMADILLO_LIBRARY)
 	MESSAGE("Armadillo library found: ${ARMADILLO_LIBRARY}")
 ELSE ()
 	MESSAGE("Armadillo library not found.")
+ENDIF ()
+find_library(ALGLIB_LIBRARY NAMES alglib PATHS /usr/lib64 /usr/lib /usr/local/lib64 /usr/local/lib)
+INCLUDE_DIRECTORIES( ${ALGLIB_INCLUDE_DIR} )
+IF (ALGLIB_LIBRARY)
+	MESSAGE("alglib library found: ${ALGLIB_LIBRARY}")
+ELSE ()
+	MESSAGE("alglib library not found.")
 ENDIF ()
 
 #find_library(GMP_LIBRARY NAMES gmp PATHS /usr/lib64 /usr/lib /usr/local/lib64 /usr/local/lib)
