@@ -69,11 +69,10 @@ void print_overlap(arma::SpMat<T>& op, const std::string& name,
 		int cnt = 0;
 		for (int i = 0; i < esT_cx.n_rows; ++i)
 		{
-			double c = 0.;
-			c += std::abs(arma::trace(esT_cx.row(i) * op * es_cx.col(d)));
+			double c = std::abs(arma::trace(esT_cx.row(i) * op * es_cx.col(d)));
 			if (d == i || c > 1E-14)
 			{
-				std::cout << "|<" << i << "| " + name + " |" << d << ">|^2 = " << c*c
+				std::cout << "|<" << i << "| " + name + " |" << d << ">| = " << c
 					<< ", E(" << i << ") - E(0) = " << ev[i]-ev[0] << std::endl;
 				std::cout << "<" << d << "|O P O|" << d << "> = " << arma::trace(esT_cx.row(d) * op.t() * P_cx * op * es_cx.col(d))
 					/ arma::trace(esT_cx.row(d) * op.t() * op * es_cx.col(d)) << std::endl;
@@ -985,31 +984,29 @@ int main(int ac, char** av)
 						/ static_cast<double>(lat.n_bonds());
 			}
 			
-			/*
-			std::complex<double> im = {0., 1.};
-			for (auto& b : lat.bonds("kekule"))
-			{
-				auto& r_i = lat.real_space_coord((b.first/2)*2);
-				auto& q = lat.symmetry_point("K");
-				state p = hspace.c_i({1, n.first}, b.second);
-				p = hspace.c_dag_i(p, b.first);
-				if (p.sign != 0)
-					kekule2_st(hspace.index(p.id), n.second) +=
-						std::complex<double>(p.sign)
-						/ static_cast<double>(lat.n_bonds()) * std::exp(im * q.dot(r_i));
-			}
-			for (auto& b : lat.bonds("kekule_2"))
-			{
-				auto& r_i = lat.real_space_coord((b.first/2)*2);
-				auto& q = lat.symmetry_point("K");
-				state p = hspace.c_i({1, n.first}, b.second);
-				p = hspace.c_dag_i(p, b.first);
-				if (p.sign != 0)
-					kekule2_st(hspace.index(p.id), n.second) +=
-						std::complex<double>(p.sign)
-						/ static_cast<double>(lat.n_bonds()) * std::exp(im * q.dot(r_i));
-			}
-			*/
+			//std::complex<double> im = {0., 1.};
+			//for (auto& b : lat.bonds("kekule"))
+			//{
+			//	auto& r_i = lat.real_space_coord((b.first/2)*2);
+			//	auto& q = lat.symmetry_point("K");
+			//	state p = hspace.c_i({1, n.first}, b.second);
+			//	p = hspace.c_dag_i(p, b.first);
+			//	if (p.sign != 0)
+			//		kekule2_st(hspace.index(p.id), n.second) +=
+			//			std::complex<double>(p.sign)
+			//			/ static_cast<double>(lat.n_bonds()) * std::exp(im * q.dot(r_i));
+			//}
+			//for (auto& b : lat.bonds("kekule_2"))
+			//{
+			//	auto& r_i = lat.real_space_coord((b.first/2)*2);
+			//	auto& q = lat.symmetry_point("K");
+			//	state p = hspace.c_i({1, n.first}, b.second);
+			//	p = hspace.c_dag_i(p, b.first);
+			//	if (p.sign != 0)
+			//		kekule2_st(hspace.index(p.id), n.second) +=
+			//			std::complex<double>(p.sign)
+			//			/ static_cast<double>(lat.n_bonds()) * std::exp(im * q.dot(r_i));
+			//}
 		});
 	arma::sp_cx_mat kekule2_op = kekule2_st.build_matrix();
 	kekule2_st.clear();
@@ -1019,51 +1016,30 @@ int main(int ac, char** av)
 	kekule2_op.clear();
 	print_data(out, obs_data_cx[4]);
 	
-	sparse_storage<std::complex<double>, int_t> kekule_alpha_st(hspace.sub_dimension());
+	sparse_storage<std::complex<double>, int_t> kekule_K_st(hspace.sub_dimension());
 	hspace.build_operator([&]
 		(const std::pair<int_t, int_t>& n)
 		{
-			double pi = 4. * std::atan(1.);
-			//double alpha = pi/2.; //kekule_as
-			//double alpha = pi; //kekule_s
-			double alpha = 4.*pi/3.;
-			
-			for (auto& b : lat.bonds("kekule"))
+			auto& nn_bonds = lat.bonds("nn_bond_2");
+			for (auto& a : nn_bonds)
 			{
-				state p = hspace.c_i({1, n.first}, b.second);
-				p = hspace.c_dag_i(p, b.first);
+				auto& r_a = lat.real_space_coord(a.second);
+				auto& K = lat.symmetry_point("K");
+				std::complex<double> phase = std::exp(std::complex<double>(0., K.dot(r_a)));
+				
+				state p = hspace.c_i({1, n.first}, a.first);
+				p = hspace.c_dag_i(p, a.second);
 				if (p.sign != 0)
-					kekule_alpha_st(hspace.index(p.id), n.second) +=
-						std::complex<double>(p.sign) * std::cos(alpha - 2.*pi/3.)
-						/ static_cast<double>(lat.n_bonds());
-			}
-
-			for (auto& b : lat.bonds("kekule_2"))
-			{
-				state p = hspace.c_i({1, n.first}, b.second);
-				p = hspace.c_dag_i(p, b.first);
-				if (p.sign != 0)
-					kekule_alpha_st(hspace.index(p.id), n.second) +=
-						std::complex<double>(p.sign) * std::cos(alpha + 2.*pi/3.)
-						/ static_cast<double>(lat.n_bonds());
-			}
-			
-			for (auto& b : lat.bonds("kekule_3"))
-			{
-				state p = hspace.c_i({1, n.first}, b.second);
-				p = hspace.c_dag_i(p, b.first);
-				if (p.sign != 0)
-					kekule_alpha_st(hspace.index(p.id), n.second) +=
-						std::complex<double>(p.sign) * std::cos(alpha)
-						/ static_cast<double>(lat.n_bonds());
+					kekule_K_st(hspace.index(p.id), n.second) += phase
+						/ static_cast<double>(p.sign * lat.n_sites());
 			}
 		});
-	arma::sp_cx_mat kekule_alpha_op = kekule_alpha_st.build_matrix();
-	kekule_alpha_st.clear();
-	obs_data_cx.push_back(get_imaginary_time_obs(kekule_alpha_op, Ntau, t_step, degeneracy,
+	arma::sp_cx_mat kekule_K_op = kekule_K_st.build_matrix();
+	kekule_K_st.clear();
+	obs_data_cx.push_back(get_imaginary_time_obs(kekule_K_op, Ntau, t_step, degeneracy,
 		ev, es_cx, esT_cx));
-	print_overlap(kekule_alpha_op, "kekule_alpha", degeneracy, ev, es_cx, esT_cx, P_op, PH_op);
-	kekule_alpha_op.clear();
+	print_overlap(kekule_K_op, "kekule_K", degeneracy, ev, es_cx, esT_cx, P_op, PH_op);
+	kekule_K_op.clear();
 	print_data(out, obs_data_cx[5]);
 
 	sparse_storage<std::complex<double>, int_t> chern_st(hspace.sub_dimension());
@@ -1350,15 +1326,27 @@ int main(int ac, char** av)
 					{
 						auto& K = lat.symmetry_point("K");
 						auto& Kp = lat.symmetry_point("Kp");
+						//auto Kp = -K;
 						//std::complex<double> phase = std::exp(std::complex<double>(0.,
 						//	K.dot(lat.real_space_coord(i) - lat.real_space_coord(j))));
+						
 						std::complex<double> phase = std::exp(std::complex<double>(0.,
 							K.dot(lat.real_space_coord(i)) + Kp.dot(lat.real_space_coord(j))));
+
 						state p = hspace.c_dag_i({1, n.first}, j+1);
 						p = hspace.c_dag_i(p, i);
 						if (p.sign != 0)
 							tp_st(hspace.index(p.id), n.second) += phase
 								* std::complex<double>(p.sign) / static_cast<double>(Lx * Ly);
+						/*
+						phase = std::exp(std::complex<double>(0.,
+							Kp.dot(lat.real_space_coord(i)) + K.dot(lat.real_space_coord(j))));
+						state p = hspace.c_dag_i({1, n.first}, j);
+						p = hspace.c_dag_i(p, i+1);
+						if (p.sign != 0)
+							tp_st(hspace.index(p.id), n.second) += phase
+								* std::complex<double>(p.sign) / static_cast<double>(Lx * Ly);
+						*/
 					}
 				}
 			});
