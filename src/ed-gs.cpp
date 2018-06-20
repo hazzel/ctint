@@ -70,7 +70,7 @@ void print_overlap(arma::SpMat<T>& op, const std::string& name,
 		for (int i = 0; i < esT_cx.n_rows; ++i)
 		{
 			double c = std::abs(arma::trace(esT_cx.row(i) * op * es_cx.col(d)));
-			if (d == i || c > 1E-14)
+			if (d == i || c > 1E-12)
 			{
 				std::cout << "|<" << i << "| " + name + " |" << d << ">| = " << c
 					<< ", E(" << i << ") - E(0) = " << ev[i]-ev[0] << std::endl;
@@ -1047,6 +1047,63 @@ int main(int ac, char** av)
 	hspace.build_operator([&]
 		(const std::pair<int_t, int_t>& n)
 		{
+			for (int i = 0; i < lat.n_sites(); i+=2)
+			{
+				std::vector<std::pair<int, int>> bonds;
+				auto& r_i = lat.real_space_coord(i);
+				
+				bonds.push_back({lat.site_at_position(r_i + lat.a1), i});
+				bonds.push_back({i, lat.site_at_position(r_i - lat.a1)});
+				
+				bonds.push_back({lat.site_at_position(r_i - lat.a2), i});
+				bonds.push_back({i, lat.site_at_position(r_i - lat.a2)});
+				
+				bonds.push_back({lat.site_at_position(r_i - lat.a1 + lat.a2), i});
+				bonds.push_back({i, lat.site_at_position(r_i - lat.a1 + lat.a2)});
+				
+				for (auto b : bonds)
+				{
+					state p = hspace.c_i({1, n.first}, b.second);
+					p = hspace.c_dag_i(p, b.first);
+					if (p.sign != 0)
+						chern_st(hspace.index(p.id), n.second) += std::complex<double>{0., p.sign / static_cast<double>(lat.n_bonds())};
+					p = hspace.c_i({1, n.first}, b.first);
+					p = hspace.c_dag_i(p, b.second);
+					if (p.sign != 0)
+						chern_st(hspace.index(p.id), n.second) += std::complex<double>{0., -p.sign / static_cast<double>(lat.n_bonds())};
+				}
+			}
+			/*
+			for (int i = 1; i < lat.n_sites(); i+=2)
+			{
+				std::vector<std::pair<int, int>> bonds;
+				auto& r_i = lat.real_space_coord(i);
+				
+				bonds.push_back({lat.site_at_position(r_i + lat.a1), i});
+				bonds.push_back({i, lat.site_at_position(r_i - lat.a1)});
+				
+				bonds.push_back({lat.site_at_position(r_i - lat.a2), i});
+				bonds.push_back({i, lat.site_at_position(r_i - lat.a2)});
+				
+				bonds.push_back({lat.site_at_position(r_i - lat.a1 + lat.a2), i});
+				bonds.push_back({i, lat.site_at_position(r_i - lat.a1 + lat.a2)});
+				
+				for (auto b : bonds)
+				{
+					state p = hspace.c_i({1, n.first}, b.second);
+					p = hspace.c_dag_i(p, b.first);
+					if (p.sign != 0)
+						chern_st(hspace.index(p.id), n.second) += std::complex<double>{0., p.sign / static_cast<double>(lat.n_bonds())};
+					p = hspace.c_i({1, n.first}, b.first);
+					p = hspace.c_dag_i(p, b.second);
+					if (p.sign != 0)
+						chern_st(hspace.index(p.id), n.second) += std::complex<double>{0., -p.sign / static_cast<double>(lat.n_bonds())};
+				}
+			}
+			*/
+			
+			
+			/*
 			//chern
 			for (auto& b : lat.bonds("chern"))
 			{
@@ -1099,6 +1156,7 @@ int main(int ac, char** av)
 						/ static_cast<double>(lat.n_bonds())} * std::exp(im * q.dot(r_i));
 				}
 			}
+			*/
 		});
 	arma::sp_cx_mat chern_op = chern_st.build_matrix();
 	chern_st.clear();
@@ -1326,14 +1384,14 @@ int main(int ac, char** av)
 					{
 						auto& K = lat.symmetry_point("K");
 						auto& Kp = lat.symmetry_point("Kp");
-						//auto Kp = -K;
-						//std::complex<double> phase = std::exp(std::complex<double>(0.,
-						//	K.dot(lat.real_space_coord(i) - lat.real_space_coord(j))));
-						
-						std::complex<double> phase = std::exp(std::complex<double>(0.,
-							K.dot(lat.real_space_coord(i)) + Kp.dot(lat.real_space_coord(j))));
 
-						state p = hspace.c_dag_i({1, n.first}, j+1);
+						std::complex<double> phase;
+						if (Lx % 3 == 0)
+							phase = std::exp(std::complex<double>(0., K.dot(lat.real_space_coord(i) - lat.real_space_coord(j))));
+						else
+							phase = std::exp(std::complex<double>(0., K.dot(lat.real_space_coord(i)) + Kp.dot(lat.real_space_coord(j))));
+
+						state p = hspace.c_dag_i({1, n.first}, j);
 						p = hspace.c_dag_i(p, i);
 						if (p.sign != 0)
 							tp_st(hspace.index(p.id), n.second) += phase
