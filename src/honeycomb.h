@@ -363,6 +363,46 @@ struct honeycomb
 				}
 		});
 		
+		l.generate_bond_map("chern_x", [&]
+		(lattice::pair_vector_t& list)
+		{
+			int N = l.n_sites();
+
+			for (int i = 0; i < N; i+=2)
+			{
+				auto& r_i = l.real_space_coord(i);
+				
+				list.push_back({l.site_at_position(r_i + l.a1), i});
+				//list.push_back({i, l.site_at_position(r_i - l.a1)});
+				
+				//list.push_back({l.site_at_position(r_i - l.a2), i});
+				//list.push_back({i, l.site_at_position(r_i + l.a2)});
+				
+				//list.push_back({l.site_at_position(r_i - l.a1 + l.a2), i});
+				//list.push_back({i, l.site_at_position(r_i + l.a1 - l.a2)});
+			}
+		});
+		
+		l.generate_bond_map("chern_x_2", [&]
+		(lattice::pair_vector_t& list)
+		{
+			int N = l.n_sites();
+
+			for (int i = 1; i < N; i+=2)
+			{
+				auto& r_i = l.real_space_coord(i);
+				
+				list.push_back({l.site_at_position(r_i + l.a1), i});
+				//list.push_back({i, l.site_at_position(r_i - l.a1)});
+				
+				//list.push_back({l.site_at_position(r_i - l.a2), i});
+				//list.push_back({i, l.site_at_position(r_i + l.a2)});
+				
+				//list.push_back({l.site_at_position(r_i - l.a1 + l.a2), i});
+				//list.push_back({i, l.site_at_position(r_i + l.a1 - l.a2)});
+			}
+		});
+		
 		l.generate_bond_map("nn_bond_1", [&]
 		(lattice::pair_vector_t& list)
 		{

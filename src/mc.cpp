@@ -129,6 +129,8 @@ mc::mc(const std::string& dir)
 	std::ofstream f_kek_3("kek_3_lattice.txt");
 	std::ofstream f_chern("chern_lattice.txt");
 	std::ofstream f_chern_2("chern_2_lattice.txt");
+	std::ofstream f_chern_x("chern_x_lattice.txt");
+	std::ofstream f_chern_x_2("chern_x_2_lattice.txt");
 	std::ofstream f_bond_type("bond_type_lattice.txt");
 	std::ofstream t3_bonds("t3_lattice.txt");
 	for (auto& b : config.l.bonds("nearest neighbors"))
@@ -159,6 +161,16 @@ mc::mc(const std::string& dir)
 			<< config.l.real_space_coord(b.second)[1] << std::endl;
 	for (auto& b : config.l.bonds("chern_2"))
 		f_chern_2 << b.first << "," << config.l.real_space_coord(b.first)[0] << ","
+			<< config.l.real_space_coord(b.first)[1] << "," << b.second << ","
+			<< config.l.real_space_coord(b.second)[0] << ","
+			<< config.l.real_space_coord(b.second)[1] << std::endl;
+	for (auto& b : config.l.bonds("chern_x"))
+		f_chern_x << b.first << "," << config.l.real_space_coord(b.first)[0] << ","
+			<< config.l.real_space_coord(b.first)[1] << "," << b.second << ","
+			<< config.l.real_space_coord(b.second)[0] << ","
+			<< config.l.real_space_coord(b.second)[1] << std::endl;
+	for (auto& b : config.l.bonds("chern_x_2"))
+		f_chern_x_2 << b.first << "," << config.l.real_space_coord(b.first)[0] << ","
 			<< config.l.real_space_coord(b.first)[1] << "," << b.second << ","
 			<< config.l.real_space_coord(b.second)[0] << ","
 			<< config.l.real_space_coord(b.second)[1] << std::endl;

@@ -1047,57 +1047,58 @@ int main(int ac, char** av)
 	hspace.build_operator([&]
 		(const std::pair<int_t, int_t>& n)
 		{
-			for (int i = 0; i < lat.n_sites(); i+=2)
+			
+			//chern
+			for (auto& b : lat.bonds("chern_x"))
 			{
-				std::vector<std::pair<int, int>> bonds;
-				auto& r_i = lat.real_space_coord(i);
+				auto& r_i = lat.real_space_coord(b.first);
+				auto& q = lat.symmetry_point("q");
+				std::complex<double> im = {0., 1.};
 				
-				bonds.push_back({lat.site_at_position(r_i + lat.a1), i});
-				bonds.push_back({i, lat.site_at_position(r_i - lat.a1)});
-				
-				bonds.push_back({lat.site_at_position(r_i - lat.a2), i});
-				bonds.push_back({i, lat.site_at_position(r_i - lat.a2)});
-				
-				bonds.push_back({lat.site_at_position(r_i - lat.a1 + lat.a2), i});
-				bonds.push_back({i, lat.site_at_position(r_i - lat.a1 + lat.a2)});
-				
-				for (auto b : bonds)
+				state p = hspace.c_i({1, n.first}, b.second);
+				p = hspace.c_dag_i(p, b.first);
+				if (p.sign != 0)
 				{
-					state p = hspace.c_i({1, n.first}, b.second);
-					p = hspace.c_dag_i(p, b.first);
-					if (p.sign != 0)
-						chern_st(hspace.index(p.id), n.second) += std::complex<double>{0., p.sign / static_cast<double>(lat.n_bonds())};
-					p = hspace.c_i({1, n.first}, b.first);
-					p = hspace.c_dag_i(p, b.second);
-					if (p.sign != 0)
-						chern_st(hspace.index(p.id), n.second) += std::complex<double>{0., -p.sign / static_cast<double>(lat.n_bonds())};
+					chern_st(hspace.index(p.id), n.second) += std::complex<double>{0., p.sign
+						/ static_cast<double>(lat.n_bonds())};
+					S_chern_st(hspace.index(p.id), n.second) += std::complex<double>{0., p.sign
+						/ static_cast<double>(lat.n_bonds())} * std::exp(im * q.dot(r_i));
+				}
+				p = hspace.c_i({1, n.first}, b.first);
+				p = hspace.c_dag_i(p, b.second);
+				if (p.sign != 0)
+				{
+					chern_st(hspace.index(p.id), n.second) += std::complex<double>{0., -p.sign
+						/ static_cast<double>(lat.n_bonds())};
+					S_chern_st(hspace.index(p.id), n.second) += std::complex<double>{0., -p.sign
+						/ static_cast<double>(lat.n_bonds())} * std::exp(im * q.dot(r_i));
 				}
 			}
+			
 			/*
-			for (int i = 1; i < lat.n_sites(); i+=2)
+			for (auto& b : lat.bonds("chern_x_2"))
 			{
-				std::vector<std::pair<int, int>> bonds;
-				auto& r_i = lat.real_space_coord(i);
+				auto& r_i = lat.real_space_coord(b.first);
+				auto& q = lat.symmetry_point("q");
+				std::complex<double> im = {0., 1.};
 				
-				bonds.push_back({lat.site_at_position(r_i + lat.a1), i});
-				bonds.push_back({i, lat.site_at_position(r_i - lat.a1)});
-				
-				bonds.push_back({lat.site_at_position(r_i - lat.a2), i});
-				bonds.push_back({i, lat.site_at_position(r_i - lat.a2)});
-				
-				bonds.push_back({lat.site_at_position(r_i - lat.a1 + lat.a2), i});
-				bonds.push_back({i, lat.site_at_position(r_i - lat.a1 + lat.a2)});
-				
-				for (auto b : bonds)
+				state p = hspace.c_i({1, n.first}, b.second);
+				p = hspace.c_dag_i(p, b.first);
+				if (p.sign != 0)
 				{
-					state p = hspace.c_i({1, n.first}, b.second);
-					p = hspace.c_dag_i(p, b.first);
-					if (p.sign != 0)
-						chern_st(hspace.index(p.id), n.second) += std::complex<double>{0., p.sign / static_cast<double>(lat.n_bonds())};
-					p = hspace.c_i({1, n.first}, b.first);
-					p = hspace.c_dag_i(p, b.second);
-					if (p.sign != 0)
-						chern_st(hspace.index(p.id), n.second) += std::complex<double>{0., -p.sign / static_cast<double>(lat.n_bonds())};
+					chern_st(hspace.index(p.id), n.second) += -im*std::complex<double>{0., p.sign
+						/ static_cast<double>(lat.n_bonds())};
+					S_chern_st(hspace.index(p.id), n.second) += -im*std::complex<double>{0., p.sign
+						/ static_cast<double>(lat.n_bonds())} * std::exp(im * q.dot(r_i));
+				}
+				p = hspace.c_i({1, n.first}, b.first);
+				p = hspace.c_dag_i(p, b.second);
+				if (p.sign != 0)
+				{
+					chern_st(hspace.index(p.id), n.second) += -im*std::complex<double>{0., -p.sign
+						/ static_cast<double>(lat.n_bonds())};
+					S_chern_st(hspace.index(p.id), n.second) += -im*std::complex<double>{0., -p.sign
+						/ static_cast<double>(lat.n_bonds())} * std::exp(im * q.dot(r_i));
 				}
 			}
 			*/
@@ -1130,7 +1131,8 @@ int main(int ac, char** av)
 						/ static_cast<double>(lat.n_bonds())} * std::exp(im * q.dot(r_i));
 				}
 			}
-			
+			*/
+			/*
 			for (auto& b : lat.bonds("chern_2"))
 			{
 				auto& r_i = lat.real_space_coord(b.first);
@@ -1157,6 +1159,7 @@ int main(int ac, char** av)
 				}
 			}
 			*/
+			
 		});
 	arma::sp_cx_mat chern_op = chern_st.build_matrix();
 	chern_st.clear();
