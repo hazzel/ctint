@@ -74,8 +74,8 @@ class hilbert
 
 		int_t sub_dimension() { return base_index.size(); }
 		int_t dimension() { return dim; }
-		int_t index(int_t state_id) { return base_index[state_id]; }
-		int_t state_id(int_t index) { return state_index[index]; }
+		int_t index(int_t state_id) { return base_index.at(state_id); }
+		int_t state_id(int_t index) { return state_index.at(index); }
 
 		void build_basis(std::function<bool(int_t)> keep)
 		{

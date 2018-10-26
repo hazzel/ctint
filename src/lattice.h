@@ -22,9 +22,9 @@ class lattice
 		typedef graph_t::vertex_iterator vertex_it_t;
 		typedef graph_t::edge_descriptor edge_t;
 		typedef graph_t::edge_iterator edge_it_t;
-		typedef boost::multi_array<int, 2> multi_array_t;
 		typedef std::vector<std::vector<int>> nested_vector_t;
-		typedef std::vector<std::pair<int, int>> pair_vector_t;
+		typedef std::pair<int, int> pair_t;
+		typedef std::vector<pair_t> pair_vector_t;
 		typedef std::map<std::string, nested_vector_t> neighbor_map_t;
 		typedef std::map<std::string, pair_vector_t> bond_map_t;
 		typedef std::vector<Eigen::Vector2d> real_space_map_t;
@@ -39,13 +39,10 @@ class lattice
 		void generate_graph(T& generator)
 		{
 			delete graph;
-			graph = generator.graph();
-			generate_distance_map();
+			graph = generator.graph(*this);
 			real_space_map = generator.real_space_map;
-			
-			//std::cout << "n_bonds = " << n_bonds() << std::endl;
-			//std::cout << "Bonds:" << std::endl;
-			//print_bonds();
+			generate_distance_map();
+			generator.generate_maps(*this);
 		}
 
 		void generate_neighbor_map(const std::string& name,
@@ -98,17 +95,17 @@ class lattice
 			fun(bond_maps[name]);
 		}
 
-		void add_symmetry_points(const point_map_t& points)
+		inline void add_symmetry_points(const point_map_t& points)
 		{
 			symmetry_points.insert(points.begin(), points.end());
 		}
 
-		const Eigen::Vector2d& symmetry_point(const std::string& name) const
+		inline const Eigen::Vector2d& symmetry_point(const std::string& name) const
 		{
 			return symmetry_points.at(name);
 		}
 
-		int n_sites() const
+		inline int n_sites() const
 		{
 			return boost::num_vertices(*graph);
 		}
@@ -119,23 +116,28 @@ class lattice
 			return boost::num_edges(*graph);
 		}
 
-		int max_distance() const
+		inline int max_distance() const
 		{
-			return max_dist;
+			return distance_list.size();
 		}
 
-		int distance(vertex_t i, vertex_t j) const
+		inline int distance(vertex_t i, vertex_t j) const
 		{
-			return distance_map[i][j];
+			if (i < j)
+				return distance_map[(i*(2*n_sites()-1-i))/2 + j - i - 1];
+			else if (i > j)
+				return distance_map[(j*(2*n_sites()-1-j))/2 + i - j - 1];
+			else
+				return 0;
 		}
 
-		const std::vector<int>& neighbors(vertex_t site, const std::string& name)
+		inline const std::vector<int>& neighbors(vertex_t site, const std::string& name)
 			const
 		{
 			return neighbor_maps.at(name)[site];
 		}
 		
-		const pair_vector_t& bonds(const std::string& name) const
+		inline const pair_vector_t& bonds(const std::string& name) const
 		{
 			return bond_maps.at(name);
 		}
@@ -151,7 +153,7 @@ class lattice
 			return (site % 2 == 0) ? 1.0 : -1.0;
 		}
 
-		const Eigen::Vector2d& real_space_coord(vertex_t i) const
+		inline const Eigen::Vector2d& real_space_coord(vertex_t i) const
 		{
 			return real_space_map[i];
 		}
@@ -259,6 +261,59 @@ class lattice
 			}
 			return true;
 		}
+		
+		pair_vector_t generate_kekule_bonds(int i, int j, int alpha)
+		{
+			Eigen::Vector2d kek_base_1 = a1 + a2;
+			Eigen::Vector2d kek_base_2 = 2.*a1 - a2;
+			Eigen::Vector2d R_ij = i * kek_base_1 + j * kek_base_2;
+			std::vector<int> r;
+			r.push_back(site_at_position(R_ij + Eigen::Vector2d{-1.0, 0.}));
+			r.push_back(site_at_position(R_ij + Eigen::Vector2d{-0.5, std::sqrt(3.)/2.}));
+			r.push_back(site_at_position(R_ij + Eigen::Vector2d{0.5, std::sqrt(3.)/2.}));
+			r.push_back(site_at_position(R_ij + Eigen::Vector2d{-0.5, -std::sqrt(3.)/2.}));
+			r.push_back(site_at_position(R_ij + Eigen::Vector2d{0.5, -std::sqrt(3.)/2.}));
+			r.push_back(site_at_position(R_ij + Eigen::Vector2d{1.0, 0.}));
+			r.push_back(site_at_position(R_ij + Eigen::Vector2d{1.0, std::sqrt(3.)}));
+			r.push_back(site_at_position(R_ij + Eigen::Vector2d{2.0, 0.}));
+			r.push_back(site_at_position(R_ij + Eigen::Vector2d{1.0, -std::sqrt(3.)}));
+			pair_vector_t kek_bonds;
+			
+			if (alpha == 0)
+			{
+				kek_bonds.push_back({r[1], r[2]});
+				kek_bonds.push_back({r[2], r[1]});
+				
+				kek_bonds.push_back({r[0], r[3]});
+				kek_bonds.push_back({r[3], r[0]});
+				
+				kek_bonds.push_back({r[4], r[5]});
+				kek_bonds.push_back({r[5], r[4]});
+			}
+			else if (alpha == 1)
+			{
+				kek_bonds.push_back({r[0], r[1]});
+				kek_bonds.push_back({r[1], r[0]});
+				
+				kek_bonds.push_back({r[2], r[5]});
+				kek_bonds.push_back({r[5], r[2]});
+				
+				kek_bonds.push_back({r[3], r[4]});
+				kek_bonds.push_back({r[4], r[3]});
+			}
+			else if (alpha == 2)
+			{
+				kek_bonds.push_back({r[2], r[6]});
+				kek_bonds.push_back({r[6], r[2]});
+				
+				kek_bonds.push_back({r[5], r[7]});
+				kek_bonds.push_back({r[7], r[5]});
+				
+				kek_bonds.push_back({r[4], r[9]});
+				kek_bonds.push_back({r[9], r[4]});
+			}
+			return kek_bonds;
+		}
 
 		void print_sites() const
 		{
@@ -280,27 +335,52 @@ class lattice
 		void print_distance_map() const
 		{
 			for (int i = 0; i < n_sites(); ++i)
-			{
-				for (int j = 0; j < n_sites(); ++j)
-				{
-					std::cout << "d(" << i << ", " << j << ") = "
-						<< distance_map[i][j] << std::endl;
-				}
-			}
+				for (int j = i; j < n_sites(); ++j)
+					std::cout << "d(" << i << ", " << j << ") = " << distance(i, j) << std::endl;
 		}
 	private:
+		double min_distance(int i, int j)
+		{
+			auto& r_i = real_space_coord(i);
+			auto& r_j = real_space_coord(j);
+			auto R_Lx = Lx * a1, R_Ly = Ly * a2;
+			
+			double R = (r_i - r_j).norm();
+			for (int n = -1; n <= 1; ++n)
+				for (int m = -1; m <= 1; ++m)
+				{
+					double R_nm = (r_i - r_j + n * R_Lx + m * R_Ly).norm();
+					R = std::min(R, R_nm);
+				}
+			return R;
+		}
+		
 		void generate_distance_map()
 		{
-			distance_map.resize(boost::extents[n_sites()][n_sites()]);
-
-			for (int i = 0; i < n_sites(); ++i)
+			distance_map.resize((n_sites() * (n_sites() - 1)) / 2, 0);
+			int i = 0;
+			for (int j = i; j < n_sites(); ++j)
 			{
-				boost::breadth_first_search(*graph, i, boost::visitor(
-					boost::make_bfs_visitor(boost::record_distances(
-					&distance_map[i][0], boost::on_tree_edge{}))));
+				double R_ij = min_distance(i, j);
+				bool add = true;
+				for (double R : distance_list)
+					if (std::abs(R - R_ij) < 1E-10)
+						add = false;
+				if (add)
+					distance_list.push_back(R_ij);
 			}
-			max_dist = *std::max_element(distance_map.origin(),
-							distance_map.origin() + distance_map.num_elements());
+			std::sort(distance_list.begin(), distance_list.end());
+			for (int i = 0; i < n_sites(); ++i)
+				for (int j = i+1; j < n_sites(); ++j)
+				{
+					double R_ij = min_distance(i, j);
+					for (int n = 0; n < distance_list.size(); ++n)
+					{
+						if (std::abs(distance_list[n] - R_ij) < 1E-10)
+							distance_map[(i*(2*n_sites()-1-i))/2 + j - i - 1] = n;
+					}
+				}
+			//print_distance_map();
 		}
 	public:
 		// Base vectors of Bravais lattice
@@ -311,13 +391,15 @@ class lattice
 		Eigen::Vector2d b2;
 		// Center of inversion symmetry
 		Eigen::Vector2d center;
+		// Nearest neighbor vector_wick_base
+		Eigen::Vector2d delta;
 		int Lx;
 		int Ly;
 	private:
 		graph_t* graph;
 		int neighbor_dist;
-		int max_dist;
-		multi_array_t distance_map;
+		std::vector<int> distance_map;
+		std::vector<double> distance_list;
 		neighbor_map_t neighbor_maps;
 		bond_map_t bond_maps;
 		real_space_map_t real_space_map;

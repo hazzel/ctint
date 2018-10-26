@@ -60,11 +60,47 @@ struct honeycomb
 		}
 	}
 
-	graph_t* graph()
+	graph_t* graph(lattice& l)
 	{
 		int n_sites = 2 * Lx * Ly;
 		graph_t* g = new graph_t(n_sites);
 		add_edges(g);
+		
+		l.a1 = a1;
+		l.a2 = a2;
+		l.b1 = b1;
+		l.b2 = b2;
+		l.center = center;
+		l.delta = delta;
+		l.Lx = Lx;
+		l.Ly = Ly;
+	
+		//Symmetry points
+		std::map<std::string, Eigen::Vector2d> points;
+
+		points["K"] = closest_k_point({2.*pi/3., 2.*pi/3./std::sqrt(3.)});
+		points["Kp"] = closest_k_point({2.*pi/3., -2.*pi/3./std::sqrt(3.)});
+		points["Gamma"] = closest_k_point({0., 0.});
+		points["M"] = closest_k_point({2.*pi/3., 0.});
+		points["q"] = closest_k_point(b1 / Lx);
+		points["q20"] = closest_k_point(2. * b2 / Ly);
+		points["q11"] = closest_k_point(b1 / Lx + b2 / Ly);
+		points["Kq"] = closest_k_point(b1 / Lx + Eigen::Vector2d{2.*pi/3., 2.*pi/3./std::sqrt(3.)});
+		l.add_symmetry_points(points);
+		
+		/*
+		for (int i = 0; i < Lx; ++i)
+			for (int j = 0; j < Ly; ++j)
+			{
+				Eigen::Vector2d y = static_cast<double>(i) / static_cast<double>(Lx)
+					* b1 + static_cast<double>(j) / static_cast<double>(Ly) * b2;
+				//std::cout << i << ", " << j << " : (" << y[0] << ", " << y[1] << ")" << std::endl;
+				std::cout << y[0] << " " << y[1] << std::endl;
+			}
+		std::cout << "K point: (" << 2.*pi/3. << ", " << 2.*pi/3./std::sqrt(3.) << ")" << std::endl;
+		std::cout << "closest to K point: (" << points["K"][0] << ", " << points["K"][1] << ")" << std::endl;
+		*/
+		
 		return g;
 	}
 
@@ -111,37 +147,6 @@ struct honeycomb
 
 	void generate_maps(lattice& l)
 	{
-		l.a1 = a1;
-		l.a2 = a2;
-		l.b1 = b1;
-		l.b2 = b2;
-		l.center = center;
-		l.Lx = Lx;
-		l.Ly = Ly;
-	
-		//Symmetry points
-		std::map<std::string, Eigen::Vector2d> points;
-
-		points["K"] = closest_k_point({2.*pi/3., 2.*pi/3./std::sqrt(3.)});
-		points["Kp"] = closest_k_point({2.*pi/3., -2.*pi/3./std::sqrt(3.)});
-		points["Gamma"] = closest_k_point({0., 0.});
-		points["M"] = closest_k_point({2.*pi/3., 0.});
-		points["q"] = closest_k_point(b1 / Lx);
-		l.add_symmetry_points(points);
-		
-		/*
-		for (int i = 0; i < Lx; ++i)
-			for (int j = 0; j < Ly; ++j)
-			{
-				Eigen::Vector2d y = static_cast<double>(i) / static_cast<double>(Lx)
-					* b1 + static_cast<double>(j) / static_cast<double>(Ly) * b2;
-				//std::cout << i << ", " << j << " : (" << y[0] << ", " << y[1] << ")" << std::endl;
-				std::cout << y[0] << " " << y[1] << std::endl;
-			}
-		std::cout << "K point: (" << 2.*pi/3. << ", " << 2.*pi/3./std::sqrt(3.) << ")" << std::endl;
-		std::cout << "closest to K point: (" << points["K"][0] << ", " << points["K"][1] << ")" << std::endl;
-		*/
-
 		//Site maps
 		l.generate_neighbor_map("nearest neighbors", [&]
 			(lattice::vertex_t i, lattice::vertex_t j) {
@@ -152,21 +157,17 @@ struct honeycomb
 		l.generate_bond_map("single_d1_bonds", [&]
 			(lattice::vertex_t i, lattice::vertex_t j)
 			{ return l.distance(i, j) == 1 && i < j; });
-		l.generate_bond_map("d3_bonds", [&]
-			(lattice::vertex_t i, lattice::vertex_t j)
-			{ return l.distance(i, j) == 3; });
+		for (int d = 0; d < l.max_distance(); ++d)
+		{
+			l.generate_bond_map("d" + std::to_string(d) + "_bonds", [&]
+				(lattice::vertex_t i, lattice::vertex_t j)
+				{ return l.distance(i, j) == d; });
+		}
 		
 		l.generate_bond_map("t3_bonds", [&]
 			(lattice::pair_vector_t& list)
 		{
 			int N = l.n_sites();
-			
-			//list.push_back({0, 7});
-			//list.push_back({7, 0});
-			//list.push_back({2, 11});
-			//list.push_back({11, 2});
-			//list.push_back({1, 6});
-			//list.push_back({6, 1});
 			
 			for (int j = 0; j < Ly; ++j)
 			{
@@ -373,13 +374,13 @@ struct honeycomb
 				auto& r_i = l.real_space_coord(i);
 				
 				list.push_back({l.site_at_position(r_i + l.a1), i});
-				//list.push_back({i, l.site_at_position(r_i - l.a1)});
+				list.push_back({i, l.site_at_position(r_i - l.a1)});
 				
-				//list.push_back({l.site_at_position(r_i - l.a2), i});
-				//list.push_back({i, l.site_at_position(r_i + l.a2)});
+				list.push_back({l.site_at_position(r_i - l.a2), i});
+				list.push_back({i, l.site_at_position(r_i + l.a2)});
 				
-				//list.push_back({l.site_at_position(r_i - l.a1 + l.a2), i});
-				//list.push_back({i, l.site_at_position(r_i + l.a1 - l.a2)});
+				list.push_back({l.site_at_position(r_i - l.a1 + l.a2), i});
+				list.push_back({i, l.site_at_position(r_i + l.a1 - l.a2)});
 			}
 		});
 		
@@ -393,13 +394,13 @@ struct honeycomb
 				auto& r_i = l.real_space_coord(i);
 				
 				list.push_back({l.site_at_position(r_i + l.a1), i});
-				//list.push_back({i, l.site_at_position(r_i - l.a1)});
+				list.push_back({i, l.site_at_position(r_i - l.a1)});
 				
-				//list.push_back({l.site_at_position(r_i - l.a2), i});
-				//list.push_back({i, l.site_at_position(r_i + l.a2)});
+				list.push_back({l.site_at_position(r_i - l.a2), i});
+				list.push_back({i, l.site_at_position(r_i + l.a2)});
 				
-				//list.push_back({l.site_at_position(r_i - l.a1 + l.a2), i});
-				//list.push_back({i, l.site_at_position(r_i + l.a1 - l.a2)});
+				list.push_back({l.site_at_position(r_i - l.a1 + l.a2), i});
+				list.push_back({i, l.site_at_position(r_i + l.a1 - l.a2)});
 			}
 		});
 		
@@ -467,6 +468,29 @@ struct honeycomb
 					int n = j * 2 * Lx + i * 2;
 					list.push_back({l.inverted_site(neighbor_site(n, 1)), l.inverted_site(n)});
 				}
+		});
+		
+		l.generate_bond_map("edge_x", [&]
+		(lattice::pair_vector_t& list)
+		{
+			for (int i = 0; i < Lx; ++i)
+			{
+				int m = i * 2 * Lx;
+				int n = (i+1) * 2 * Lx - 1;
+				list.push_back({m, n});
+			}
+		});
+		
+		l.generate_bond_map("edge_y", [&]
+		(lattice::pair_vector_t& list)
+		{
+			list.push_back({(Ly - 1) * 2 * Ly, 2 * Lx - 1});
+			for (int j = 1; j < Ly; ++j)
+			{
+				int m = (j - 1) * 2 + 1;
+				int n = (Ly - 1) * 2 * Ly + j * 2;
+				list.push_back({m, n});
+			}
 		});
 	}
 };
