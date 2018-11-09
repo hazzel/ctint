@@ -39,7 +39,7 @@ std::vector<T> get_imaginary_time_obs(arma::SpMat<T>& op,
 			for (int b = 0; b < ev.n_rows; ++b)
 				obs_vec[n] += std::exp(tau * (ev(state) - ev(b)))
 					* arma::trace(esT_cx.row(state) * op * es_cx.col(b))
-					* arma::trace(esT_cx.row(b) * opT * es_cx.col(state));
+					* arma::trace(esT_cx.row(b) * op * es_cx.col(state));
 	}
 	return obs_vec;
 }
@@ -51,8 +51,8 @@ void print_overlap(arma::SpMat<T>& op, const std::string& name,
 	std::cout << std::endl;
 	std::cout << "Inversion parity: P * O * P - O = " << arma::norm(arma::nonzeros(P_cx * op * P_cx - op)) << std::endl;
 	std::cout << "Inversion parity: P * O * P + O = " << arma::norm(arma::nonzeros(P_cx * op * P_cx + op)) << std::endl;
-	std::cout << "Particle-hole parity: PH * O * PH - O = " << arma::norm(arma::nonzeros(PH_cx * arma::conj(op) * PH_cx - op)) << std::endl;
-	std::cout << "Particle-hole parity: PH * O * PH + O = " << arma::norm(arma::nonzeros(PH_cx * arma::conj(op) * PH_cx + op)) << std::endl;
+	std::cout << "Particle-hole parity: PH * O * PH - O = " << arma::norm(arma::nonzeros(PH_cx * op * PH_cx - op)) << std::endl;
+	std::cout << "Particle-hole parity: PH * O * PH + O = " << arma::norm(arma::nonzeros(PH_cx * op * PH_cx + op)) << std::endl;
 	for (int d = 0; d < degeneracy; ++d)
 	//for (int d = 0; d < 2; ++d)
 	{
@@ -83,18 +83,18 @@ template<typename T>
 void print_commutator(arma::SpMat<T>& op, arma::SpMat<T>& P_cx, arma::SpMat<T>& Psh_cx, arma::SpMat<T>& Psv_cx, arma::SpMat<T>& P_rot60_cx, arma::SpMat<T>& P_rot120_cx, arma::SpMat<T>& PH_cx)
 {
 	std::cout << std::endl;
-	std::cout << "Inversion parity: P * O * P - O = " << arma::norm(arma::nonzeros(P_cx * op * P_cx - op)) << std::endl;
-	std::cout << "Inversion parity: P * O * P + O = " << arma::norm(arma::nonzeros(P_cx * op * P_cx + op)) << std::endl;
-	std::cout << "Mirror sv parity: P * O * P - O = " << arma::norm(arma::nonzeros(Psv_cx * op * Psv_cx - op)) << std::endl;
-	std::cout << "Mirror sv parity: P * O * P + O = " << arma::norm(arma::nonzeros(Psv_cx * op * Psv_cx + op)) << std::endl;
-	std::cout << "Mirror sh parity: P * O * P - O = " << arma::norm(arma::nonzeros(Psh_cx * op * Psh_cx - op)) << std::endl;
-	std::cout << "Mirror sh parity: P * O * P + O = " << arma::norm(arma::nonzeros(Psh_cx * op * Psh_cx + op)) << std::endl;
-	std::cout << "Rot60 symmetry: P * O * P - O = " << arma::norm(arma::nonzeros(P_rot60_cx.t() * op * P_rot60_cx - op)) << std::endl;
-	std::cout << "Rot60 symmetry: P * O * P + O = " << arma::norm(arma::nonzeros(P_rot60_cx.t() * op * P_rot60_cx + op)) << std::endl;
-	std::cout << "Rot120 symmetry: P * O * P - O = " << arma::norm(arma::nonzeros(P_rot120_cx.t() * op * P_rot120_cx - op)) << std::endl;
-	std::cout << "Rot120 symmetry: P * O * P + O = " << arma::norm(arma::nonzeros(P_rot120_cx.t() * op * P_rot120_cx + op)) << std::endl;
-	std::cout << "Particle-hole parity: PH * O * PH - O = " << arma::norm(arma::nonzeros(PH_cx * arma::conj(op) * PH_cx - op)) << std::endl;
-	std::cout << "Particle-hole parity: PH * O * PH + O = " << arma::norm(arma::nonzeros(PH_cx * arma::conj(op) * PH_cx + op)) << std::endl;
+	std::cout << "Inversion parity: P * O * P - O = " << arma::norm(arma::nonzeros(P_cx * op - op * P_cx)) << std::endl;
+	std::cout << "Inversion parity: P * O * P + O = " << arma::norm(arma::nonzeros(P_cx * op + op * P_cx)) << std::endl;
+	std::cout << "Mirror sv parity: P * O * P - O = " << arma::norm(arma::nonzeros(Psv_cx * op - op * Psv_cx)) << std::endl;
+	std::cout << "Mirror sv parity: P * O * P + O = " << arma::norm(arma::nonzeros(Psv_cx * op + op * Psv_cx)) << std::endl;
+	std::cout << "Mirror sh parity: P * O * P - O = " << arma::norm(arma::nonzeros(Psh_cx * op - op * Psh_cx)) << std::endl;
+	std::cout << "Mirror sh parity: P * O * P + O = " << arma::norm(arma::nonzeros(Psh_cx * op + op * Psh_cx)) << std::endl;
+	std::cout << "Rot60 symmetry: P * O * P - O = " << arma::norm(arma::nonzeros(P_rot60_cx * op - op * P_rot60_cx)) << std::endl;
+	std::cout << "Rot60 symmetry: P * O * P + O = " << arma::norm(arma::nonzeros(P_rot60_cx * op + op * P_rot60_cx)) << std::endl;
+	std::cout << "Rot120 symmetry: P * O * P - O = " << arma::norm(arma::nonzeros(P_rot120_cx * op - op * P_rot120_cx)) << std::endl;
+	std::cout << "Rot120 symmetry: P * O * P + O = " << arma::norm(arma::nonzeros(P_rot120_cx * op + op * P_rot120_cx)) << std::endl;
+	std::cout << "Particle-hole parity: PH * O * PH - O = " << arma::norm(arma::nonzeros(PH_cx * op - op * PH_cx)) << std::endl;
+	std::cout << "Particle-hole parity: PH * O * PH + O = " << arma::norm(arma::nonzeros(PH_cx * op + op * PH_cx)) << std::endl;
 }
 
 arma::cx_mat symmetrize_es(arma::vec& ev, arma::cx_mat& es, arma::sp_cx_mat& P)
@@ -667,11 +667,11 @@ int main(int ac, char** av)
 		for (int i = 0; i < es_cx.n_cols; ++i)
 		{
 			std::cout << "E(" << i << ") = " << (arma::trace(esT_cx.row(i) * H * es_cx.col(i))) << std::endl;
-			std::cout << "P_rot60(" << i << ") = " << (arma::trace(esT_cx.row(i) * P_rot60_op * es_cx.col(i))) << std::endl;
-			std::cout << "P_rot120(" << i << ") = " << (arma::trace(esT_cx.row(i) * P_rot120_op * es_cx.col(i))) << std::endl;
 			std::cout << "P(" << i << ") = " << (arma::trace(esT_cx.row(i) * P_op * es_cx.col(i))) << std::endl;
 			std::cout << "P_sv(" << i << ") = " << (arma::trace(esT_cx.row(i) * P_sv_op * es_cx.col(i))) << std::endl;
 			std::cout << "P_sh(" << i << ") = " << (arma::trace(esT_cx.row(i) * P_sh_op * es_cx.col(i))) << std::endl;
+			std::cout << "P_rot60(" << i << ") = " << (arma::trace(esT_cx.row(i) * P_rot60_op * es_cx.col(i))) << std::endl;
+			std::cout << "P_rot120(" << i << ") = " << (arma::trace(esT_cx.row(i) * P_rot120_op * es_cx.col(i))) << std::endl;
 			std::cout << "PH(" << i << ") = " << (arma::trace(esT_cx.row(i) * PH_op * es_cx.col(i))) << std::endl;
 			std::cout << "-----" << std::endl;
 		}
@@ -679,6 +679,8 @@ int main(int ac, char** av)
 			gs_num = 0;
 		if (auto P1 = std::real(arma::trace(esT_cx.row(1) * P_op * es_cx.col(1))); P1 == -1)
 			gs_num = 1;
+		if (degeneracy == 1)
+			gs_num = 0;
 	}
 
 	std::complex<double> E = 0., m2 = 0., m4 = 0., cij = 0., n_total = 0.;
@@ -776,63 +778,95 @@ int main(int ac, char** av)
 	hmu_op.clear();
 	
 	
-	/*
+	
 	//----------------------------------------------------------------------------
 	
-	sparse_storage<std::complex<double>, int_t> gamma_mod_1_st(hspace.sub_dimension());
+	sparse_storage<std::complex<double>, int_t> test_st(hspace.sub_dimension());
 	hspace.build_operator([&]
 		(const std::pair<int_t, int_t>& n)
 		{
 			double pi = 4. * std::atan(1.);
 			std::complex<double> im = {0., 1.};
 			
-			std::vector<std::complex<double>> factor = {1., -1, -1};
-			for (int i = 0; i < lat.n_sites(); i+=4)
+			auto gm = [&](auto&& i, auto&& j, auto&& phase) {
+				state p = hspace.c_i({1, n.first}, j);
+				p = hspace.c_dag_i(p, i);
+				if (p.sign != 0)
+					test_st(hspace.index(p.id), n.second) += std::complex<double>(phase) * std::complex<double>(p.sign)
+						/ std::complex<double>(lat.n_bonds());
+			};
+			
+			for (int i = 0; i < lat.n_sites(); i+=2)
 			{
 				auto& r_i = lat.real_space_coord(i);
-				int r1 = lat.site_at_position(r_i - lat.a1 + lat.a2);
-				int r2 = lat.site_at_position(r_i + lat.a1);
-				int r3 = lat.site_at_position(r_i - lat.a2);
-				int r4 = lat.site_at_position(r_i + lat.delta - lat.a1);
-				int r5 = lat.site_at_position(r_i + lat.delta - 2*lat.a1 + lat.a2);
-				int r6 = lat.site_at_position(r_i + lat.delta);
-				int r7 = lat.site_at_position(r_i + lat.delta - lat.a1 - lat.a2);
+				int j = lat.site_at_position(r_i - lat.a1);
+				int k = lat.site_at_position(r_i - lat.a1 + lat.a2);
 				
-				int r8 = lat.site_at_position(r_i + lat.delta - lat.a1);
-				int r9 = lat.site_at_position(r_i + lat.delta);
-				int r10 = lat.site_at_position(r_i + lat.delta - lat.a1 + lat.a2);
+				gm(i, i+1, 1.);
+				gm(i+1, i, -1.);
 				
-				auto gm = [&](auto&& i, auto&& j, auto&& phase) {
-					state p = hspace.c_i({1, n.first}, j);
-					p = hspace.c_dag_i(p, i);
-					if (p.sign != 0)
-						gamma_mod_1_st(hspace.index(p.id), n.second) += phase * std::complex<double>(p.sign)
-							/ std::complex<double>(lat.n_bonds());
-				};
+				gm(i, j+1, -1.);
+				gm(j+1, i, 1.);
 				
-				gm(i, i, factor[0]);
-				gm(r9, r9, factor[1]);
-				//gm(r9, r9, 2.);
-				//gm(r10, r10, 3.);
-				//gm(i, r2, factor[0]);
-				//gm(i, r6, factor[0]);
+				gm(i, k+1, 1.);
+				gm(k+1, i, -1.);
 			}
+				
+			/*
+			for (int i = 0; i < lat.n_sites(); i+=2)
+			{
+				auto& r_i = lat.real_space_coord(i);
+				int j = i + 1;
+				
+				int r1 = lat.site_at_position(r_i + lat.a1);
+				int r2 = lat.site_at_position(r_i + lat.a1 - lat.a2);
+				int r3 = lat.site_at_position(r_i - lat.a2);
+				int r4 = lat.site_at_position(r_i - lat.a1);
+				int r5 = lat.site_at_position(r_i - lat.a1 + lat.a2);
+				int r6 = lat.site_at_position(r_i + lat.a2);
+				
+				gm(i, r1, 1.);
+				gm(i, r2, 1.);
+				gm(i, r3, 1.);
+				gm(i, r4, 1.);
+				gm(i, r5, 1.);
+				gm(i, r6, 1.);
+				
+				gm(j, r1+1, -1.);
+				gm(j, r2+1, -1.);
+				gm(j, r3+1, -1.);
+				gm(j, r4+1, -1.);
+				gm(j, r5+1, -1.);
+				gm(j, r6+1, -1.);
+			}
+			*/
+			
+			/*
+			for (int i = 0; i < lat.n_sites(); i+=2)
+			{
+				gm(i, i, -1.);
+				gm(i+1, i+1, 1.);
+			}
+			*/
 		});
-	arma::sp_cx_mat gamma_mod_1_op = gamma_mod_1_st.build_matrix();
-	gamma_mod_1_st.clear();
-	//gamma_mod_1_op = gamma_mod_1_op + P_rot60_op.t() * gamma_mod_1_op * P_rot60_op;
-	//gamma_mod_1_op = gamma_mod_1_op - P_sv_op * gamma_mod_1_op * P_sv_op;
-	//gamma_mod_1_op = gamma_mod_1_op + P_sh_op * gamma_mod_1_op * P_sh_op;
-	obs_data_cx.push_back(get_imaginary_time_obs(gamma_mod_1_op, Ntau, t_step, gs_num, ev,
+	arma::sp_cx_mat test_st_op = test_st.build_matrix();
+	test_st.clear();
+	//test_st_op = test_st_op - P_op * test_st_op * P_op;
+	//test_st_op = test_st_op - P_sv_op * test_st_op * P_sv_op;
+	//test_st_op = test_st_op + P_sh_op * test_st_op * P_sh_op;
+	//test_st_op = test_st_op - P_rot60_op.t() * test_st_op * P_rot60_op;
+	//test_st_op = test_st_op + P_rot120_op * P_rot120_op * test_st_op * P_rot120_op;
+	//test_st_op = test_st_op + PH_op * test_st_op * PH_op;
+	obs_data_cx.push_back(get_imaginary_time_obs(test_st_op, Ntau, t_step, gs_num, ev,
 		es_cx, esT_cx));
-	print_overlap(gamma_mod_1_op, "gamma_mod_1", degeneracy, ev, es_cx, esT_cx, P_op, PH_op);
-	print_commutator(gamma_mod_1_op, P_op, P_sh_op, P_sv_op, P_rot60_op, P_rot120_op, PH_op);
-	gamma_mod_1_op.clear();
+	print_overlap(test_st_op, "test_1", degeneracy, ev, es_cx, esT_cx, P_op, PH_op);
+	print_commutator(test_st_op, P_op, P_sh_op, P_sv_op, P_rot60_op, P_rot120_op, PH_op);
+	test_st_op.clear();
 	print_data(out, obs_data_cx.back());
-	return 0;
+	//return 0;
 	
 	//----------------------------------------------------------------------------
-	*/
+	
 	
 
 	sparse_storage<std::complex<double>, int_t> ni_st(hspace.sub_dimension());
